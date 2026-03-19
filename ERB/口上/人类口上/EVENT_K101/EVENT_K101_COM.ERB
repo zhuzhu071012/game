@@ -1,0 +1,5073 @@
+﻿;?? ????
+;@KOJO_MESSAGE_COM関係
+;指令実行時に出力されます
+;口上を追加しない指令は無記入でも構いません
+;--------------------------------------------------
+@KOJO_MESSAGE_COM_K101
+;助手が调教した時に口上をスキップする（好みに応じて使う、行頭の;を消すとスキップするようになる）
+;SIF ASSI > 0 && ASSIPLAY
+;	RETURN 0
+;口塞球着用か触手口辱中、崩溃中は地の文を表示して口上をスキップする
+IF (TEQUIP:20 && SELECTCOM != 107) || (TEQUIP:36 && SELECTCOM != 168) || TALENT:崩溃
+	CALL TRAIN_MESSAGE
+	SIF TFLAG:51 == 0 && FLAG:10 == 1
+		CALL PANT_VOICE2(10)
+	RETURN 0
+ENDIF
+;-------------------------------------------------
+;指令実行時のセリフ CFLAG 300～500
+;-------------------------------------------------
+;=================================================
+;爱抚系指令
+;=================================================
+;-------------------------------------------------
+;0,爱抚(触手プ雷の場合を除く)
+;-------------------------------------------------
+IF SELECTCOM == 0 && TEQUIP:触手 == 0
+	;T:XXXは今回の调教で、この指令を実行した回数。
+	;调教结束時に对応するCFLAG:XXX（このキャラでこの指令の合計実行回数）に加算します。
+	T:300 += 1
+	;共通の地の文（EVENT_M_COM）と汎用状況説明文の呼び出し。必要ない時は消していい。
+	CALL TRAIN_MESSAGE
+	;今回は汎用状況説明文を表示させたくない場合：共通の地の文を呼び出す前にTFLAG:52 = 1と付け加える
+	IF T:300 == 1
+		;初めてこの指令を選んだ時＆感度がまだ低く、痛くない＆未陷落
+		IF CFLAG:300 == 0 && C:4 <= 1 && D == 0 && !KANRAKU(TARGET)
+			PRINTFORML 「住手……%CSTR:3%难道不知，随意轻薄他人之躯，是何等失礼之举么？」
+			PRINTFORMW %CALLNAME%下意识绷紧了身体。
+			RETURN 0
+		;もう選んだことあるが、今回の调教では初めてこの指令を選んだ時
+		ELSE
+			IF (TALENT:恋慕 || TALENT:相亲相爱)
+				PRINTFORML 「……若只是想这样碰一碰，倒也不必每次都像在试探在下的底线。」
+				PRINTFORMW 「不过，若是您……在下会忍着不躲开的。」
+				RETURN 0
+			ELSEIF (TALENT:淫乱 || TALENT:娼妇)
+			ELSEIF (TALENT:服从 || TALENT:隶属)
+			;未陷落
+			ELSE
+				;痛くて感じる余裕が無い（AかVに装着系がある）&受虐狂ではない
+				IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3 && D != 2	
+					;PRINTFORML
+					;RETURN 0
+				ELSEIF C:4 == 1 || (C:4 == 2 && ((PALAM_COMPARE(0) && C:0 > 0) || ((PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0))) && D == 0
+					;殆どか、あまり感じていない､反抗刻印 < 3　屈服刻印 < 3
+					IF (PALAM:0 + UP:0) < 500 && (PALAM:0 + UP:0) < 500 && MARK:反抗刻印 < 3 && MARK:屈服刻印 < 3
+						PRINTFORML 「……若%CSTR:3%以为这种触碰便能轻易动摇在下，未免太过看轻人了。」
+						RETURN 0
+					;Cで少し感じ始めたか、感じてきている
+					ELSEIF ((PALAM:0 + UP:0) >= 500 && (PALAM:0 + UP:0) < 3000) && (PALAM:0 + UP:0) >= (PALAM:3 + UP:3)
+						;PRINTFORML
+						;RETURN 0
+					;Cで感じている
+					ELSEIF (PALAM:0 + UP:0) >= 3000 && (PALAM:0 + UP:0) >= (PALAM:3 + UP:3)
+						;PRINTFORML
+						;RETURN 0
+					;Bで少し感じ始めたか、感じてきている
+					ELSEIF  (PALAM:3 + UP:3) >= 500 && (PALAM:3 + UP:3) < 3000
+						;PRINTFORML
+						;RETURN 0
+					;Bで感じている
+					ELSE
+						;PRINTFORML
+						;RETURN 0
+					ENDIF
+				;Ｃだけ绝顶寸前
+				ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+					IF MARK:反抗刻印 == 3
+						;PRINTFORML
+						;RETURN 0
+					ELSE
+						;PRINTFORML
+						;RETURN 0
+					ENDIF
+				ENDIF
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降　([T:XXX < 3]というように条件を付け加えると、二回目は出るが三回目以降は出ない)
+	ELSEIF T:300 < 3 || FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;1,舔阴
+;-------------------------------------------------
+IF SELECTCOM == 1
+	T:301 += 1
+	CALL TRAIN_MESSAGE
+ENDIF
+;-------------------------------------------------
+;2,口交
+;-------------------------------------------------
+IF SELECTCOM == 2
+	T:302 += 1
+	;共通の地の文（EVENT_M_COM）と汎用状況説明文の呼び出し。必要ない時は消していい。
+	CALL TRAIN_MESSAGE
+	;今回は汎用状況説明文を表示させたくない場合：共通の地の文を呼び出す前にTFLAG:52 = 1と付け加える
+	IF T:302 == 1
+		;初めてこの指令を選んだ時
+		IF CFLAG:302 == 0
+			PRINTFORML 「竟以口舌侍奉……%CSTR:3%当真不顾纲常伦理了吗？」
+			PRINTFORMW %CALLNAME%说完这句话后，难掩屈辱地别开了目光。
+			RETURN 0
+		;もう選んだことあるが、今回の调教では初めてこの指令を選んだ時
+		ELSE
+			IF TALENT:恋慕 || TALENT:相亲相爱
+				PRINTFORML 「……请别那样盯着看。在下会照做，只是……容在下稍稍整顿一下心绪。」
+				RETURN 0
+			ENDIF
+			;Ｃ系用　現在のパラで口上を分岐する
+			;痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+			;Ｃ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+				;感じている
+				ELSE
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:302 < 3 || FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;3,手指插入
+;-------------------------------------------------
+IF SELECTCOM == 3
+	T:303 += 1
+	CALL TRAIN_MESSAGE
+	IF T:303 == 1
+		IF CFLAG:303 == 0
+			PRINTFORMW 「%CSTR:3%总爱先以这种看似温和的方式探路，可在下并不觉得这比直截了当仁慈多少。」
+			PRINTFORMW 「毕竟，被人一点点剥去余裕，本就是更磨人的折辱。」
+			CFLAG:303 = 1
+		ELSE
+			PRINTFORML 「……别故意在那处反复拨弄。」
+			PRINTFORMW 「在下虽还能忍，可若连呼吸都乱了，失仪的终究还是在下。」
+		ENDIF
+	ELSEIF T:303 < 3 || FLAG:7 == 2
+		PRINTFORML 「%CSTR:3%的手法，倒是比最初更懂得如何叫人为难了。」
+		PRINTFORMW 「明知何处最易动摇，却偏要慢条斯理地逼人失守……实在恶劣。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;4,舔肛
+;-------------------------------------------------
+IF SELECTCOM == 4
+	T:304 += 1
+	;共通の地の文（EVENT_M_COM）と汎用状況説明文の呼び出し。必要ない時は消していい。
+	CALL TRAIN_MESSAGE
+	;今回は汎用状況説明文を表示させたくない場合：共通の地の文を呼び出す前にTFLAG:52 = 1と付け加える
+	IF T:304 == 1
+		;初めてこの指令を選んだ時
+		IF CFLAG:304 == 0
+			PRINTFORML 「……住、住口！」
+			PRINTFORMW %CALLNAME%猛地绷紧腰身，声音因震惊而发颤。
+			CFLAG:304 = 1
+			RETURN 0
+		;もう選んだことあるが、今回の调教では初めてこの指令を選んだ時
+		ELSE
+			;舔肛用　現在のパラで口上を分岐する
+			;痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+				PRINTFORML 「……别在这种时候还做这等多余之事。」
+				PRINTFORMW 「疼痛尚且未消，%CSTR:3%却还要在下连羞耻一并咽下么？」
+			;Ａ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:2 + UP:2) < 500
+					PRINTFORML 「……别以为换了种羞辱法子，便能叫在下轻易失态。」
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					PRINTFORML 「唔……%CSTR:3%、故意的么……专挑这种让人无从招架的地方……」
+				;感じている
+				ELSE
+					PRINTFORML 「……够了，别再那样舔弄……再继续下去，在下当真要连声音都守不住了……」
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「停、停下……那里若再被您这样对待，在下便要当真失控了……！」
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:304 < 3 || FLAG:7 == 2
+		;舔肛用　現在のパラで口上を分岐する
+		;痛くて感じる余裕が無い&受虐狂ではない
+		IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+			PRINTFORML 「……真亏%CSTR:3%能把这种事做得如此理直气壮。」
+		;Ａ責めメインの時
+		ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:2 + UP:2) < 500
+				PRINTFORML 「……够了，在下并未堕落到会对这种羞辱心怀期待。」
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:2 + UP:2) < 3000
+				PRINTFORML 「唔……别、别那样慢慢来……越是如此，越叫人难堪……」
+			;感じている
+			ELSE
+				PRINTFORML 「……哈啊……%CSTR:3%若再不收手，在下怕是真要把廉耻二字全忘了……」
+			ENDIF
+		;Ａだけ绝顶寸前
+		ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「别、别偏挑这种时候……在下会……会当场失态的……！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;5,肛门爱抚
+;-------------------------------------------------
+IF SELECTCOM == 5
+	T:305 += 1
+	;共通の地の文（EVENT_M_COM）と汎用状況説明文の呼び出し。必要ない時は消していい。
+	CALL TRAIN_MESSAGE
+	;今回は汎用状況説明文を表示させたくない場合：共通の地の文を呼び出す前にTFLAG:52 = 1と付け加える
+	IF T:305 == 1
+		;初めてこの指令を選んだ時
+		IF CFLAG:305 == 0
+			PRINTFORML 「......停下!」
+			PRINTFORML	%CALLNAME%挣扎着向前爬去。
+			CFLAG:305 = 1
+			RETURN 0
+		;もう選んだことあるが、今回の调教では初めてこの指令を選んだ時
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ以外のところが痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3 && D:1 == 0
+				PRINTFORML 「……别硬来。那里受的罪已够多了，%CSTR:3%还嫌不够么。」
+			;Ａ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D <= 1
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					PRINTFORML 「唔……！荒唐，这种地方本就不是该被这样摆弄的！」
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					PRINTFORML 「……虽不似最初那般难捱，却仍叫人浑身不自在。」
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					PRINTFORML 「……%CSTR:3%的手，未免太熟门熟路了些。」
+				;疼痛以外の何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500
+					PRINTFORML 「……不，只是发热而已，并非在愉悦……至少不该是。」
+				;疼痛ながら感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75
+					PRINTFORML 「唔……可恶，竟连疼痛里都被您逼出了别的感觉……」
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					PRINTFORML 「……那里，竟也会被您调弄到这般地步……实在荒唐。」
+				;後ろで明らかに感じている
+				ELSEIF (PALAM:2 + UP:2) < 6000
+					PRINTFORML 「哈啊……别太得意，%CSTR:3%不过是恰好捏住了在下最难堪的弱处。」
+				;快感に震えている
+				ELSEIF (PALAM:2 + UP:2) < 8000
+					PRINTFORML 「……够了，快些停下……再这样下去，在下便要彻底乱了分寸……」
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「不成……后面若再被您这样抚弄，在下便要……！」
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:305 < 3 || FLAG:7 == 2
+		;Ａ系用　現在のパラで口上を分岐する
+		;Ａ以外のところが痛くて感じる余裕が無い&受虐狂ではない
+		IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3 && D:1 == 0
+			PRINTFORML 「……这种折腾，真不知%CSTR:3%究竟是图什么。」
+		;Ａ責めメインの時
+		ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D <= 1
+			;经验が足りなくてとにかくかなり痛い
+			IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+				PRINTFORML 「唔……别再往里了，那里还远未习惯这般对待。」
+			;段々痛くなくなるが、最初はまだ痛む
+			ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+				PRINTFORML 「……虽能忍住，可那种异样感仍叫人难以安心。」
+			;痛くもなく感じてもない。慣れてきた。
+			ELSEIF (PALAM:2 + UP:2) < 500
+				PRINTFORML 「……%CSTR:3%还真是对这处格外偏爱。」
+			;疼痛以外の何かを感じている
+			ELSEIF (PALAM:2 + UP:2) < 1500
+				PRINTFORML 「唔……别那样磨，在下会错把这种异样当成快感的……」
+			;疼痛ながら感じている
+			ELSEIF (PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75
+				PRINTFORML 「……可恶，明明还痛，却偏偏也会被逼得发热……」
+			;感じている
+			ELSEIF (PALAM:2 + UP:2) < 3000
+				PRINTFORML 「哈……啊……后面那处，竟也会如此听您的摆布……」
+			;後ろで明らかに感じている
+			ELSEIF (PALAM:2 + UP:2) < 6000
+				PRINTFORML 「……%CSTR:3%若见了在下这副样子，想必很是满意吧。」
+			;快感に震えている
+			ELSEIF (PALAM:2 + UP:2) < 8000
+				PRINTFORML 「不、不要再这样细细揉弄……在下真的会……失守的……！」
+			ENDIF
+		;Ａだけ绝顶寸前
+		ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「停下……！后面已经、已经要被您逼到极限了……！」
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;6,揉胸
+;-------------------------------------------------
+IF SELECTCOM == 6
+	T:306 += 1
+	CALL TRAIN_MESSAGE
+	IF T:306 == 1
+		;初めて
+		IF CFLAG:306 == 0
+			PRINTFORML 「……胸前也不肯放过么。」
+			PRINTFORMW 「%CSTR:3%这般堂而皇之地揉弄旁人身体，倒真像是在翻阅什么供您取乐的卷宗。」
+			CFLAG:306 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;Ｂ系用　現在のパラで口上を分岐する
+			;痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+				PRINTFORML 「……痛感未消，别再胡乱按揉。」
+			;Ｂ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:3 + UP:3) < 500
+					PRINTFORML 「……这种地方，原也不该叫您这般反复把玩。」
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					PRINTFORML 「唔……别揉得那样慢，越慢越叫人无法装作若无其事。」
+				;感じている
+				ELSE
+					PRINTFORML 「……哈啊……胸口发热成这样，倒像是连呼吸都要被您拿去了。」
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「够了……胸前已被您揉得太过，在下快要忍不住了……」
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF T:306 < 3 || FLAG:7 == 2
+		;Ｂ系用　現在のパラで口上を分岐する
+		;痛くて感じる余裕が無い&受虐狂ではない
+		IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+			PRINTFORML 「……%CSTR:3%的手劲，未免太不知轻重。」
+		;Ｂ責めメインの時
+		ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:3 + UP:3) < 500
+				PRINTFORML 「……若只是想看在下窘迫，您已做得很够了。」
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:3 + UP:3) < 3000
+				PRINTFORML 「唔……别在那处反复捻弄，实在太磨人了。」
+			;感じている
+			ELSE
+				PRINTFORML 「……胸口都快被您玩成另一张会说话的嘴了，尽会泄露在下的失态。」
+			ENDIF
+		;Ｂだけ绝顶寸前
+		ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「停手……胸前再被您这样玩下去，在下便真要失声了……！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;7,玩弄乳头
+;-------------------------------------------------
+IF SELECTCOM == 7
+	T:307 += 1
+	CALL TRAIN_MESSAGE
+	IF T:307 == 1
+		;初めて
+		IF CFLAG:307 == 0
+			PRINTFORMW %CALLNAME%咬紧牙关，不愿露出惧意。
+			CFLAG:307 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;Ｂ系用　現在のパラで口上を分岐する
+			;痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+				PRINTFORML 「……别掐那里。」
+			;Ｂ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:3 + UP:3) < 500
+					PRINTFORML 「……不要折磨我了。」
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					PRINTFORML 「唔……别只挑那一点欺负，实在太过分了……」
+				;感じている
+				ELSE
+					PRINTFORML 「……哈啊，全乱了……」
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「别、别只捻那里……胸口要被您逼得发疯了……！」
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF T:307 < 3 || FLAG:7 == 2
+		;Ｂ系用　現在のパラで口上を分岐する
+		;痛くて感じる余裕が無い&受虐狂ではない
+		IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3
+			PRINTFORML 「……再这样下去，疼的可不只是表面。」
+		;Ｂ責めメインの時
+		ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:3 + UP:3) < 500
+				PRINTFORML 「……%CSTR:3%是吃准了这一点最易叫人失态么。」
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:3 + UP:3) < 3000
+				PRINTFORML 「唔……只是被这样捻弄，怎会连腰都跟着发软……」
+			;感じている
+			ELSE
+				PRINTFORML 「……那里已经被您玩得太敏感了，稍一碰便叫人无从招架……」
+			ENDIF
+		;Ｂだけ绝顶寸前
+		ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「不成……胸前那一点、已经到极限了……！」
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;8,胸爱抚
+;-------------------------------------------------
+IF SELECTCOM == 8
+	T:308 += 1
+	CALL TRAIN_MESSAGE
+	IF T:308 == 1
+		;初めて
+		IF CFLAG:308 == 0
+			PRINTFORML 「等，不要用这么奇怪的手法来——唔」
+            IF TALENT:高大体型
+                PRINTFORML %CALLNAME%满脸羞红地看着%PLAYER_NAME()%把自己的肌肉奶子像筋道的面团一样揉弄
+            ELSE
+                PRINTFORML %CALLNAME%满脸羞红地看着%PLAYER_NAME()%像揉面一样揉弄自己的奶子
+            ENDIF
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					PRINTFORML 「……胸前被您这样反复蹭弄，实在不成体统。」
+					RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					PRINTFORML 「唔……别这样，越是缓慢摩挲，越叫人心口发乱。」
+					RETURN 0
+				ELSE
+					PRINTFORML 「……哈啊……您分明是故意的。」
+					RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「停、停下……胸口已经被您磨得快要受不住了……！」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF T:308 < 3 || FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+			IF (PALAM:3 + UP:3) < 500
+				PRINTFORML 「……%CSTR:3%对这点细碎折磨，倒是格外乐此不疲。」
+				RETURN 0
+			ELSEIF (PALAM:3 + UP:3) < 3000
+				PRINTFORML 「唔……别来回磨，胸前都快被您蹭得发烫了。」
+				RETURN 0
+			ELSE
+				PRINTFORML 「……再这样下去，在下怕是连胸口起伏都要任您摆布了……」
+				RETURN 0
+			ENDIF
+		;Ｂだけ绝顶寸前
+		ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「够了……胸前已经、已经到极限了……！」
+			RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;9,秘穴张开
+;-------------------------------------------------
+IF SELECTCOM == 9
+	T:309 += 1
+	CALL TRAIN_MESSAGE
+	IF T:309 == 1
+		IF CFLAG:309 == 0
+			PRINTFORMW 「%CSTR:3%是非得把一切体面都剖开来，才肯满意？」
+			CFLAG:309 = 1
+		ELSE
+			PRINTFORML 「……别那样盯着瞧。在下可不想连这种模样都被您记得太清楚。」
+		ENDIF
+	ELSEIF T:309 < 3 || FLAG:7 == 2
+		PRINTFORML 「越是被您这样拨开示人，越显得在下像件被检视的物事……实在难堪。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;10,胸自慰
+;-------------------------------------------------
+IF SELECTCOM == 10
+	T:310 += 1
+	CALL TRAIN_MESSAGE
+	IF T:310 == 1
+		;初めて
+		IF CFLAG:310 == 0
+			PRINTFORMW 「……%CSTR:3%还真是连人该如何失态，都要亲手安排得分毫不差。」
+			CFLAG:310 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					PRINTFORML 「……这种事还要在下亲手去做，真是荒唐得过了头。」
+					RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					PRINTFORML 「唔……明明只是胸前，怎会连指尖都像带了火似的……」
+					RETURN 0
+				ELSE
+					PRINTFORML 「……哈啊……在下竟会被逼到连自己碰自己都这般狼狈……」
+					RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				PRINTFORML 「不成……再继续碰那里，在下便要当着您的面失控了……！」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF T:310 < 3 || FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+			IF (PALAM:3 + UP:3) < 500
+				PRINTFORML 「……这种命令，重复多少次都只会显得%CSTR:3%恶趣味深重。」
+				RETURN 0
+			ELSEIF (PALAM:3 + UP:3) < 3000
+				PRINTFORML 「唔……别一直看。在下的手都快被您那目光逼得发颤了。」
+				RETURN 0
+			ELSE
+				PRINTFORML 「……哈啊……明明是自己抚弄，却像仍被您彻底攥在掌心里。」
+				RETURN 0
+			ENDIF
+		;Ｂだけ绝顶寸前
+		ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+			PRINTFORML 「够了……胸前已经被逼到极处，再碰便要失态了……！」
+			RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;11,自慰
+;-------------------------------------------------
+IF SELECTCOM == 11
+	T:311 += 1
+	CALL TRAIN_MESSAGE
+	IF T:311 == 1
+		IF CFLAG:311 == 0
+			PRINTFORML 「命在下于您面前自行亵弄……此等命令，未免太过荒唐。」
+			PRINTFORMW 纵然言辞仍旧克制，%CALLNAME%耳根还是迅速泛起了热意。
+			RETURN 0
+		ELSE
+			IF TALENT:恋慕 || TALENT:相亲相爱
+				PRINTFORML 「……若这是您的命令，在下会照做。」
+				PRINTFORMW 「只是，请莫要故意拿在下这副模样取笑。」
+				RETURN 0
+			ENDIF
+		ENDIF
+	ELSEIF T:311 < 3 || FLAG:7 == 2
+		IF !KANRAKU(TARGET)
+			PRINTFORML 「这般失态若传扬出去，足够让人在下家门前笑上三年了……」
+			RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;12,くるん爱抚（アホっ毛をいじる）
+;-------------------------------------------------
+IF SELECTCOM == 12
+	T:312 += 1
+	CALL TRAIN_MESSAGE
+	IF T:312 == 1
+		IF CFLAG:312 == 0
+			PRINTFORMW %CALLNAME%微微偏头，神情间难得掠过一丝无奈与局促。
+			CFLAG:312 = 1
+		ELSE
+			PRINTFORML 「%CSTR:3%若只是想借此取乐，倒也不必装得这样若无其事。」
+		ENDIF
+	ELSEIF T:312 < 3 || FLAG:7 == 2
+		PRINTFORML 「……别再拨了。总觉得您碰的不是头发，而是在下最后一点端整模样。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;13,阴茎爱抚
+;-------------------------------------------------
+IF SELECTCOM == 13
+	T:313 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:313 == 1
+		;初めて
+		IF CFLAG:313 == 0
+			PRINTFORML 「……竟连这里，也要由%CSTR:3%来亲手把玩。」
+			PRINTFORMW 「若此情此景传出去，只怕‘文若’二字都要被人笑作荒唐笑柄了。」
+			CFLAG:313 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					PRINTFORML 「……别自以为摸清了在下身体的脉门。」
+					RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					PRINTFORML 「唔……%CSTR:3%的手，未免太知道该往哪里逼人失守了……」
+					RETURN 0
+				;感じている
+				ELSE
+					PRINTFORML 「……哈啊……竟只是这样，便连这里都被您玩得抬不起头来……」
+					RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				PRINTFORML 「停、停下……再这样下去，在下真要当场泄了……！」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:313 < 3 || FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:0 + UP:0) < 500
+				PRINTFORML 「……这种摆弄，做得再熟练，也仍旧失礼得很。」
+				RETURN 0
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:0 + UP:0) < 3000
+				PRINTFORML 「唔……别忽轻忽重，在下可不想连腰都跟着您手势乱动。」
+				RETURN 0
+			;感じている
+			ELSE
+				PRINTFORML 「……哈啊……%CSTR:3%果然最擅长把人的矜持，一寸寸磨成笑话。」
+				RETURN 0
+			ENDIF
+		;Ｃだけ绝顶寸前
+		ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+			PRINTFORML 「不成……已经、已经要被您逼出来了……！」
+			RETURN 0
+		ENDIF	
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;14,アナニー
+;-------------------------------------------------
+IF SELECTCOM == 14
+	T:466 += 1
+	CALL TRAIN_MESSAGE
+	IF T:466 == 1
+		IF CFLAG:466 == 0
+			PRINTFORMW 「%CSTR:3%当真是非要把荒唐二字写到极致，才肯罢休。」
+			CFLAG:466 = 1
+		ELSE
+			PRINTFORML 「……别催。就算事到如今，这种命令也仍旧叫人无从适从。」
+		ENDIF
+	ELSEIF T:466 < 3 || FLAG:7 == 2
+		PRINTFORML 「……连这种姿态都要学会了，在下大概是真的被您逼远了回头路。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;17,抚摸兽耳
+;-------------------------------------------------
+IF SELECTCOM == 17
+	T:497 += 1
+	CALL TRAIN_MESSAGE
+	IF T:497 == 1
+		IF CFLAG:497 == 0
+			PRINTFORMW 「%CSTR:3%偶尔这般旁枝末节地作弄人，反倒更显得不怀好意。」
+			CFLAG:497 = 1
+		ELSE
+			PRINTFORML 「别总捏那里。痒意上来，实在有失仪态。」
+		ENDIF
+	ELSEIF T:497 < 3 || FLAG:7 == 2
+		PRINTFORML 「……再摸下去，在下怕是连偏头躲开的余地都要没有了。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;18,舔耳朵
+;-------------------------------------------------
+IF SELECTCOM == 18
+	T:494 += 1
+	CALL TRAIN_MESSAGE
+	IF T:494 == 1
+		IF CFLAG:494 == 0
+			PRINTFORML 「唔……！耳边也要这般轻薄么！」
+			PRINTFORMW 那一下湿热的触感掠过耳际，令%CALLNAME%几乎失了平日里的从容。
+			CFLAG:494 = 1
+		ELSE
+			PRINTFORML 「……别在耳边吐气。那地方太近，连心神都会被您扰乱。」
+		ENDIF
+	ELSEIF T:494 < 3 || FLAG:7 == 2
+		PRINTFORML 「唔……耳根都被您弄得发烫了，%CSTR:3%还不知足么。」
+	ENDIF
+ENDIF
+;=================================================
+;日常系指令
+;=================================================
+;-------------------------------------------------
+;20,接吻
+;-------------------------------------------------
+IF SELECTCOM == 20
+	T:314 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:314 == 1
+		;初めて
+		IF CFLAG:314 == 0
+			PRINTFORML 「亲吻本该是心意相许之事，岂可这般轻慢取乐？」
+			PRINTFORMW %CALLNAME%眉心微蹙，却仍被迫承受了这个吻。
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF KANRAKU(TARGET) == 1
+				PRINTFORML 「……若只是吻，可以稍慢一些么？」
+				PRINTFORMW 「在下想把这一刻，记得更清楚些。」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:314 < 3 || FLAG:7 == 2
+		IF !KANRAKU(TARGET)
+			PRINTFORML 「即便是吻，也请莫要以为这就能轻易收买在下。」
+			RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;21,什么也不做
+;-------------------------------------------------
+IF SELECTCOM == 21
+	T:315 += 1
+	CALL TRAIN_MESSAGE
+	IF T:315 == 1
+		PRINTFORMW 「%CSTR:3%忽然这般安静，反倒比动手动脚时更叫人在意。」
+	ELSEIF T:315 < 3 || FLAG:7 == 2
+		PRINTFORML 「这样沉默地耗着，也算一种折磨人的本事。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;22,会话
+;-------------------------------------------------
+IF SELECTCOM == 22
+	T:316 += 1
+	CALL TRAIN_MESSAGE
+	IF T:316 == 1
+		PRINTFORML 「若只是说话，倒还像几分正经相见的样子。」
+		PRINTFORMW 「只是%CSTR:3%若又想借言辞来试探在下，那还是省省吧。」
+	ELSEIF T:316 < 3 || FLAG:7 == 2
+		PRINTFORML 「……与您周旋言辞，倒比单纯闭口更费心神。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;23,礼物
+;-------------------------------------------------
+IF SELECTCOM == 23
+	T:317 += 1
+	CALL TRAIN_MESSAGE
+	IF T:317 == 1
+		PRINTFORMW 「%CSTR:3%莫不是以为，一点外物便能将先前种种轻轻揭过？」
+	ELSEIF T:317 < 3 || FLAG:7 == 2
+		PRINTFORML 「礼物在前，人情在后。%CSTR:3%这笔账，倒总算得很明白。」
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;24,身体接触
+;-------------------------------------------------
+IF SELECTCOM == 24
+	T:318 += 1
+	CALL TRAIN_MESSAGE
+	IF T:318 == 1
+		PRINTFORML 「……只是寻常碰一碰么。」
+		PRINTFORMW 「%CSTR:3%最好当真只是如此，否则在下可不会把这归作什么温情。」
+	ELSEIF T:318 < 3 || FLAG:7 == 2
+		PRINTFORML 「您如今连这种若即若离的碰触，也用得愈发顺手了。」
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;25,悠闲度过
+;-------------------------------------------------
+IF SELECTCOM == 25
+	T:319 += 1
+	CALL TRAIN_MESSAGE
+	IF T:319 == 1
+		PRINTFORML 「悠闲度过……倒是难得。」
+		PRINTFORMW 「若您今日终于肯把人当人看，在下不介意暂且收起几分讥刺。」
+	ELSEIF T:319 < 3 || FLAG:7 == 2
+		PRINTFORML 「这样无事相对的时候，反倒更容易叫人忘了这屋子原本是什么地方。」
+	ENDIF
+ENDIF
+
+
+;-------------------------------------------------
+;26,家务
+;-------------------------------------------------
+IF SELECTCOM == 26
+	T:320 += 1
+	CALL TRAIN_MESSAGE
+	IF T:320 == 1
+		PRINTFORML 「家务么？这倒并非在下所短。」
+		PRINTFORMW 「若只是料理内务，总比被您拿去作那些荒唐消遣来得体面。」
+	ELSEIF T:320 < 3 || FLAG:7 == 2
+		PRINTFORML 「至少这种差使，还能让在下觉得自己尚有几分用处。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;27,歌唱练习
+;-------------------------------------------------
+IF SELECTCOM == 27
+	T:321 += 1
+	CALL TRAIN_MESSAGE
+	IF T:321 == 1
+		PRINTFORMW 「%CSTR:3%的兴致，还真是时常跳脱得叫人难以预料。」
+	ELSEIF T:321 < 3 || FLAG:7 == 2
+		PRINTFORML 「若只是借歌声消磨时辰，倒也算不得最坏的命令。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;28,痛骂
+;-------------------------------------------------
+IF SELECTCOM == 28
+	T:322 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:322 == 1
+		;初めて
+		IF CFLAG:322 == 0
+			PRINTFORMW 「%CSTR:3%骂便骂吧。若几句恶言便能叫在下折志，那荀文若也未免太轻贱了。」
+			CFLAG:322 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「言语锋利，不代表理就站在%CSTR:3%那边。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:322 < 3 || FLAG:7 == 2
+		PRINTFORML 「……骂得再重，也不过是在证明%CSTR:3%心中其实并不安稳。」
+		RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;29,观看视频
+;-------------------------------------------------
+IF SELECTCOM == 29
+	T:323 += 1
+	CALL TRAIN_MESSAGE
+	IF T:323 == 1
+		PRINTFORML 「观看影像？」
+		PRINTFORMW 「%CSTR:3%若想借此开人眼界，手段未免也太不讲究了些。」
+	ELSEIF T:323 < 3 || FLAG:7 == 2
+		PRINTFORML 「……把这些东西看得久了，连人心都容易被磨钝。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;30,暴力を振るう
+;-------------------------------------------------
+IF SELECTCOM == 30
+	T:324 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:324 == 1
+		;初めて
+		IF CFLAG:324 == 0
+			PRINTFORML 「……终于懒得再遮掩，打算直接以暴力逼服么。」
+			PRINTFORMW 「好。%CSTR:3%尽可试试，看能折断在下几根骨头，又能折去几分心气。」
+			CFLAG:324 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「动手吧。反正%CSTR:3%从来也不是第一次如此失礼。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:324 < 3 || FLAG:7 == 2
+		PRINTFORML 「……若您只剩下拳脚可用，那倒真是比在下想的还要浅薄几分。」
+		RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;33,助手化形（无需口上）
+;-------------------------------------------------
+IF SELECTCOM == 33
+	T:500 += 1
+	CALL TRAIN_MESSAGE
+ENDIF
+;-------------------------------------------------
+;34,助手变化体型（无需口上）
+;-------------------------------------------------
+IF SELECTCOM == 34
+	T:501 += 1
+	CALL TRAIN_MESSAGE
+ENDIF
+;=================================================
+;道具使用指令
+;=================================================
+;40,跳蛋
+;-------------------------------------------------
+IF SELECTCOM == 40
+	T:325 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:325 == 1
+		;初めて
+		IF CFLAG:325 == 0
+			PRINTFORML 「……这等会自行震颤的小玩意，便是%CSTR:3%今日的新花样？」
+			PRINTFORMW 「看着不起眼，倒偏偏最会扰人心神。」
+			CFLAG:325 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					PRINTFORML 「……嗡嗡作响，吵得人心烦，并无半点风雅可言。」
+					RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					PRINTFORML 「唔……这细碎震动，最是会钻空子，叫人防都防不住……」
+					RETURN 0
+				;感じている
+				ELSE
+					PRINTFORML 「……哈啊……不过一件死物，竟也被您使得像是在专门逼人在下失守。」
+					RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				PRINTFORML 「停下……那东西震得太过，再下去便要——！」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:325 < 3 || FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:0 + UP:0) < 500
+				PRINTFORML 「……这种取巧的玩意，%CSTR:3%倒是用得顺手。」
+				RETURN 0
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:0 + UP:0) < 3000
+				PRINTFORML 「唔……别光放着不管，那震颤会一点点磨得人发软……」
+				RETURN 0
+			;感じている
+			ELSE
+				PRINTFORML 「……可恶，连这种机械震动都快被您调教成了拿捏在下的手段。」
+				RETURN 0
+			ENDIF
+		;Ｃだけ绝顶寸前
+		ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+			PRINTFORML 「不行……要、要被这东西逼出来了……！」
+			RETURN 0
+		ENDIF	
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;41,电动按摩棒
+;-------------------------------------------------
+IF SELECTCOM == 41
+	T:326 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:326 == 1
+		;初めて
+		IF CFLAG:326 == 0
+			PRINTFORML 「……竟还要用这种更过分的器具么。」
+			PRINTFORMW 「%CSTR:3%对如何省力地逼人失态，确实颇有心得。」
+			CFLAG:326 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					PRINTFORML 「……这东西比方才那件更不讲情面。」
+					RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					PRINTFORML 「唔……太深了些，连震动都像直接凿进骨子里……」
+					RETURN 0
+				;感じている
+				ELSE
+					PRINTFORML 「……哈啊……%CSTR:3%拿器物行事时，倒比亲手更显得冷酷。」
+					RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				PRINTFORML 「拿出去……快些……那东西再震一下，在下便要——！」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF T:326 < 3 || FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:0 + UP:0) < 500
+				PRINTFORML 「……这种器具，只会显得%CSTR:3%比平日更像个熟练的施刑者。」
+				RETURN 0
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:0 + UP:0) < 3000
+				PRINTFORML 「唔……别让它这样一直震，在下根本静不下心……」
+				RETURN 0
+			;感じている
+			ELSE
+				PRINTFORML 「……哈啊……真是可笑，竟会被一件无心死物逼得比受人抚弄时还要狼狈。」
+				RETURN 0
+			ENDIF
+		;Ｃだけ绝顶寸前
+		ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+			PRINTFORML 「不成……已经、已经被震到极处了……！」
+			RETURN 0
+		ENDIF	
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;42,阴蒂夹
+;-------------------------------------------------
+IF SELECTCOM == 42 && TEQUIP:11 == 0
+	T:327 += 1
+	CALL TRAIN_MESSAGE
+	IF T:327 == 1
+		IF CFLAG:327 == 0
+			PRINTFORML 「……连那里都要夹上刑具？」
+			PRINTFORMW 「你真龌龊。」
+			CFLAG:327 = 1
+		ELSE
+			PRINTFORML 「那夹子一合，在下便知道您今日又没打算让人好过。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……别故意调得太紧，细微的痛最是磨人。」
+	ENDIF
+ELSEIF SELECTCOM == 42 && TEQUIP:11 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……总算肯取下了么。那一下松开的感觉，倒比戴上时更叫人难堪。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;43,飞机杯
+;-------------------------------------------------
+IF SELECTCOM == 43 && TEQUIP:12 == 0
+	T:328 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:328 == 1
+		;初めて
+		IF CFLAG:328 == 0
+			PRINTFORML 「……拿这等器具套弄在下，当真比亲手摆布更体面么？」
+			PRINTFORMW 「%CSTR:3%倒像是在评估什么物件的趁手与否。」
+			CFLAG:328 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					;RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					;RETURN 0
+				;感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+			;殆どか、あまり感じていない
+			IF (PALAM:0 + UP:0) < 500
+				;RETURN 0
+			;少し感じ始めたか、感じてきている
+			ELSEIF (PALAM:0 + UP:0) < 3000
+				;RETURN 0
+			;感じている
+			ELSE
+				;RETURN 0
+			ENDIF
+		;Ｃだけ绝顶寸前
+		ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+			;RETURN 0
+		ENDIF	
+	ENDIF
+ELSEIF SELECTCOM == 43 && TEQUIP:12 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……取下时倒知道轻一些。莫非%CSTR:3%也怕把在下彻底用坏了？」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;44,自慰棒
+;-------------------------------------------------
+IF SELECTCOM == 44 && TEQUIP:13 == 0
+	T:329 += 1
+	CALL TRAIN_MESSAGE
+	IF T:329 == 1
+		;初めて
+		IF CFLAG:329 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……竟要借器具来夺这第一遭？」
+				PRINTFORMW 「%CSTR:3%连这种事，都不肯留半分像样的余地。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……又是器具。」
+				PRINTFORMW 「%CSTR:3%似乎格外喜欢让死物来替您折辱活人。」
+			ENDIF
+			CFLAG:329 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……这东西比手指更直白，也更不讲情面。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「唔……别太深，在下可不想连器具的尺寸都被身体记住。」
+	ENDIF
+ELSEIF SELECTCOM == 44 && TEQUIP:13 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……拿出来时，总像在提醒在下方才又被您摆弄得何等彻底。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;45,肛塞
+;-------------------------------------------------
+IF SELECTCOM == 45 && TEQUIP:14 == 0
+	T:330 += 1
+	CALL TRAIN_MESSAGE
+	IF T:330 == 1
+		;初めて
+		IF CFLAG:330 == 0
+			IF TALENT:后庭处子
+				PRINTFORML 「……后面那处的第一次，竟要给这东西？」
+				PRINTFORMW 「%CSTR:3%还真懂得如何把人的羞耻碾得一文不值。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……拿塞具来堵在后面，倒像是连退路也一并封死了。」
+			ENDIF
+			CFLAG:330 = 1
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ以外のところが痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3 && D:1 == 0
+			;Ａ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D != 2
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+				;疼痛以外の何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500
+				;疼痛ながら感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+				;後ろで明らかに感じている
+				ELSEIF (PALAM:2 + UP:2) < 6000
+				;快感に震えている
+				ELSEIF (PALAM:2 + UP:2) < 8000
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D != 2
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……总把这种东西留在里面，%CSTR:3%是存心叫在下时时记着自己何等狼狈么。」
+	ENDIF
+ELSEIF SELECTCOM == 45 && TEQUIP:14 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……拔出时那一下空落，倒比堵着时更叫人无所适从。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;46,后庭拉珠
+;-------------------------------------------------
+IF SELECTCOM == 46 && TEQUIP:15 == 0
+	T:331 += 1
+	CALL TRAIN_MESSAGE
+	IF T:331 == 1
+		;初めて
+		IF CFLAG:331 == 0
+			IF TALENT:后庭处子
+				PRINTFORML 「……珠串？！」
+			;それ以外
+			ELSE
+				PRINTFORML 「……这种一寸寸递进的折腾法，倒很像%CSTR:3%的作风。」
+			ENDIF
+			CFLAG:331 = 1
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ以外のところが痛くて感じる余裕が無い&受虐狂ではない
+			IF D >= 1 && C:4 <= 2 && TALENT:84 != 1 && ABL:9 < 3 && D:1 == 0
+			;Ａ責めメインの時
+			ELSEIF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D != 2
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+				;疼痛以外の何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500
+				;疼痛ながら感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+				;後ろで明らかに感じている
+				ELSEIF (PALAM:2 + UP:2) < 6000
+				;快感に震えている
+				ELSEIF (PALAM:2 + UP:2) < 8000
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D != 2
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……每抽动一颗，都像是在提醒在下已经被您教坏到了哪一步。」
+	ENDIF
+ELSEIF SELECTCOM == 46 && TEQUIP:15 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……取下时还这般慢条斯理，%CSTR:3%是嫌在下还不够难熬么。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;47,振动乳头夹
+;-------------------------------------------------
+IF SELECTCOM == 47 && TEQUIP:16 == 0
+	T:332 += 1
+	CALL TRAIN_MESSAGE
+	IF T:332 == 1
+		;初めて
+		IF CFLAG:332 == 0
+			PRINTFORML 「……唔？」
+			PRINTFORMW  %CALLNAME%眉头微蹙，伸手想要除去折磨自己的物件，却被%PLAYER_NAME()%死死按住了手腕。
+			CFLAG:332 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					;RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					;RETURN 0
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……您问我舒不舒服？」
+		PRINTFORMW 	%CALLNAME%愤怒地推开%PLAYER_NAME()%
+		RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 47 && TEQUIP:16 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……总算取下了。胸前还麻得厉害。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;48,乳头跳蛋
+;-------------------------------------------------
+IF SELECTCOM == 48
+	T:333 += 1
+	CALL TRAIN_MESSAGE
+	IF T:333 == 1
+		;初めて
+		IF CFLAG:333 == 0
+			PRINTFORML 「……%CSTR:3%的花样还真是一层接一层。」
+			PRINTFORMW 「偏偏越是细小的地方，越经不起这般折腾。」
+			CFLAG:333 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					;RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					;RETURN 0
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……胸前被这般持续震着，连呼吸都要跟着失了章法。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;49,挤奶器
+;-------------------------------------------------
+IF SELECTCOM == 49 && TEQUIP:17 == 0
+	T:334 += 1
+	CALL TRAIN_MESSAGE
+	IF T:334 == 1
+		;初めて
+		IF CFLAG:334 == 0
+			PRINTFORMW 「%CSTR:3%当真是把在下往牲畜般的用途上打磨。」
+			CFLAG:334 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					;RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					;RETURN 0
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……被这样反复汲取，胸口都像不再属于自己了。」
+		RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 49 && TEQUIP:17 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……取下之后，反倒还残着空荡荡的抽离感。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;50,导尿管
+;-------------------------------------------------
+IF SELECTCOM == 50 && TEQUIP:38 == 0
+	T:335 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:335 == 1
+		;初めて
+		IF CFLAG:335 == 0
+			PRINTFORMW 「%CSTR:3%对人的边界，果真是一寸也不肯放过。」
+			CFLAG:335 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					;RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					;RETURN 0
+				;感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2	
+		PRINTFORML 「……别乱动那管子，光是存在在那里，便已够叫人心生寒意了。」
+	ENDIF
+ELSEIF SELECTCOM == 50 && TEQUIP:38 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……抽离时总像连最后一点安稳也被一道带了出去。」
+	ENDIF
+ENDIF
+
+;=================================================
+;做爱系指令
+;=================================================
+;-------------------------------------------------
+;60,正常位
+;-------------------------------------------------
+IF SELECTCOM == 60
+	T:336 += 1
+	CALL TRAIN_MESSAGE
+	IF T:336 == 1
+		;初めて
+		IF CFLAG:336 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「唔……！住手！……竟连最后的名节也不肯放过么……！」
+				PRINTFORMW %CALLNAME%失了平素的从容，连呼吸都乱成一团。
+				RETURN 0
+			;それ以外
+			ELSE
+				PRINTFORML 「……这般行径，%CSTR:3%还真是毫不知收敛。」
+				RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			IF TALENT:恋慕 || TALENT:相亲相爱
+				PRINTFORML 「……既已至此，至少请看着在下。」
+				PRINTFORMW 「别把今夜，也当作一场寻常的玩弄。」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;61,后背位
+;-------------------------------------------------
+IF SELECTCOM == 61
+	T:337 += 1
+	CALL TRAIN_MESSAGE
+	IF T:337 == 1
+		;初めて
+		IF CFLAG:337 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「这等姿态……太难堪了！%CSTR:3%非要逼得在下无地自容么？」
+				PRINTFORMW 被摆成这般毫无退路的样子，%CALLNAME%的声音都因羞怒而发颤。
+				RETURN 0
+			;それ以外
+			ELSE
+				PRINTFORML 「……连让人保有最后一点体面都不肯，%CSTR:3%真是恶劣得坦荡。」
+				RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			IF TALENT:恋慕 || TALENT:相亲相爱
+				PRINTFORML 「别让在下背过身去太久……至少，也让在下知道您此刻是什么神情。」
+				RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;62,正常位肛交
+;-------------------------------------------------
+IF SELECTCOM == 62
+	T:338 += 1
+	CALL TRAIN_MESSAGE
+	IF T:338 == 1
+		;初めて
+		IF CFLAG:338 == 0
+			IF TALENT:后庭处子
+				;RETURN 0
+			;それ以外
+			ELSE
+				;RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;63,后背位肛交
+;-------------------------------------------------
+IF SELECTCOM == 63
+	T:339 += 1
+	CALL TRAIN_MESSAGE
+	IF T:339 == 1
+		;初めて
+		IF CFLAG:339 == 0
+			IF TALENT:后庭处子
+				;RETURN 0
+			;それ以外
+			ELSE
+				;RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;65,乳头奸
+;-------------------------------------------------
+IF SELECTCOM == 65
+	T:340 += 1
+	CALL TRAIN_MESSAGE
+	IF T:340 == 1
+		;初めて
+		IF CFLAG:340 == 0
+			PRINTFORML 「……竟连胸前都要被您拿来行此荒唐之事？」
+			PRINTFORMW 「%CSTR:3%倒是总能替‘有失体统’四字添上新注脚。」
+			CFLAG:340 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……胸口被您这样逼着承欢，实在叫人无颜细想。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……别以为换了地方，难堪就会少上半分。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;66,骑乘位
+;-------------------------------------------------
+IF SELECTCOM == 66
+	T:341 += 1
+	CALL TRAIN_MESSAGE
+	IF T:341 == 1
+		;初めて
+		IF CFLAG:341 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……竟要逼在下坐上来？」
+				PRINTFORMW 「这般主动迎受的姿态，比单纯被压制更叫人难堪。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……连上下起伏都要由在下亲自来么。」
+				PRINTFORMW 「%CSTR:3%这是存心要把‘失态’二字刻进在下每一个动作里。」
+			ENDIF
+			CFLAG:341 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……别只是看着。您那目光，比动作本身还更叫人在意。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这般被迫自己送上去，实在像是在亲手承认已被您驯服。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;67,骑乘位肛交
+;-------------------------------------------------
+IF SELECTCOM == 67
+	T:342 += 1
+	CALL TRAIN_MESSAGE
+	IF T:342 == 1
+		;初めて
+		IF CFLAG:342 == 0
+			IF TALENT:后庭处子
+				PRINTFORML 「……后面那处的第一次，竟还要摆成这种姿势么！」
+				RETURN 0
+			;それ以外
+			ELSE
+				PRINTFORML 「……连后庭都要由在下自己坐下去，%CSTR:3%当真恶劣得坦荡。」
+				RETURN 0
+			ENDIF
+			CFLAG:342 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……别催得太急，后面那处可经不起这般直上直下的折腾。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这种姿势，当真是把所有难堪都推回到在下自己身上了。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;68,对面座位
+;-------------------------------------------------
+IF SELECTCOM == 68
+	T:343 += 1
+	CALL TRAIN_MESSAGE
+	IF T:343 == 1
+		;初めて
+		IF CFLAG:343 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……非要面对面地逼在下失身么。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……这种面对面的坐姿，最叫人连躲开视线都做不到。」
+			ENDIF
+			CFLAG:343 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「别离得那样近。您每一丝神情都会叫在下分心。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这样贴着相对，倒像是连羞耻都被您捧到眼前细看。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;69,背面座位
+;-------------------------------------------------
+IF SELECTCOM == 69
+	T:344 += 1
+	CALL TRAIN_MESSAGE
+	IF T:344 == 1
+		;初めて
+		IF CFLAG:344 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……背向而坐，也不过是换种法子叫人在您怀里失守罢了。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……这种姿势，倒像是故意让人既靠近您，又不敢回头看您。」
+			ENDIF
+			CFLAG:344 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……别从后面抱得那样紧，在下会更难维持平静。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……既被您圈在怀里，连想装作若无其事都成了妄想。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;70,对面座位肛交
+;-------------------------------------------------
+IF SELECTCOM == 70
+	T:345 += 1
+	CALL TRAIN_MESSAGE
+	IF T:345 == 1
+		;初めて
+		IF CFLAG:345 == 0
+			IF TALENT:后庭处子
+				;RETURN 0
+			;それ以外
+			ELSE
+				;RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;71,背面座位肛交
+;-------------------------------------------------
+IF SELECTCOM == 71
+	T:346 += 1
+	CALL TRAIN_MESSAGE
+	IF T:346 == 1
+		;初めて
+		IF CFLAG:346 == 0
+			IF TALENT:后庭处子
+				;RETURN 0
+			;それ以外
+			ELSE
+				;RETURN 0
+			ENDIF
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;74,对面立位
+;-------------------------------------------------
+IF SELECTCOM == 74
+	T:347 += 1
+	CALL TRAIN_MESSAGE
+	IF T:347 == 1
+		;初めて
+		IF CFLAG:347 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……连站着也要逼人承受么。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……这样立着相对，连退后半步都像是在示弱。」
+			ENDIF
+			CFLAG:347 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「站立时本就难稳，%CSTR:3%还偏要挑这种姿势来折腾人。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……腿都快被您逼软了，还要装作从容，当真不易。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;75,对面立位肛
+;-------------------------------------------------
+IF SELECTCOM == 75
+	T:348 += 1
+	CALL TRAIN_MESSAGE
+	IF T:348 == 1
+		;初めて
+		IF CFLAG:348 == 0
+			IF TALENT:后庭处子
+				PRINTFORML 「……站着夺后庭之贞，%CSTR:3%倒真会挑最难堪的法子。」
+				RETURN 0
+			;それ以外
+			ELSE
+				PRINTFORML 「……后面那处还要在立姿里承受，未免太苛刻了些。」
+				RETURN 0
+			ENDIF
+			CFLAG:348 = 1
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这样站着被您从后处逼迫，连羞耻都像没处可藏。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;76,背面立位
+;-------------------------------------------------
+IF SELECTCOM == 76
+	T:349 += 1
+	CALL TRAIN_MESSAGE
+	IF T:349 == 1
+		;初めて
+		IF CFLAG:349 == 0
+			;处女
+			IF TALENT:0
+				PRINTFORML 「……背向而立，倒更像任人处置的刑姿了。」
+			;それ以外
+			ELSE
+				PRINTFORML 「……这种姿势，真叫人连回头看您一眼都难。」
+			ENDIF
+			CFLAG:349 = 1
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……别压得太狠。在下还想保住几分站得住的体面。」
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……被您从身后这样逼着，实在像是连影子都要失去主张。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;77,背面立位肛
+;-------------------------------------------------
+IF SELECTCOM == 77
+	T:350 += 1
+	CALL TRAIN_MESSAGE
+	IF T:350 == 1
+		;初めて
+		IF CFLAG:350 == 0
+			IF TALENT:后庭处子
+				PRINTFORML 「……竟还要在背立之姿失去后庭的第一次么！」
+				RETURN 0
+			;それ以外
+			ELSE
+				PRINTFORML 「……后面那处在这种姿势里受侵，实在连辩驳都显得无力。」
+				RETURN 0
+			ENDIF
+			CFLAG:350 = 1
+		;今回の调教で初めて
+		ELSE
+			;Ａ系用　現在のパラで口上を分岐する
+			;Ａ責めメインの時
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:2 + UP:2) >= (PALAM:1 + UP:1) && (PALAM:2 + UP:2) >= (PALAM:3 + UP:3) && (PALAM:2 + UP:2) >= (PALAM:0 + UP:0) && C:2 > 0) && D == 0
+				;经验が足りなくてとにかくかなり痛い
+				IF EXP:Ａ经验 < 10 && (PALAM:2 + UP:2) < 3000 || (EXP:Ａ经验 < 30 && (PALAM:2 + UP:2) < 1500)
+					;RETURN 0
+				;段々痛くなくなるが、最初はまだ痛む
+				ELSEIF EXP:Ａ经验 >= 30 && EXP:Ａ经验 < 75 && (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;痛くもなく感じてもない。慣れてきた。
+				ELSEIF (PALAM:2 + UP:2) < 500
+					;RETURN 0
+				;疼痛ながら何かを感じている
+				ELSEIF (PALAM:2 + UP:2) < 1500 || ((PALAM:2 + UP:2) < 3000 && EXP:Ａ经验 < 75)
+					;RETURN 0
+				;感じている
+				ELSEIF (PALAM:2 + UP:2) < 3000
+					;RETURN 0
+				;後ろで明らかに感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ａだけ绝顶寸前
+			ELSEIF C:2 == 4 && C:1 < 4 && C:3 < 4 && C:0 < 4 && D == 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……站都快站不稳了，%CSTR:3%却还偏要从后面那处逼人失守。」
+	ENDIF
+ENDIF
+
+;=================================================
+;侍奉系指令
+;=================================================
+;-------------------------------------------------
+;80,手交命令
+;-------------------------------------------------
+IF SELECTCOM == 80
+	T:351 += 1
+	CALL TRAIN_MESSAGE
+	IF T:351 == 1
+		IF CFLAG:351 == 0
+			PRINTFORMW 「若%CSTR:3%今日只是想借在下纾解欲念，那倒不必故作委婉。」
+			RETURN 0
+		ELSE
+			IF TALENT:恋慕 || TALENT:相亲相爱
+				PRINTFORML 「请别催得太急……在下会尽量照着您喜欢的方式来。」
+				RETURN 0
+			ENDIF
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;81,口交命令
+;-------------------------------------------------
+IF SELECTCOM == 81
+	T:352 += 1
+	CALL TRAIN_MESSAGE
+	IF T:352 == 1
+		IF CFLAG:352 == 0
+			PRINTFORML 「……命令式的口舌侍奉么。」
+			PRINTFORMW 「把这种事说得像例行公文，反倒更显%CSTR:3%恶劣。」
+			CFLAG:352 = 1
+		ELSE
+			PRINTFORML 「……既是命令，在下会做。只是%CSTR:3%最好别因此太过得意。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……您总爱用最平淡的口吻，吩咐最让人难堪的事。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;82,乳交命令
+;-------------------------------------------------
+IF SELECTCOM == 82
+	T:353 += 1
+	CALL TRAIN_MESSAGE
+	IF T:353 == 1
+		IF CFLAG:353 == 0
+			PRINTFORMW 「%CSTR:3%对物尽其用四字，倒真有一番不近人情的理解。」
+			CFLAG:353 = 1
+		ELSE
+			PRINTFORML 「……别催。胸口被这般当作器具来使，本就已足够难堪。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……原来连胸前，也能被您这般理所当然地拿来差遣。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;83,素股させる
+;-------------------------------------------------
+IF SELECTCOM == 83
+	T:354 += 1
+	CALL TRAIN_MESSAGE
+	IF T:354 == 1
+		IF CFLAG:354 == 0
+			PRINTFORML 「……只许贴磨，不许真入么。」
+			PRINTFORMW 「这般若即若离，倒比直截了当更会消磨人。」
+			CFLAG:354 = 1
+		ELSE
+			PRINTFORML 「……总在门前徘徊不进，%CSTR:3%是有意叫人在临界处熬着么。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这种差一步不得解脱的磨法，实在最折人心。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;84,泡泡浴
+;-------------------------------------------------
+IF SELECTCOM == 84
+	T:355 += 1
+	CALL TRAIN_MESSAGE
+	IF T:355 == 1
+		IF CFLAG:355 == 0
+			PRINTFORMW 「%CSTR:3%偶尔摆出些温和模样，倒更叫人猜不透后手。」
+			CFLAG:355 = 1
+		ELSE
+			PRINTFORML 「……水汽与泡沫倒能遮去些狼狈，可也仅止于此了。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「至少在这片刻里，连羞耻都像被泡沫暂且盖住了。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;85,足交命令
+;-------------------------------------------------
+IF SELECTCOM == 85
+	T:356 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:356 == 1
+		IF CFLAG:356 == 0
+			PRINTFORMW 「%CSTR:3%对折人身段，向来不乏新意。」
+			CFLAG:356 = 1
+		ELSE
+			PRINTFORML 「……这种差使，倒真像是把人当作随手可用的物件了。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……用足间去迎合%CSTR:3%欲念，实在比用手还更显轻贱。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;86,舔足命令
+;-------------------------------------------------
+IF SELECTCOM == 86
+	T:357 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:357 == 1
+		;初めて
+		IF CFLAG:357 == 0
+			PRINTFORMW 「%CSTR:3%这是存心要看在下把最后一点名士气都踩进尘里。」
+			CFLAG:357 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……既已低头，%CSTR:3%便莫要再以这副神情居高临下地看着在下。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这般屈辱的姿势，做得越多，越叫人难以把自己当回事。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;87,縦乳交命令
+;-------------------------------------------------
+IF SELECTCOM == 87
+	T:358 += 1
+	CALL TRAIN_MESSAGE
+	IF T:358 == 1
+		IF CFLAG:358 == 0
+			PRINTFORMW 「%CSTR:3%对胸前这点文章，倒真是翻来覆去也玩不厌。」
+			CFLAG:358 = 1
+		ELSE
+			PRINTFORML 「……胸口已被您使得发烫，还要这样换着法子来折腾。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……原来连胸前的夹裹方向，%CSTR:3%都要细细讲究。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;88,乳夹口交命令
+;-------------------------------------------------
+IF SELECTCOM == 88
+	T:359 += 1
+	CALL TRAIN_MESSAGE
+	IF T:359 == 1
+		IF CFLAG:359 == 0
+			PRINTFORMW 「%CSTR:3%把人逼到顾此失彼的狼狈模样时，总显得格外从容。」
+			CFLAG:359 = 1
+		ELSE
+			PRINTFORML 「……胸前与口中都不得安宁，您倒真会叫人为难。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……一边含着，一边以胸前侍奉，连喘息都要被您算进趣味里。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;89,饮用母乳
+;-------------------------------------------------
+IF SELECTCOM == 89
+	T:360 += 1
+	CALL TRAIN_MESSAGE
+	IF T:360 == 1
+		IF CFLAG:360 == 0
+			PRINTFORMW 「%CSTR:3%竟真把在下推到了这般用途上，倒也算彻底。」
+			CFLAG:360 = 1
+		ELSE
+			PRINTFORML 「……这种情景，怎么看都像是在故意提醒在下已被改造成何种模样。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……连这种事都能被您做得理所当然，实在叫人无话可说。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;90,阴茎摩擦头发
+;-------------------------------------------------
+IF SELECTCOM == 90
+	T:361 += 1
+	CALL TRAIN_MESSAGE
+	IF T:361 == 1
+		IF CFLAG:361 == 0
+			PRINTFORMW 「%CSTR:3%这点羞辱人的巧思，真是无处不用其极。」
+			CFLAG:361 = 1
+		ELSE
+			PRINTFORML 「……别缠得太乱。到头来，狼狈的还不是在下收拾。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……发丝被您这样利用，倒像连最后一点整洁都被拖下了水。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;91,使之舔手指
+;-------------------------------------------------
+IF SELECTCOM == 91
+	T:362 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:362 == 1
+		;初めて
+		IF CFLAG:362 == 0
+			PRINTFORMW 「%CSTR:3%连这种带着训犬意味的小把戏，都做得格外熟练。」
+			CFLAG:362 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……这种命令，越像戏弄，越叫人难以下咽。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……指尖上的滋味倒是寻常，可这命令本身实在过分。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;92,腋交
+;-------------------------------------------------
+IF SELECTCOM == 92
+	T:363 += 1
+	CALL TRAIN_MESSAGE
+	IF T:363 == 1
+		IF CFLAG:363 == 0
+			PRINTFORMW 「滚开！」
+			CFLAG:363 = 1
+		ELSE
+			PRINTFORML 「……你太过分了……」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……越是偏门的玩法，越显得%CSTR:3%兴味古怪。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;93,乳を飲ませる
+;-------------------------------------------------
+IF SELECTCOM == 93
+	T:467 += 1
+	CALL TRAIN_MESSAGE
+	IF T:467 == 1
+		IF CFLAG:467 == 0
+			PRINTFORML 「……要由在下来喂么。」
+			PRINTFORMW 「事到如今，连这种亲密里都掺着支配意味了。」
+			CFLAG:467 = 1
+		ELSE
+			PRINTFORML 「……别摆出那副理所当然的样子。越自然，越显得在下被您用顺了手。」
+		ENDIF
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这种温驯模样若被旧识看见，只怕连在下自己都要认不出来。」
+	ENDIF
+ENDIF
+;=================================================
+;SM系指令
+;=================================================
+;-------------------------------------------------
+;100,打屁股
+;-------------------------------------------------
+IF SELECTCOM == 100
+	T:364 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:364 == 1
+		;初めて
+		IF CFLAG:364 == 0
+			PRINTFORMW 「%CSTR:3%若当真觉得以这种方式便能立威，那未免也太过浅陋了。」
+			CFLAG:364 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……尽管打吧。疼归疼，可未必就能换来%CSTR:3%想要的顺服。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这种粗暴手段，除了显得%CSTR:3%耐性不足，也没别的长处了。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;101,打胸部
+;-------------------------------------------------
+IF SELECTCOM == 101
+	T:365 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:365 == 1
+		;初めて
+		IF CFLAG:365 == 0
+			PRINTFORMW 「%CSTR:3%下手之前，最好先想清这究竟是调教，还是单纯泄愤。」
+			CFLAG:365 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……痛楚倒还其次，这种被刻意羞辱的意味才更叫人厌烦。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……把手掌落在这种地方，%CSTR:3%还真是不知何谓分寸。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;102,鞭子
+;-------------------------------------------------
+IF SELECTCOM == 102
+	T:366 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:366 == 1
+		;初めて
+		IF CFLAG:366 == 0
+			PRINTFORML 「……连鞭子都取出来了么。」
+			PRINTFORMW 「%CSTR:3%待人之道，倒真是越来越省得遮掩了。」
+			CFLAG:366 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「挥吧。可鞭痕落在皮肉上，并不代表理就落在%CSTR:3%那边。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……每一下都像在提醒在下，%CSTR:3%究竟有多么热衷于以痛立威。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;103,蜡烛
+;-------------------------------------------------
+IF SELECTCOM == 103
+	T:367 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:367 == 1
+		;初めて
+		IF CFLAG:367 == 0
+			PRINTFORMW 「以热蜡戏弄皮肤，真亏%CSTR:3%能把这种恶趣味包装得像门学问。」
+			CFLAG:367 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……那一点点灼烫落下来，倒比单纯的痛更磨人。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……您总爱选这种不至致命、却最损心气的法子。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;104,针
+;-------------------------------------------------
+IF SELECTCOM == 104
+	T:368 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:368 == 1
+		;初めて
+		IF CFLAG:368 == 0
+			PRINTFORML 「……针刺么。」
+			PRINTFORMW 「细小之物最会折磨人，%CSTR:3%连这一点都算得分毫不差。」
+			CFLAG:368 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……别以为针细，痛便不重。那种绵密的刺感，才更叫人烦躁。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……%CSTR:3%倒真懂得，如何用最小的伤痕换来最大的难堪。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;105,眼罩
+;-------------------------------------------------
+IF SELECTCOM == 105 && TEQUIP:18 == 0
+	T:369 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:369 == 1
+		;初めて
+		IF CFLAG:369 == 0
+			PRINTFORML 「……连视线也要一并剥走么。」
+			PRINTFORMW 「看不见之后，人反倒更容易把羞耻想得过于清楚。」
+			CFLAG:369 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……眼前一黑，倒像是把任人摆布这件事都放大了数倍。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……看不见并不会让在下更顺从，只会让%CSTR:3%显得更像个施刑者。」
+		RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 105 && TEQUIP:18 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……终于肯让在下重见光亮了么。可惜，该记住的难堪并不会因此少上一分。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;106,绳子
+;-------------------------------------------------
+IF SELECTCOM == 106 && TEQUIP:19 == 0
+	T:370 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:370 == 1
+		;初めて
+		IF CFLAG:370 == 0
+			PRINTFORMW 「%CSTR:3%似乎总对‘束缚’二字有种近乎执拗的偏好。」
+			CFLAG:370 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……绑得这样紧，倒像生怕在下还能保有半分主张。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……被缚住四肢之后，连最简单的挣扎都显得可笑起来。」
+		RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 106 && TEQUIP:19 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……解开之后，腕上那圈勒痕仍像在替您发号施令。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;107,口塞球
+;-------------------------------------------------
+IF SELECTCOM == 107 && TEQUIP:20 == 0
+	T:371 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:371 == 1
+		;初めて
+		IF CFLAG:371 == 0
+			PRINTFORMW 「不让人说话，倒确实是最省事的驯法之一。」
+			CFLAG:371 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「唔……您连辩驳的机会都不肯留，未免太过从容。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……口中被堵得发酸，倒更显得人像件安静的陈设。」
+		RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 107 && TEQUIP:20 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……拿开之后，连喘气都像是件奢侈事了。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;108,拷問
+;-------------------------------------------------
+IF SELECTCOM == 108
+	T:372 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:372 == 1
+		;初めて
+		IF CFLAG:372 == 0
+			PRINTFORMW 「终于连名目都懒得修饰了么，%CSTR:3%倒是坦白得很。」
+			CFLAG:372 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「若只是想看在下崩坏，那您怕是还得多费些心思。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……把折磨直白地称作拷问，反倒比虚伪粉饰更像%CSTR:3%会做的事。」
+		RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;109,禁止射精
+;-------------------------------------------------
+IF SELECTCOM == 109
+	T:373 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:373 == 1
+		;初めて
+		IF CFLAG:373 == 0
+			PRINTFORMW 「这般管束……我宁可从未奉你为主……」
+			CFLAG:373 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……逼到临界却不许宣泄，这种折法比单纯的痛更让人难受。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……被这样吊着不上不下，连神智都要被磨得发涩了。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;110,家具にする
+;-------------------------------------------------
+IF SELECTCOM == 110
+	T:374 += 1
+	;共通の地の文 
+	CALL TRAIN_MESSAGE
+ENDIF
+
+;-------------------------------------------------
+;111,剃毛
+;-------------------------------------------------
+IF SELECTCOM == 111
+	T:375 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:375 == 1
+		;初めて
+		IF CFLAG:375 == 0
+			PRINTFORMW 「……」
+			PRINTFORML %CALLNAME%耻辱又恐惧地蜷缩起来，又被%PLAYER_NAME()%展开。
+			CFLAG:375 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……」
+			PRINTFORML %CALLNAME%本想无视%PLAYER_NAME()%的举动，下身光溜溜的感觉仍让他羞耻地颤抖。
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML  %CALLNAME%苦笑一声
+		PRINTFORML 「……连这点遮掩都被您除去，往后怕是更无体面可言了。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;112,首絞め
+;-------------------------------------------------
+IF SELECTCOM == 112
+	T:376 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:376 == 1
+		;初めて
+		IF CFLAG:376 == 0
+			PRINTFORMW 「你就这么想杀我吗？」
+			CFLAG:376 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「唔……别太狠。若连呼吸都被您夺去，那便不只是羞辱的问题了。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……这种被迫仰仗%CSTR:3%松手才能换气的感觉，真叫人厌恶。」
+		RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;113,顔騎圧迫
+;-------------------------------------------------
+IF SELECTCOM == 113
+	T:377 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:377 == 1
+		;初めて
+		IF CFLAG:377 == 0
+			PRINTFORML 「……竟还要以这种方式压在人脸上？」
+			PRINTFORMW 「%CSTR:3%若非存心羞辱到极处，想来也不会挑这种姿态。」
+			CFLAG:377 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……把人按在最难堪的位置上，%CSTR:3%倒总显得格外有耐心。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……呼吸、视线、姿势，全都被您逼到这种地步，实在恶劣。」
+		RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;114,金蹴り
+;-------------------------------------------------
+IF SELECTCOM == 114
+	T:468 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:468 == 1
+		;初めて
+		IF CFLAG:468 == 0
+			PRINTFORMW 「%CSTR:3%出手之前，竟半点也不觉得这种做法粗鄙么。」
+			CFLAG:468 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……这等疼法，除了叫人面目尽失外，实在没有半分可称道之处。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……%CSTR:3%每每挑这种地方下手，都像是在刻意嘲弄人最后一点尊严。」
+		RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;115,電気アンマ
+;-------------------------------------------------
+IF SELECTCOM == 115
+	T:469 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:469 == 1
+		;初めて
+		IF CFLAG:469 == 0
+			PRINTFORMW 「这名字听着轻巧，落到身上却半点不轻。」
+			CFLAG:469 = 1
+			RETURN 0
+		;今回の调教で初めて
+		ELSE
+			PRINTFORML 「……那一下下麻痹与抽痛交错，倒比单纯的击打更会磨人。」
+			RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		PRINTFORML 「……%CSTR:3%总能把器具玩出一副像是在精研酷刑的模样。」
+		RETURN 0
+	ENDIF
+ENDIF
+;=================================================
+;元 助手による指令、及び百合プ雷
+;=================================================
+;-------------------------------------------------
+;120,強制舔阴
+;-------------------------------------------------
+IF SELECTCOM == 120
+	T:378 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……竟要强迫在下去侍奉她人？%CSTR:3%拿人心与名节做戏，倒真是熟练。」
+	RETURN 0
+	IF T:378 == 1
+		;初めて
+		IF CFLAG:378 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;121,磨镜
+;-------------------------------------------------
+IF SELECTCOM == 121
+	T:472 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……彼此以身相磨？这种把羞耻推到对等位置上的玩法，反倒更显荒唐。」
+	PRINTFORMW 「%CSTR:3%最擅长的，果然还是把人拉进同样失序的泥沼里。」
+	RETURN 0
+	IF T:472 == 1
+		IF CFLAG:472 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;122,使之侵犯助手
+;-------------------------------------------------
+IF SELECTCOM == 122
+	T:473 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……还要命在下去侵犯助手？%CSTR:3%当真是连旁人的体面也要一并拖下水。」
+	RETURN 0
+	IF T:473 == 1
+		;初めて
+		IF CFLAG:473 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;123,足交
+;-------------------------------------------------
+IF SELECTCOM == 123
+	T:474 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……连足交都要再分出旁支，%CSTR:3%在羞辱人的门类上倒真肯下苦功。」
+	RETURN 0
+	IF T:474 == 1
+		;初めて
+		IF CFLAG:474 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;124,Ｗ口交
+;-------------------------------------------------
+IF SELECTCOM == 124
+	T:475 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……双人口侍么。把人逼到连喘息次序都要争让，未免太过分了。」
+	PRINTFORMW 「%CSTR:3%站在旁边看着这种局面，倒总是一副从容评鉴的样子。」
+	RETURN 0
+	IF T:475 == 1
+		IF CFLAG:475 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;125,Ｗ乳交
+;-------------------------------------------------
+IF SELECTCOM == 125
+	T:476 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……连乳侍都要并作双份？%CSTR:3%这份贪心得倒是坦坦荡荡。」
+	PRINTFORMW 「把人排布得像供您取乐的陈设，未免太不把人当回事了。」
+	RETURN 0
+	IF T:476 == 1
+		IF CFLAG:476 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;126,互相推搡胸部
+;-------------------------------------------------
+IF SELECTCOM == 126
+	T:477 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「越是像玩笑，越显得%CSTR:3%对羞辱二字有着惊人的熟练。」
+	RETURN 0
+	IF T:477 == 1
+		IF CFLAG:477 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;127,阴茎相互摩擦
+;-------------------------------------------------
+IF SELECTCOM == 127
+	T:478 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「%CSTR:3%是非要把难堪二字写到最直白处才尽兴么。」
+	RETURN 0
+	IF T:478 == 1
+		;初めて
+		IF CFLAG:478 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;=================================================
+;严厉な调教指令
+;=================================================
+;-------------------------------------------------
+;140,强制口交
+;-------------------------------------------------
+IF SELECTCOM == 140
+	T:479 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……强制口交。好一个连余地都不留的命令，倒真符合%CSTR:3%作风。」
+	PRINTFORMW 「连拒绝都被省去之后，剩下的便只有赤裸裸的支配了。」
+	RETURN 0
+	IF T:479 == 1
+		;初めて
+		IF CFLAG:479 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;141,拳交
+;-------------------------------------------------
+IF SELECTCOM == 141
+	T:480 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「%CSTR:3%如今已连‘过甚’二字都懒得避讳了么。」
+	PRINTFORMW 「这种做法若还想称作调教，未免太过厚颜。」
+	RETURN 0
+	IF T:480 == 1
+		IF CFLAG:480 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;142,肛门拳交
+;-------------------------------------------------
+IF SELECTCOM == 142
+	T:481 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……不，不要这样对我」
+	RETURN 0
+	IF T:481 == 1
+		;初めて
+		IF CFLAG:481 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;143,两穴拳交
+;-------------------------------------------------
+IF SELECTCOM == 143
+	T:482 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「连一丝喘息的空隙都不肯给，您倒真狠得周全。」
+	PRINTFORMW 「到这一步，再谈礼法，倒像是在说给笑话听了。」
+	RETURN 0
+	IF T:482 == 1
+		;初めて
+		IF CFLAG:482 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;144,放尿
+;-------------------------------------------------
+IF SELECTCOM == 144
+	T:483 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……放尿这种事，也要堂而皇之拿来折人颜面么。」
+	PRINTFORMW 「%CSTR:3%对污辱二字，确实有着常人难及的理解。」
+	RETURN 0
+	IF T:483 == 1
+		;初めて
+		IF CFLAG:483 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;145,肛门侍奉強制
+;-------------------------------------------------
+IF SELECTCOM == 145
+	T:484 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「%CSTR:3%是当真打定主意，要把在下从里到外都改成顺手器具。」
+	PRINTFORMW 「这份打磨人的耐心，倒真叫人不寒而栗。」
+	RETURN 0
+	IF T:484 == 1
+		;初めて
+		IF CFLAG:484 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;146,灌肠器＋塞头
+;-------------------------------------------------
+IF SELECTCOM == 146 && TEQUIP:21 == 0
+	T:485 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……灌肠再加塞头，您这套层层递进的羞辱法，倒真一环扣一环。」
+	RETURN 0
+	IF T:485 == 1
+		;初めて
+		IF CFLAG:485 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 146 && TEQUIP:21 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……总算取下了。可那股被强行支配过的感觉，却一时半刻散不掉。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;147,空气灌肠
+;-------------------------------------------------
+IF SELECTCOM == 147
+	T:486 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……空气灌肠。%CSTR:3%连看不见摸不着的胀感都要拿来折人，真是恶劣。」
+	PRINTFORMW 「越是虚无缥缈的折磨，越叫人无法辩解自己的狼狈。」
+	RETURN 0
+	IF T:486 == 1
+		;初めて
+		IF CFLAG:486 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;148,扩张气球
+;-------------------------------------------------
+IF SELECTCOM == 148 && TEQUIP:22 == 0
+	T:487 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「把人的羞耻一点点鼓胀开来，倒确实像%CSTR:3%会想出的法子。」
+	RETURN 0
+	IF T:487 == 1
+		;初めて
+		IF CFLAG:487 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 148 && TEQUIP:22 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……取出之后，空落与酸胀反倒一并涌了上来。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;149,肛门电极
+;-------------------------------------------------
+IF SELECTCOM == 149 && TEQUIP:23 == 0
+	T:488 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……肛门电极。%CSTR:3%总能把器具与痛感搭配得恰到好处，真叫人不快。」
+	RETURN 0
+	IF T:488 == 1
+		;初めて
+		IF CFLAG:488 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 149 && TEQUIP:23 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……拿掉之后，那点电麻似乎还残在骨子里。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;150,乳房电极
+;-------------------------------------------------
+IF SELECTCOM == 150 && TEQUIP:24 == 0
+	T:489 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「%CSTR:3%还真会挑最易叫人失态的地方下手。」
+	RETURN 0
+	IF T:489 == 1
+		;初めて
+		IF CFLAG:489 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 150 && TEQUIP:24 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……取下了也好。胸口那阵麻颤，再多一会儿怕是连心跳都要乱了。」
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;151,鳗鱼池
+;-------------------------------------------------
+IF SELECTCOM == 151
+	T:490 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「你在开玩笑吧。」
+	PRINTFORMW 「不……不！」
+	PRINTFORMW 	%CALLNAME%尖叫着被丢尽池子
+	RETURN 0
+	IF T:490 == 1
+		;初めて
+		IF CFLAG:490 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;152,虫子池
+;-------------------------------------------------
+IF SELECTCOM == 152
+	T:491 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……虫池……」
+	PRINTFORMW 「丞相这样待人，又指望他人如何待你」
+	RETURN 0
+	IF T:491 == 1
+		;初めて
+		IF CFLAG:491 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;153,尿道バルーン	CFLAG:435
+;-------------------------------------------------
+IF SELECTCOM == 153
+	T:379 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「越是细窄脆弱之处，越能看出%CSTR:3%折人的兴致。」
+	PRINTFORMW 「当真半点都不肯留情。」
+	RETURN 0
+	IF T:379 == 1
+		;初めて
+		IF CFLAG:379 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;154,肉便器
+;-------------------------------------------------
+IF SELECTCOM == 154
+	T:380 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「连称呼都已低贱到这般地步，%CSTR:3%倒真是一点脸面都不打算留了。」
+	PRINTFORMW 「若还要在这种名目下谈顺从，未免太过可笑。」
+	RETURN 0
+	IF T:380 == 1
+		;初めて
+		IF CFLAG:380 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;155,兽姦
+;-------------------------------------------------
+IF SELECTCOM == 155
+	T:381 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「%CSTR:3%若连这种界限都要越过，那便已谈不上什么人伦礼法了。」
+	PRINTFORMW 「真是荒唐到了极处。」
+	RETURN 0
+	IF T:381 == 1
+		;初めて
+		IF CFLAG:381 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;156,烙印　CFLAG:448
+;R = 0なにもしない、R = 1傷痕、R = 2身体穿环、R = 3刺青、 R = 4焼き印
+;-------------------------------------------------
+IF SELECTCOM == 156
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	SIF R != 0
+		T:382 += 1
+ENDIF
+
+;-------------------------------------------------
+;157,饮尿　CFLAG:477
+;-------------------------------------------------
+IF SELECTCOM == 157
+	T:383 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「把人逼到吞下这种羞辱，%CSTR:3%还真是从不知何谓适可而止。」
+	PRINTFORMW 「若这也算趣味，那实在太过污秽。」
+	RETURN 0
+	IF T:383 == 1
+		;初めて
+		IF CFLAG:383 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;=================================================
+;触手系指令
+;=================================================
+;-------------------------------------------------
+;160,触手召喚
+;-------------------------------------------------
+IF SELECTCOM == 160 && TEQUIP:25 == 0
+	T:384 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「每逢这种非人之物登场，%CSTR:3%便显得比平日更像在做一场实验。」
+	PRINTFORMW 「把活人置于这等境地，也亏您能面不改色。」
+	RETURN 0
+	IF T:384 == 1
+		;初めて
+		IF CFLAG:384 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 160 && TEQUIP:25 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……总算散去了么。可那种被异物环伺的恶寒，却一时还褪不净。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;161,触手插入
+;-------------------------------------------------
+IF SELECTCOM == 161
+	T:385 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……竟要让触手来插入？」
+	PRINTFORMW 「比起人的手，这种滑腻异物反倒更叫人本能地生厌。」
+	RETURN 0
+	IF T:385 == 1
+		;初めて
+		IF CFLAG:385 == 0
+			;处女
+			IF TALENT:0
+				
+			;それ以外
+			ELSE
+				
+			ENDIF
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;162,触手插肛
+;-------------------------------------------------
+IF SELECTCOM == 162
+	T:386 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……连后面那处也要交给触手？%CSTR:3%对非人的羞辱，果然情有独钟。」
+	RETURN 0
+	IF T:386 == 1
+		;初めて
+		IF CFLAG:386 == 0
+			IF TALENT:后庭处子
+				
+			;それ以外
+			ELSE
+				
+			ENDIF
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;163,触手揉阴
+;-------------------------------------------------
+IF SELECTCOM == 163
+	T:387 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……被那东西揉弄前处，实在比被人碰触更显恶寒。」
+	RETURN 0
+	IF T:387 == 1
+		IF CFLAG:387 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;164,触手揉乳
+;-------------------------------------------------
+IF SELECTCOM == 164
+	T:388 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……触手连胸前也不放过，倒真像是在代%CSTR:3%逐寸盘点在下的身体。」
+	RETURN 0
+	IF T:388 == 1
+		;初めて
+		IF CFLAG:388 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && (PALAM:3 + UP:3) >= (PALAM:1 + UP:1) && (PALAM:3 + UP:3) >= (PALAM:2 + UP:2) && (PALAM:3 + UP:3) >= (PALAM:0 + UP:0) && C:3 > 0) && D == 0
+				IF (PALAM:3 + UP:3) < 500
+					;RETURN 0
+				ELSEIF (PALAM:3 + UP:3) < 3000
+					;RETURN 0
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｂだけ绝顶寸前
+			ELSEIF C:3 == 4 && C:1 < 4 && C:2 < 4 && C:0 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;二回目以降
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;165,触手挤奶
+;-------------------------------------------------
+IF SELECTCOM == 165
+	T:389 += 1
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……连挤乳都要交给触手来做么。」
+	PRINTFORMW 「这样一来，在下倒真像被彻底降成可供采撷的器物了。」
+	RETURN 0
+	IF T:389 == 1
+		IF CFLAG:389 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;166,触手紧缚
+;-------------------------------------------------
+IF SELECTCOM == 166
+	T:390 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……触手紧缚。比起绳索，这种活物般的束缚倒更叫人无端发冷。」
+	RETURN 0
+	IF T:390 == 1
+		;初めて
+		IF CFLAG:390 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;167,触手灌肠
+;-------------------------------------------------
+IF SELECTCOM == 167
+	T:391 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「%CSTR:3%把恶趣味与方便性结合得如此纯熟，真是令人叹服。」
+	RETURN 0
+	IF T:391 == 1
+		;初めて
+		IF CFLAG:391 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;168,触手口辱
+;-------------------------------------------------
+IF SELECTCOM == 168 && TEQUIP:36 == 0
+	T:392 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「比起单纯的下流，更让人作呕的是这份非人的冷漠。」
+	RETURN 0
+	IF T:392 == 1
+		;初めて
+		IF CFLAG:392 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 168 && TEQUIP:36 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……离开之后，口中那股异物感却还像烙在喉间，真叫人反胃。」
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;169,触手玩弄阴茎
+;-------------------------------------------------
+IF SELECTCOM == 169
+	T:393 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORML 「……连那里也要被触手拿来玩弄，%CSTR:3%倒真是不分彼此地一视同仁。」
+	RETURN 0
+	IF T:393 == 1
+		;初めて
+		IF CFLAG:393 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			IF C:4 == 1 || (C:4 == 2 && PALAM_COMPARE(0) && C:0 > 0) && D == 0
+				;殆どか、あまり感じていない
+				IF (PALAM:0 + UP:0) < 500
+					;RETURN 0
+				;少し感じ始めたか、感じてきている
+				ELSEIF (PALAM:0 + UP:0) < 3000
+					;RETURN 0
+				;感じている
+				ELSE
+					;RETURN 0
+				ENDIF
+			;Ｃだけ绝顶寸前
+			ELSEIF C:0 == 4 && C:1 < 4 && C:2 < 4 && C:3 < 4 && D == 0
+				;RETURN 0
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2	
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;170,触手尿道插入
+;-------------------------------------------------
+IF SELECTCOM == 170 && TEQUIP:38 == 0
+	T:394 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	PRINTFORMW 「这种发想本身，已足够说明%CSTR:3%今日心思何等恶劣。」
+	RETURN 0
+	IF T:394 == 1
+		;初めて
+		IF CFLAG:394 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 170 && TEQUIP:38 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		PRINTFORML 「……总算抽离了。可那种被异物侵过的寒意，仍在体内盘着不去。」
+	ENDIF
+ENDIF
+
+;=================================================
+;特殊指令
+;=================================================
+;-------------------------------------------------
+;180,润滑乳液,
+;-------------------------------------------------
+IF SELECTCOM == 180
+	T:395 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:395 == 1
+		;初めて
+		IF CFLAG:395 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;181,媚薬,
+;-------------------------------------------------
+IF SELECTCOM == 181
+	T:396 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:396 == 1
+		;初めて
+		IF CFLAG:396 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;182,利尿剂,
+;-------------------------------------------------
+IF SELECTCOM == 182
+	T:397 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:397 == 1
+		;初めて
+		IF CFLAG:397 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;183,摄像机,
+;-------------------------------------------------
+IF SELECTCOM == 183 && TEQUIP:28 == 0
+	T:398 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:398 == 1
+		;初めて
+		IF CFLAG:398 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 183 && TEQUIP:28 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;184,野外PLAY,
+;-------------------------------------------------
+IF SELECTCOM == 184 && TEQUIP:29 == 0
+	T:399 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:399 == 1
+		;初めて
+		IF CFLAG:399 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 184 && TEQUIP:29 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;185,侵犯助手,
+;-------------------------------------------------
+IF SELECTCOM == 185
+	T:400 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:400 == 1
+		;初めて
+		IF CFLAG:400 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;186,羞耻PLAY,
+;-------------------------------------------------
+IF SELECTCOM == 186 && TEQUIP:30 == 0
+	T:401 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:401 == 1
+		;初めて
+		IF CFLAG:401 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 186 && TEQUIP:30 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;187,浴室PLAY,
+;-------------------------------------------------
+IF SELECTCOM == 187 && TEQUIP:31 == 0
+	T:402 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:402 == 1
+		;初めて
+		IF CFLAG:402 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 187 && TEQUIP:31 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;188,淋浴,
+;-------------------------------------------------
+IF SELECTCOM == 188 && TEQUIP:32 == 0
+	T:403 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:403 == 1
+		;初めて
+		IF CFLAG:403 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ELSEIF SELECTCOM == 188 && TEQUIP:32 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;190,写真摄影,
+;-------------------------------------------------
+IF SELECTCOM == 190
+	T:404 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:404 == 1
+		;初めて
+		IF CFLAG:404 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;191,强精神药,
+;-------------------------------------------------
+IF SELECTCOM == 191 
+	T:405 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:405 == 1
+		;初めて
+		IF CFLAG:405 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;192,避孕套精飲（奴隶）
+;-------------------------------------------------
+IF SELECTCOM == 192
+	T:406 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:406 == 1
+		;初めて
+		IF CFLAG:406 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;193,避孕套精飲（助手）
+;-------------------------------------------------
+IF SELECTCOM == 193
+	T:407 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:407 == 1
+		;初めて
+		IF CFLAG:407 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;194,含精接吻
+;-------------------------------------------------
+IF SELECTCOM == 194
+	T:408 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:408 == 1
+		;初めて
+		IF CFLAG:408 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;195,约会に行く
+;-------------------------------------------------
+IF SELECTCOM == 195
+	T:409 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:409 == 1
+		;初めて
+		IF CFLAG:409 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;196,剥いてやる
+;-------------------------------------------------
+IF SELECTCOM == 196
+	T:410 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+
+ENDIF
+;=================================================
+;200番台,逆调教系指令
+;=================================================
+;-------------------------------------------------
+;200,当面手淫
+;-------------------------------------------------
+IF SELECTCOM == 200
+	T:411 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:411 == 1
+		;初めて
+		IF CFLAG:411 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;201,胸を揉ませる
+;-------------------------------------------------
+IF SELECTCOM == 201
+	T:412 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:412 == 1
+		;初めて
+		IF CFLAG:412 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;恋慕ルート、;やさしく
+			IF ABL:7 >= 3 && KANRAKU(TARGET) == 1 && !ASSIPLAY
+
+			;侍奉精神３以上;丹念に
+			ELSEIF ABL:7 >= 3 && (!ASSIPLAY || ABL:同性倾向 >= 1 || !MALE(PLAYER))
+
+			;技巧ゼロ;丹念に乱暴に
+			ELSEIF ABL:2 == 0
+
+			ENDIF
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;202,使之爱抚 
+;-------------------------------------------------
+IF SELECTCOM == 202
+	T:413 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:413 == 1
+		;初めて
+		IF CFLAG:413 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;203,痛骂
+;-------------------------------------------------
+IF SELECTCOM == 203
+	T:414 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:414 == 1
+		;初めて
+		IF CFLAG:414 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;204,索要礼物
+;-------------------------------------------------
+IF SELECTCOM == 204
+	T:415 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:415 == 1
+		;初めて
+		IF CFLAG:415 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;205,逆正常位（女主人对男奴隶の場合は「正常位」になる）
+;-------------------------------------------------
+IF SELECTCOM == 205
+	T:416 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:416 == 1
+		;初めて
+		IF CFLAG:416 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;206,逆后背位（女主人对男奴隶の場合は「后背位」になる）
+;-------------------------------------------------
+IF SELECTCOM == 206
+	T:417 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:417 == 1
+		;初めて
+		IF CFLAG:417 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;207,使之打屁股
+;-------------------------------------------------
+IF SELECTCOM == 207
+	T:418 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:418 == 1
+		;初めて
+		IF CFLAG:418 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;208,鞭子打たせる
+;-------------------------------------------------
+IF SELECTCOM == 208
+	T:419 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:419 == 1
+		;初めて
+		IF CFLAG:419 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;209,イマラチオする
+;-------------------------------------------------
+IF SELECTCOM == 209
+	T:420 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:420 == 1
+		;初めて
+		IF CFLAG:420 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;210, 舔足
+;-------------------------------------------------
+IF SELECTCOM == 210
+	T:421 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:421 == 1
+		;初めて
+		IF CFLAG:421 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;211,逆强奸 
+;-------------------------------------------------
+IF SELECTCOM == 211
+	T:422 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:422 == 1
+		;初めて
+		IF CFLAG:422 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;212,逆强奸肛 
+;-------------------------------------------------
+IF SELECTCOM == 212
+	T:423 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:423 == 1
+		;初めて
+		IF CFLAG:423 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;213,逆正常位肛交 （女主人对男奴隶の場合は「正常位肛交」になる）
+;-------------------------------------------------
+IF SELECTCOM == 213
+	T:424 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:424 == 1
+		;初めて
+		IF CFLAG:424 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;214,逆后背位肛交（女主人对男奴隶の場合は「后背位肛交」になる）
+;-------------------------------------------------
+IF SELECTCOM == 214
+	T:425 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:425 == 1
+		;初めて
+		IF CFLAG:425 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;215,助手に犯させる
+;-------------------------------------------------
+IF SELECTCOM == 215
+	T:426 += 1
+	;共通の地の文（使う場合は分岐条件を地の文と同じにしないと、辻褄合わなくなる可能性が）
+	CALL TRAIN_MESSAGE
+	IF T:426 == 1
+		;初めて
+		IF CFLAG:426 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;=================================================
+;220番台,助手命令指令
+;=================================================
+;-------------------------------------------------
+;220,阴蒂爱抚•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 220 && TEQUIP:49 == 0
+	T:427 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:427 == 1
+		;初めて
+		IF CFLAG:427 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+;取下時
+ELSEIF SELECTCOM == 220 && TEQUIP:49 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;221,阴茎爱抚•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 221 && TEQUIP:49 == 0
+	T:428 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:428 == 1
+		;初めて
+		IF CFLAG:428 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+;取下時
+ELSEIF SELECTCOM == 221 && TEQUIP:49 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;222,胸爱抚•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 222 && TEQUIP:44 == 0
+	T:429 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:429 == 1
+		;初めて
+		IF CFLAG:429 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 222 && TEQUIP:44 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;223,手指插入•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 223 && TEQUIP:45 == 0
+	T:430 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:430 == 1
+		;初めて
+		IF CFLAG:430 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 223 && TEQUIP:45 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;224,肛门爱抚•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 224 && TEQUIP:46 == 0
+	T:431 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:431 == 1
+		;初めて
+		IF CFLAG:431 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 224 && TEQUIP:46 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;225,插入•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 225 && TEQUIP:47 == 0
+	T:432 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:432 == 1
+		;初めて
+		IF CFLAG:432 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 225 && TEQUIP:47 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;226,肛插入•助手命令
+;-------------------------------------------------
+IF SELECTCOM == 226 && TEQUIP:48 == 0
+	T:433 += 1
+	;共通の地の文（今は无）
+	CALL TRAIN_MESSAGE
+	IF T:433 == 1
+		;初めて
+		IF CFLAG:433 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 226 && TEQUIP:48 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;=================================================
+;300番台,拡張触手指令
+;=================================================
+;-------------------------------------------------
+;300,触手乳腺責め
+;-------------------------------------------------
+IF SELECTCOM == 300
+	T:434 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:434 == 1
+		;初めて
+		IF CFLAG:434 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;301,触手Ｇスポ責め
+;-------------------------------------------------
+IF SELECTCOM == 301
+	T:435 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:435 == 1
+		;初めて
+		IF CFLAG:435 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;302,触手子宮責め
+;-------------------------------------------------
+IF SELECTCOM == 302
+	T:436 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:436 == 1
+		;初めて
+		IF CFLAG:436 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;303,触手前立腺責め
+;-------------------------------------------------
+IF SELECTCOM == 303
+	T:437 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:437 == 1
+		;初めて
+		IF CFLAG:437 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;304,触手ヴァギナ拡張
+;-------------------------------------------------
+IF SELECTCOM == 304
+	T:438 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:438 == 1
+		;初めて
+		IF CFLAG:438 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;305,触手肛拡張
+;-------------------------------------------------
+IF SELECTCOM == 305
+	T:439 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:439 == 1
+		;初めて
+		IF CFLAG:439 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;306,触手両穴拡張
+;-------------------------------------------------
+IF SELECTCOM == 306
+	T:440 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:440 == 1
+		;初めて
+		IF CFLAG:440 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;307,触手产卵
+;-------------------------------------------------
+IF SELECTCOM == 307 && TEQUIP:41 == 0
+	T:441 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:441 == 1
+		;初めて
+		IF CFLAG:441 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 307 && TEQUIP:41 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;308,触手肛産卵
+;-------------------------------------------------
+IF SELECTCOM == 308 && TEQUIP:42 == 0
+	T:442 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:442 == 1
+		;初めて
+		IF CFLAG:442 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ELSEIF SELECTCOM == 308 && TEQUIP:42 == 1
+	IF FLAG:7 >= 1
+		CALL TRAIN_MESSAGE
+		
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;320,人を呼ぶ
+;-------------------------------------------------
+IF SELECTCOM == 320
+	T:470 += 1
+	CALL TRAIN_MESSAGE
+ENDIF
+;-------------------------------------------------
+;321,輪姦
+;-------------------------------------------------
+IF SELECTCOM == 321
+	T:471 += 1
+	CALL TRAIN_MESSAGE
+ENDIF
+;=================================================
+;500番台,派生指令
+;=================================================
+;-------------------------------------------------
+;500,３Ｐ　
+;-------------------------------------------------
+IF SELECTCOM == 500
+	T:443 += 1
+	;共通の地の文（←パターンがすごく多い…）
+	CALL TRAIN_MESSAGE
+	IF T:443 == 1
+		;初めて
+		IF CFLAG:443 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;501,６９式
+;-------------------------------------------------
+IF SELECTCOM == 501
+	T:444 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:444 == 1
+		;初めて
+		IF CFLAG:444 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;502,岩清水
+;-------------------------------------------------
+IF SELECTCOM == 502
+	T:445 += 1
+	CALL TRAIN_MESSAGE
+	IF T:445 == 1
+		IF CFLAG:445 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;503,Gスポット刺激
+;-------------------------------------------------
+IF SELECTCOM == 503
+	T:446 += 1
+	CALL TRAIN_MESSAGE
+	IF T:446 == 1
+		IF CFLAG:446 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;504,乱れ牡丹
+;-------------------------------------------------
+IF SELECTCOM == 504
+	T:447 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:447 == 1
+		;初めて
+		IF CFLAG:447 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;505,骑乘位揉乳自慰
+;-------------------------------------------------
+IF SELECTCOM == 505
+	T:448 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:448 == 1
+		;初めて
+		IF CFLAG:448 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;506,插入Ｇ点玩弄
+;-------------------------------------------------
+IF SELECTCOM == 506
+	T:448 += 1
+	CALL TRAIN_MESSAGE
+	IF T:448 == 1
+		IF CFLAG:448 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;507,插入子宫口玩弄
+;-------------------------------------------------
+IF SELECTCOM == 507
+	T:449 += 1
+	CALL TRAIN_MESSAGE
+	IF T:449 == 1
+		IF CFLAG:449 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;508,６９乳交
+;-------------------------------------------------
+IF SELECTCOM == 508
+	T:450 += 1
+	CALL TRAIN_MESSAGE
+	IF T:450 == 1
+		IF CFLAG:450 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;509,搾乳
+;-------------------------------------------------
+IF SELECTCOM == 509
+	T:451 += 1
+	CALL TRAIN_MESSAGE
+	IF T:451 == 1
+		IF CFLAG:451 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;510,Ｗ素股
+;-------------------------------------------------
+IF SELECTCOM == 510
+	T:452 += 1
+	CALL TRAIN_MESSAGE
+	IF T:452 == 1
+		IF CFLAG:452 == 0
+		ELSE
+		ENDIF
+	ELSEIF FLAG:7 == 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;511,双枪口交
+;-------------------------------------------------
+IF SELECTCOM == 511
+	T:453 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:453 == 1
+		;初めて
+		IF CFLAG:453 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;512,二輪刺し
+;-------------------------------------------------
+IF SELECTCOM == 512
+	T:454 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:454 == 1
+		;初めて
+		IF CFLAG:454 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;513,二輪刺し肛
+;-------------------------------------------------
+IF SELECTCOM == 513
+	T:455 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:455 == 1
+		;初めて
+		IF CFLAG:455 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;514,駅弁 CFLAG:445
+;-------------------------------------------------
+IF SELECTCOM == 514
+	T:456 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:456 == 1
+		;初めて
+		IF CFLAG:456 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;515,打屁股做爱　CFLAG:478
+;-------------------------------------------------
+IF SELECTCOM == 515
+	T:457 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:457 == 1
+		;初めて
+		IF CFLAG:457 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;516,打屁股肛　CFLAG:479
+;-------------------------------------------------
+IF SELECTCOM == 516
+	T:458 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:458 == 1
+		;初めて
+		IF CFLAG:458 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;517,首絞め做爱　CFLAG:480
+;-------------------------------------------------
+IF SELECTCOM == 517
+	T:459 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:459 == 1
+		;初めて
+		IF CFLAG:459 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;518,首絞め肛　CFLAG:481
+;-------------------------------------------------
+IF SELECTCOM == 518
+	T:460 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:460 == 1
+		;初めて
+		IF CFLAG:460 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+
+;-------------------------------------------------
+;590,前立腺刺激	
+;-------------------------------------------------
+IF SELECTCOM == 590
+	T:461 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:461 == 1
+		;初めて
+		IF CFLAG:461 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;591,插入前立腺責め
+;-------------------------------------------------
+IF SELECTCOM == 591
+	T:462 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:462 == 1
+		;初めて
+		IF CFLAG:462 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;592,騎乗阴茎自慰
+;-------------------------------------------------
+IF SELECTCOM == 592
+	T:463 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:463 == 1
+		;初めて
+		IF CFLAG:463 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;593,插入中阴茎爱抚
+;-------------------------------------------------
+IF SELECTCOM == 593
+	T:464 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:464 == 1
+		;初めて
+		IF CFLAG:464 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;594,插入中胸爱抚系
+;-------------------------------------------------
+IF SELECTCOM == 594
+	T:492 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:492 == 1
+		;初めて
+		IF CFLAG:492 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;595,三点攻（男性奴隶用）
+;-------------------------------------------------
+IF SELECTCOM == 595
+	T:493 += 1
+	;共通の地の文
+	CALL TRAIN_MESSAGE
+	IF T:493 == 1
+		;初めて
+		IF CFLAG:493 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;600,呼ばせ方变更
+;-------------------------------------------------
+IF SELECTCOM == 600
+	T:465 += 1
+	;共通の地の文（←内容に对応する必要がある）
+	CALL TRAIN_MESSAGE
+	IF T:465 == 1
+		;初めて
+		IF CFLAG:465 == 0
+			;RETURN 0
+		;今回の调教で初めて
+		ELSE
+			;RETURN 0
+		ENDIF
+	;今回の调教で二回目以降
+	ELSEIF FLAG:7 == 2
+		;RETURN 0
+	ENDIF
+ENDIF
+;-------------------------------------------------
+CALL EVENT_KX_COM_COMMON

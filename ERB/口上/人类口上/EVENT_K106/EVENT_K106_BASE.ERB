@@ -1,0 +1,366 @@
+﻿;?? ????
+;调教前和调教後的台詞
+;-------------------------------------------------
+;eraQueenA用口上模板
+;口上を書けた部分の「CFLAG:2XX = 1」や「CFLAG:2XX = 2」のコメントアウトは解除してください。
+;-------------------------------------------------
+;--------------------------------------------------
+;口上文件的存在判定
+;--------------------------------------------------
+@EVENTSHOP
+#PRI
+FLAG:106 = 1
+SIF FLAG:7 == 0
+	FLAG:7 = 1
+;--------------------------------------------------
+;EVENTTRAIN关系
+;调教開始時的台词 CFLAG 201～219を使用
+;--------------------------------------------------
+@EVENTTRAIN
+;オプションで口上をオフした時は駄目
+SIF FLAG:7 <= 0
+	RETURN 0
+SIF NO:TARGET != 106
+	RETURN 0
+@KOJO_EVENTTRAIN_K106
+;--------------------------------------------------
+;特定助手時に特殊助手口上を呼び出す(Y1を助手との関係设定(CFLAG:2000～2100)の値に置換）
+;--------------------------------------------------
+;IF ASSI > 0 && ASSIPLAY
+;	IF CFLAG:(NO:ASSI + 2000) == Y1
+;		CALL EVENTTRAIN_PY1
+;		RETURN 0
+;	ENDIF
+;ENDIF
+;--------------------------------------------------
+;簡易助手口上の発動時に初调教時口上をスキップ（Y1を助手のキャラ性格番号にする）
+;複数人いる際には、SIF CFLAG:(NO:ASSI + 2000) == Y1 || CFLAG:(NO:ASSI + 2000) == Z1と追加していく
+;初调教時口上をスキップしない場合は使わなくてもいい
+;--------------------------------------------------
+;IF CFLAG:201 == 0 && ASSI > 0
+;	SIF CFLAG:(NO:ASSI + 2000) == Y1
+;		CFLAG:201 =1
+;ENDIF
+;-------------------------------------------------
+;调教開始時（一回のみの台詞） CFLAG201
+;-------------------------------------------------
+DRAWLINE
+SIF CFLAG:201 == 6
+	RETURN 0
+;初调教時
+IF CFLAG:201 == 0
+	PRINTFORMW 进门时，%CALLNAME%已安静端坐在榻旁，神情冷得滴水不漏，像是连这份狼狈也被他一并算进了局里。
+	PRINTFORMW 「……魏公。」
+	PRINTFORMW 「臣昔日愿为您驱策，是因为臣知天下终归强者，而您正是那位能执棋到底的人。」
+	PRINTFORMW 「可如今您把臣锁在这里……是想笼络臣，还是想把臣也驯成掌中的棋子？」
+	PRINTFORMW %PLAYER_NAME()%没有回答，只抬手托起了%CALLNAME%的下颌。
+	PRINTFORMW 那双总是深藏心思的眼睛微微一沉，终于从平静底下翻出一丝危险的阴影。
+	PRINTFORMW 「……原来如此。您是想逼臣，把最后一点退路也交到您手里。」
+	PRINTFORMW 「既然言辞无用，臣便看看，魏公究竟想从臣这里得到什么。」
+	CFLAG:201 = 1
+	RETURN 0
+;恋慕陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:3) || (CFLAG:201 < 6 && TALENT:6)
+	IF CFLAG:201 < 5 && TALENT:恋慕
+		PRINTFORMW 「……近来臣每次听见您的脚步声，心绪都会先乱上一分。」
+		PRINTFORMW 「明知这般动摇极失分寸，却还是会忍不住去想，今日您会不会比昨日多看臣一眼。」
+		PRINTFORMW 「若说最初是厌怒与不甘，如今那份心思，早已变得连臣自己都无法辩驳了……」
+		PRINTFORMW %CALLNAME%垂下眼睫，像是在强压住胸中翻涌的情绪。
+		PRINTFORMW 「所以，至少此刻……请别把臣只当作供您取乐的器物。」
+		PRINTFORMW 「哪怕只是一瞬也好，请您看着臣，把臣当作真正活着的人。」
+		CFLAG:201 = 5
+		RETURN 0
+	;相亲相爱
+	ELSEIF CFLAG:201 < 6 && TALENT:相亲相爱
+		PRINTFORMW 「若您执意要臣坦白，那臣便不再隐瞒了。」
+		PRINTFORMW 「名声、家声、前程、是非……这些曾被臣看得极重的东西，如今竟都敌不过想留在您身边这一念。」
+		PRINTFORMW 「荒唐也好，失礼也罢，臣已经无心再与自己争辩。」
+		PRINTFORMW %CALLNAME%抬起头，目光里不再有回避，只剩下不容错认的深切情意。
+		PRINTFORMW 「臣心悦您，且甘之如饴。」
+		PRINTFORMW 「所以，请不要再试探臣的真心了……只要您伸手，臣便会过去。」
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;淫乱陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:4) || (CFLAG:201 < 6 && TALENT:7)
+	IF CFLAG:201 < 5 && TALENT:淫乱
+		PRINTFORMW 「……不知是从何时起，臣已无法再单纯将此视作折辱了。」
+		PRINTFORMW 「越是明白其中有违局势，身体便越是会在您靠近时先一步发热。」
+		PRINTFORMW 「这等失序与放纵，本该由臣亲手斩断……可如今，最先屈服的偏偏是这具身体。」
+		PRINTFORMW %CALLNAME%抬手掩住半张脸，耳根却早已透出情欲的热意。
+		PRINTFORMW 「若您今日仍要继续，臣……大概已不会像先前那样徒劳地抗拒了。」
+		CFLAG:201 = 5
+		RETURN 0
+	;娼妇
+	ELSEIF CFLAG:201 < 6 && TALENT:娼妇
+		PRINTFORMW 「%MASTERNAME%，您终于来了。」
+		PRINTFORMW 「臣已等得太久，久到连呼吸都像是悬在火上。」
+		PRINTFORMW 「您看，只消想到您会如何碰臣，这副不争气的身体便自己先乱了。」
+		PRINTFORMW %CALLNAME%主动握住%PLAYER_NAME()%的手，贴向自己滚烫的身体，目光潮湿而失焦。
+		PRINTFORMW 「谋算、忍耐、仲达之名……若都要拿去换您一次垂怜，臣便一并奉上。」
+		PRINTFORMW 「所以，别再叫臣继续等了。今日想怎样用臣，都请尽兴。」
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;服从陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:5) || (CFLAG:201 < 6 && TALENT:8)
+	IF CFLAG:201 < 5 && TALENT:服从
+		PRINTFORMW 「……臣似乎终于明白了。」
+		PRINTFORMW 「您所求的，从来都不是辩驳、也不是反抗，而是一个会按您心意俯首的人。」
+		PRINTFORMW 「若事到如今仍执着于那些无用的争论，也不过是让自己更加狼狈罢了。」
+		PRINTFORMW %CALLNAME%深吸了一口气，像是将最后一点固执也一并吞咽下去。
+		PRINTFORMW 「那么，从今日起……只要是您的命令，臣会学着照做。」
+		CFLAG:201 = 5
+		RETURN 0
+	ELSEIF CFLAG:201 < 6 && TALENT:隶属
+		PRINTFORMW 「……能为您所用，已是臣如今唯一值得庆幸之事。」
+		PRINTFORMW 「被您约束、被您命令、被您亲手打磨成更顺手的模样……这些竟会令人安心到如此地步。」
+		PRINTFORMW %CALLNAME%缓缓垂首，温顺地将额头抵在%PLAYER_NAME()%手背上。
+		PRINTFORMW 「若您愿意，臣愿以余生侍奉您的欲望与喜怒。」
+		PRINTFORMW 「只求您莫要弃置臣……%CALLNAME:MASTER%大人。」
+		MASTERNAME = %CALLNAME:MASTER%大人
+		;口調が敬語タイプになる
+		CFLAG:601 = 2
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;初めて屈服刻印Lv1になった
+ELSEIF CFLAG:201 < 2 && MARK:2 == 1
+	PRINTFORMW 「……原以为不过是皮肉之苦，臣尚能守心不乱。」
+	PRINTFORMW 「可如今看来，真正令人作呕的，倒不是疼痛本身，而是身体竟会开始记住这种屈辱。」
+	CFLAG:201 = 2
+	RETURN 0
+;初めて屈服刻印Lv2になった
+ELSEIF CFLAG:201 < 3 && MARK:2 == 2
+	PRINTFORMW 「被逼得渐渐习惯，竟比单纯受刑更难堪……」
+	PRINTFORMW 「阁下若是想看臣自乱阵脚，倒确实做到了。」
+	CFLAG:201 = 3
+	RETURN 0
+;初めて屈服刻印Lv3になった
+ELSEIF CFLAG:201 < 4 && MARK:2 == 3
+	PRINTFORMW 「……若连羞耻与抗拒都被磨得所剩无几，阁下才算满意么？」
+	PRINTFORMW 「好吧。至少在这间屋子里，臣已无力再同您争论谁是谁非了。」
+	CFLAG:201 = 4
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;簡易助手口上（Y1を助手との関係设定の値に置換)
+;-------------------------------------------------
+;助手の有無をチェック（いない場合は二回目以降へ飛ぶ）
+IF ASSI < 0 
+	CALL EVENTTRAIN_SECOND_K106
+;例:助手が调教对象の兄の場合（CFLAG:(NO:ASSI + 2000)を1に设定）
+;ELSEIF CFLAG:(NO:ASSI + 2000) == 1
+;	;初めて
+;	IF CFLAG:(NO:ASSI + 700) == 0
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 1
+	;二回目以降
+;	ELSEIF CFLAG:(NO:ASSI + 700) < 2 || FLAG:7 ==2
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 2
+;	ENDIF
+;Y1を助手との関係设定の値に置換
+;ELSEIF CFLAG:(NO:ASSI + 2000) == Y1
+;	;初めて
+;	IF CFLAG:(NO:ASSI + 700) == 0
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 1
+	;二回目以降
+;	ELSEIF CFLAG:(NO:ASSI + 700) < 2 || FLAG:7 ==2
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 2
+;	ENDIF
+;口上のある助手が居ない場合は、通常の二回目以降の口上へ飛ぶ
+ELSE
+	CALL EVENTTRAIN_SECOND_K106
+ENDIF
+
+;-------------------------------------------------
+;调教開始時（2回目以降、「一回だけ表示」に设定してなければ何度も显示台詞です）
+;何度も显示わけなので、何種類かの短い台詞を用意したほうがいいかもしれません。
+;毎回表示されたら面倒くさいかもしれないので、「一回だけ表示」に设定していれば、三分の一の確率で表示されることしました。
+;-------------------------------------------------
+@EVENTTRAIN_SECOND_K106
+
+;反抗刻印Lv3が消された場合、「一回だけ表示」用のフラグを解除。
+SIF MARK:反抗刻印 < 3 && CFLAG:202 == 4
+	CFLAG:202 = 0
+;反抗刻印Lv3（最初に反抗刻印Lv3をついた時のの場合）
+IF MARK:反抗刻印 == 3 && CFLAG:202 < 4
+	;PRINTFORML 
+	;PRINTFORMW 
+	;CFLAG:202 = 4
+;反抗刻印Lv3、屈服刻印 < 2、顺从 <= 2　（毎回表示の場合）
+ELSEIF MARK:反抗刻印 == 3 && MARK:屈服刻印 < 2 && ABL:顺从 <= 2 && (CFLAG:202 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	;随机で口上が変化する
+	;随机で口上が変化する　!RAND:2→二分の一の確率、!RAND:3→三分の一の確率…以下同類
+	;随机で三種類の台詞から選ぶ時は「IF !RAND:3 ～　ELSEIF !RAND:2 ～　ELSE」にすればＯＫ。
+	IF !RAND:2
+		;PRINTFORML 
+		;PRINTFORMW 
+	ELSE
+		;PRINTFORML 
+		;PRINTFORMW 
+	ENDIF
+	;CFLAG:202 = 4
+;屈服刻印Lv0
+;ELSEIF MARK:2 == 0 && (CFLAG:202 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+;	PRINTFORMW 
+;	CFLAG:202 = 1
+;屈服刻印Lv1以下
+ELSEIF MARK:2 <= 1 && (CFLAG:202 < 2 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「若只是想看臣失态，阁下今日怕是又要失望了。」
+	ELSE
+		PRINTFORML 「礼坏乐崩，莫甚于此……阁下难道当真毫不在意么？」
+	ENDIF
+	CFLAG:202 = 2
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2 && (CFLAG:202 < 3 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「……阁下还真是执拗。竟连片刻喘息都不肯施舍。」
+	ELSE
+		PRINTFORML 「臣若说厌了，阁下会停手么？……想来也不会。」
+	ENDIF
+	CFLAG:202 = 3
+;屈服刻印Lv3＋陷落素質无
+ELSEIF MARK:2 == 3 && !KANRAKU(TARGET) && (CFLAG:202 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「若您只是想要顺从，那如今的臣，应当已勉强算是合格了吧。」
+	ELSE
+		PRINTFORML 「……请快些吧。拖得越久，只会显得彼此都更难堪。」
+	ENDIF
+	CFLAG:202 = 4
+;恋慕陷落ルート
+ELSEIF (TALENT:3 || TALENT:6) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	;恋慕
+	IF TALENT:3 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+
+		IF !RAND:2
+			PRINTFORML 「来迟了，%MASTERNAME%。」
+			PRINTFORMW 「臣本想再读一卷静心，结果每翻一页，想到的却都是您。」
+		ELSE
+			PRINTFORML 「……明知您总会来，臣还是会不自觉地提前等候。」
+			PRINTFORMW 「这般心绪，实在有失分寸，却已不是臣能轻易压下的了。」
+		ENDIF
+		CFLAG:202 = 5
+	;相亲相爱
+	ELSEIF TALENT:6 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+			IF !RAND:2
+				PRINTFORML 「今夜也请别让臣等太久，%MASTERNAME%。臣会想您。」
+			ELSE
+				PRINTFORML 「只要想到您会来，这间屋子便不再像牢笼，而像是臣唯一愿意停留之地。」
+			ENDIF
+		CFLAG:202 = 6
+	ENDIF
+;淫乱陷落ルート
+ELSEIF (TALENT:4 || TALENT:7) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:淫乱 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「……您总算来了。再迟一些，臣怕是要自己熬不住了。」
+		ELSE
+			PRINTFORML 「今夜想从哪里开始？……臣会比昨日更听话些。」
+		ENDIF
+		CFLAG:202 = 5
+	ELSEIF TALENT:娼妇 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「快些吧，%MASTERNAME%。臣这副身子，已经从里到外都在想您了。」
+		ELSE
+			PRINTFORML 「若只是站在那里看着，臣可是会不满的……请把臣用到坏掉为止。」
+		ENDIF
+		CFLAG:202 = 6
+	ENDIF
+;服从陷落ルート
+ELSEIF (TALENT:5 || TALENT:8) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:服从 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「您来了。那么，请下命吧。」
+		ELSE
+			PRINTFORML 「臣已做好准备。无论今夜您想如何，都请明示。」
+		ENDIF
+		CFLAG:202 = 5
+	;隶属
+	ELSEIF TALENT:隶属 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「%CALLNAME:MASTER%大人，请尽情使用臣。」
+		ELSE
+			PRINTFORML 「臣已等候多时。只要是您的意思，臣无不甘受。」
+		ENDIF
+		CFLAG:202 = 6
+	ENDIF
+ENDIF
+RETURN 0
+
+;-------------------------------------------------
+;EVENTEND関係
+;调教结束時のセリフ
+;-------------------------------------------------
+@EVENTEND
+SIF FLAG:7 <= 0
+	RETURN 0
+SIF NO:TARGET != 106
+	RETURN 0
+@KOJO_EVENTEND_K106
+;--------------------------------------------------
+;调教结束時のセリフ
+;--------------------------------------------------
+;调教をすぐやめたときは口上を不显示
+SIF PREVCOM == -1
+	RETURN 0
+DRAWLINE
+
+;最初に反抗刻印Lv3を取った時（一回だけ）
+IF MARK:3 == 3 && CFLAG:217 < 1
+	;PRINTFORML 
+	;PRINTFORMW 
+	;CFLAG:217 = 1
+;反抗刻印Lv3、屈服刻印 < 2、顺从 <= 2
+ELSEIF MARK:反抗刻印 == 3 && MARK:屈服刻印 < 2 && ABL:顺从 <= 2 && (CFLAG:217 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	;PRINTFORML 
+	;PRINTFORMW 
+	;CFLAG:217 = 1
+;屈服刻印Lv1以下
+ELSEIF MARK:2 <= 1 && (CFLAG:219 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「若阁下还有半分清醒，便该明白——今日之举，终究不会有善果。」
+	CFLAG:219 = 1
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2 && (CFLAG:219 < 2 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「……至少今日，终于结束了么。」
+	CFLAG:219 = 2
+;屈服刻印Lv3＋陷落素質无
+ELSEIF MARK:2 == 3 && !KANRAKU(TARGET) && (CFLAG:219 < 2 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「拖着这样的身体，还要若无其事地端坐……臣如今倒也学会了。」
+	CFLAG:219 = 3
+;陷落済み＋体力500未満
+ELSEIF KANRAKU(TARGET) && BASE:0 < 500 && (CFLAG:218 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	;恋慕陷落ルート
+	IF (TALENT:3 || TALENT:6)
+		PRINTFORMW 「……若您肯的话，扶臣一把也好。臣实在没多少力气再强撑颜面了。」
+	;淫乱陷落ルート
+	ELSEIF (TALENT:4 || TALENT:7)
+		PRINTFORMW 「哈……终于肯停下了么。可臣这副身子，反倒还在念着您留下的热意。」
+	;服从陷落ルート
+	ELSEIF (TALENT:5 || TALENT:8)
+		PRINTFORMW 「命令也好、责罚也罢……至少今夜，臣已无力再多承一分了。」
+	ENDIF
+	CFLAG:218 = 1
+;陷落済み
+ELSEIF KANRAKU(TARGET) && (CFLAG:219 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	;恋慕陷落ルート
+	IF (TALENT:3 || TALENT:6)
+		PRINTFORMW 「夜深了，%MASTERNAME%。若您愿意，再多留片刻……臣会很高兴。」
+	;淫乱陷落ルート
+	ELSEIF (TALENT:4 || TALENT:7)
+		PRINTFORMW 「若您今夜就此离开，臣多半会在床上辗转许久，怎么都静不下来。」
+	;服从陷落ルート
+	ELSEIF (TALENT:5 || TALENT:8)
+		PRINTFORMW 「您若已满意，臣便在此恭送。明日若还需要，臣会如常候着。」
+		
+	ENDIF
+	CFLAG:219 = 4
+ENDIF
+DRAWLINE
+RETURN 0
+

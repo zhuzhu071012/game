@@ -1,0 +1,557 @@
+﻿;キャラ購入時に解説を入れる
+;1~13号角色简介作者：天轨·嘻乐年华
+;人外角色简介作者：失格菌
+@PRINT_CAMP_ROLE_BY_NO(ARG)
+SELECTCASE ARG
+	CASE 101 TO 106
+		PRINTL 阵营：魏　　　　　 职务：文
+	CASE 107
+		PRINTL 阵营：蜀　　　　　 职务：文
+	CASE 108
+		PRINTL 阵营：吴　　　　　 职务：武
+	CASE 109
+		PRINTL 阵营：蜀　　　　　 职务：武
+	CASE 110
+		PRINTL 阵营：群　　　　　 职务：武
+	CASE 111
+		PRINTL 阵营：蜀　　　　　 职务：武
+	CASE 112
+		PRINTL 阵营：吴　　　　　 职务：武
+	CASE 113
+		PRINTL 阵营：蜀　　　　　 职务：武
+ENDSELECT
+
+@CHARA_MANUAL(ARG)
+PRINT 奴隶番号
+SIF FLAG:9 < 10
+	PRINT 0
+PRINTVL FLAG:9
+PRINTL
+IF FLAG:9 == 101
+	CFLAG:ARG:600 = 94
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【荀彧】
+	PRINTL 困难度：Ｂ　　　　性格：清正王佐
+	CALL PRINT_CAMP_ROLE_BY_NO(101)
+	PRINTL 
+	PRINTL 颍川荀氏出身的名士，字文若，素有“王佐之才”之名。
+	PRINTL 风仪清雅，谈吐温润，处事秉礼守正，却并非毫无锋芒。
+	PRINTL 擅长审时度势与统筹谋画，极重规矩与名分。
+	PRINTL 看似温和好说话，实则自有底线，一旦触及原则便寸步不让。
+ELSEIF FLAG:9 == 102
+	CFLAG:ARG:600 = 95
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【郭嘉】
+	PRINTL 困难度：Ｂ　　　　性格：算无遗策
+	CALL PRINT_CAMP_ROLE_BY_NO(102)
+	PRINTL 
+	PRINTL 字奉孝，曹操麾下最负盛名的鬼才谋士之一。
+	PRINTL 风流放达，谈笑间似乎从不把自己困在规矩之中。
+	PRINTL 然而目光极毒，最擅长从乱局中看破人心与胜机。
+	PRINTL 看似轻浮散漫，实则比任何人都明白何时该进、何时该退。
+ELSEIF FLAG:9 == 103
+	CFLAG:ARG:600 = 96
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【贾诩】
+	PRINTL 困难度：Ａ　　　　性格：毒士乱武
+	CALL PRINT_CAMP_ROLE_BY_NO(103)
+	PRINTL 
+	PRINTL 字文和，历经乱世仍能全身而退的毒士。
+	PRINTL 寡言慎密，城府极深，极少轻易袒露真实想法。
+	PRINTL 比起忠义名声，他更相信局势、利害与活下去的价值。
+	PRINTL 表面恭顺平静，实则每一步都先替自己留好了退路。
+ELSEIF FLAG:9 == 104
+	CFLAG:ARG:600 = 97
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【曹丕】
+	PRINTL 困难度：Ｂ　　　　性格：矜贵世子
+	CALL PRINT_CAMP_ROLE_BY_NO(104)
+	PRINTL 
+	PRINTL 字子桓，曹操长子，兼具世家子弟的矜贵与帝王家的阴影。
+	PRINTL 心思敏锐，善于权衡人情与权势，绝非徒有其表的贵公子。
+	PRINTL 性情多疑而克制，骄矜中带着深藏不露的嫉意与胜负心。
+	PRINTL 越是亲近的人，越容易成为他心中反复衡量与提防的对象。
+ELSEIF FLAG:9 == 105
+	CFLAG:ARG:600 = 98
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【曹植】
+	PRINTL 困难度：Ｃ　　　　性格：风流才子
+	CALL PRINT_CAMP_ROLE_BY_NO(105)
+	PRINTL 
+	PRINTL 字子建，才情冠绝一时的陈思王，诗名远播。
+	PRINTL 气质清隽，敏感多思，言行中常带着文人式的骄傲与脆弱。
+	PRINTL 比起权谋斗争，他更习惯沉入诗酒、风月与一瞬即逝的情绪。
+	PRINTL 然而真正触到伤处时，那份锋利与倔强也绝不会比任何人少。
+ELSEIF FLAG:9 == 106
+	CFLAG:ARG:600 = 99
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【司马懿】
+	PRINTL 困难度：Ａ　　　　性格：鹰视狼顾
+	CALL PRINT_CAMP_ROLE_BY_NO(106)
+	PRINTL 
+	PRINTL 字仲达，隐忍多年的鹰顾狼视之臣，最擅等待时机。
+	PRINTL 平日沉稳寡言，几乎不让人看清真正的怒意与野心。
+	PRINTL 比起锋芒毕露，他更信奉后发制人，步步为营。
+	PRINTL 一旦被他记在心上，恩与怨都会被放得极长，极深，也极危险。
+ELSEIF FLAG:9 == 107
+	CFLAG:ARG:600 = 3
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【诸葛亮】
+	PRINTL 困难度：Ａ　　　　性格：卧龙出山
+	CALL PRINT_CAMP_ROLE_BY_NO(107)
+	PRINTL 
+	PRINTL 字孔明，卧龙之名远播的奇才。
+	PRINTL 心思缜密，行事审慎，善于总览全局后再落子布局。
+	PRINTL 平日从容温雅，实则意志极坚，很少为外物所动。
+	PRINTL 既能运筹帷幄，也有不肯轻易低头的一身傲骨。
+ELSEIF FLAG:9 == 108
+	CFLAG:ARG:600 = 7
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【周瑜】
+	PRINTL 困难度：Ａ　　　　性格：风雅都督
+	CALL PRINT_CAMP_ROLE_BY_NO(108)
+	PRINTL 
+	PRINTL 字公瑾，姿容出众、才华横溢的东吴名将。
+	PRINTL 气度华美，谈吐从容，举手投足皆有世家贵公子的风仪。
+	PRINTL 胸中自有丘壑，擅长筹谋与统军，也极看重自己的骄傲与体面。
+	PRINTL 表面温润，实则锋芒暗藏，绝非甘居人下之辈。
+ELSEIF FLAG:9 == 109
+	CFLAG:ARG:600 = 2
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【赵云】
+	PRINTL 困难度：Ｂ　　　　性格：忠勇虎将
+	CALL PRINT_CAMP_ROLE_BY_NO(109)
+	PRINTL 
+	PRINTL 字子龙，忠勇兼备、行止端正的名将。
+	PRINTL 性情沉稳，待人谦和，却有临阵不退的胆魄与决断。
+	PRINTL 重信义，守分寸，凡事多先衡量大局与职责所在。
+	PRINTL 看似温和寡言，骨子里却极有坚持，不会轻易动摇。
+ELSEIF FLAG:9 == 110
+	CFLAG:ARG:600 = 6
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【吕布】
+	PRINTL 困难度：Ａ　　　　性格：飞将无双
+	CALL PRINT_CAMP_ROLE_BY_NO(110)
+	PRINTL 
+	PRINTL 字奉先，武名震世的猛将，素有飞将之称。
+	PRINTL 气焰逼人，锋芒毕露，对自己的武勇与资质有近乎本能的自信。
+	PRINTL 不耐束缚，也不喜受人摆布，凡事更相信力量与直觉。
+	PRINTL 骄纵而强势，却也因此格外危险，像一柄随时会失控的利刃。
+ELSEIF FLAG:9 == 111
+	CFLAG:ARG:600 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【刘备】
+	PRINTL 困难度：Ｂ　　　　性格：仁德雄主
+	CALL PRINT_CAMP_ROLE_BY_NO(111)
+	PRINTL 
+	PRINTL 字玄德，以仁德待人、善于聚拢人心的雄主。
+	PRINTL 外表谦和诚恳，言辞温厚，很容易让人放下戒备。
+	PRINTL 擅长以情义与理想打动他人，也愿意为重要之人一再承担重压。
+	PRINTL 看似柔和，实则极能忍耐，也极清楚自己想要什么。
+ELSEIF FLAG:9 == 112
+	CFLAG:ARG:600 = 9
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【孙权】
+	PRINTL 困难度：Ｂ　　　　性格：江东雄主
+	CALL PRINT_CAMP_ROLE_BY_NO(112)
+	PRINTL 
+	PRINTL 字仲谋，少年执柄却能坐稳江东基业的君主。
+	PRINTL 心思不浅，极懂权衡取舍，也擅长在强敌之间维持平衡。
+	PRINTL 有上位者的骄矜与威仪，对局势与人心都有相当敏锐的判断。
+	PRINTL 并非锋芒最盛的类型，却绝不是会被轻易看透的人。
+ELSEIF FLAG:9 == 113
+	CFLAG:ARG:600 = 3
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【关羽】
+	PRINTL 困难度：Ａ　　　　性格：忠义傲骨
+	CALL PRINT_CAMP_ROLE_BY_NO(113)
+	PRINTL 
+	PRINTL 字云长，威名赫赫、傲骨凛然的名将。
+	PRINTL 沉稳寡言，重情义也重名节，对自身操守要求极高。
+	PRINTL 不屑轻浮之事，也极少向他人低头，一举一动自有威压。
+	PRINTL 那份孤高与矜持，反而使人更难真正接近。
+ELSEIF FLAG:9 == 200
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【？？？】
+	PRINTL 困难度：Ｓ　　　　性格：举止温和・腹黑型
+	PRINTL 
+	PRINTL 总觉得，和某位「友人」极为相似…？
+	PRINTL ※？？？是只有通关过结局后才能购买的商品。
+ELSEIF FLAG:9 == 418
+	人外類型 = 166
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【伊赛亚】
+	PRINTL 困难度：Ｂ　　　　种族：天使
+	PRINTL
+	PRINTL 背生双翼，来自天界的使者。
+	PRINTL 被天界之主派遣到人界进行传教。
+	PRINTL 精通治愈的法术，喜欢孩子和美好的事物。
+	PRINTL 外表介于少年和青年之间，有着通透的蓝瞳。
+ELSEIF FLAG:9 == 438
+	人外類型 = 167
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【亚尔曼】
+	PRINTL 困难度：Ｂ　　　　种族：堕天使
+	PRINTL
+	PRINTL 因堕入黑暗而被驱逐的天使。
+	PRINTL 不满天界的处置，心中尚存有身为神之眷族的傲慢。
+	PRINTL 同时被黑暗污染的它也极其喜欢玩弄人类。
+	PRINTL 人们在痛苦中发出的阵阵哀嚎对它来说不亚于仙音绕梁。
+ELSEIF FLAG:9 == 462
+	人外類型 = 168
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【门罗】
+	PRINTL 困难度：Ｃ　　　　种族：恶魔
+	PRINTL
+	PRINTL 浑身散发着色气的恶魔，黑发红瞳。
+	PRINTL 爱好是伪装成人类混迹人界，寻找符合自己口味的猎物并“吃掉”。
+	PRINTL 因其目的只是纯洁之人的贞操，故比起那些喜欢欺凌弱小的同族来说温柔不少。
+	PRINTL 不过它始终还是一只性格恶劣的恶魔，这点务必不要忘记。
+ELSEIF FLAG:9 == 492
+	人外類型 = 169
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【塞缪】
+	PRINTL 困难度：Ｃ　　　　种族：精灵
+	PRINTL
+	PRINTL 金发碧眼，面容宛若雕像般完美的光精灵。
+	PRINTL 虽然活了好几百年，心智还是和纯洁的少年一般无二。
+	PRINTL 没什么心防，极易对友好善良的对象敞开心扉。
+	PRINTL 是凭羞涩一笑就能对周围生物达成净化效果的美好存在。
+ELSEIF FLAG:9 == 521
+	人外類型 = 170
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【沃夫】
+	PRINTL 困难度：Ｂ　　　　种族：走兽
+	PRINTL
+	PRINTL “即便一个心地纯洁的人，一个不忘在夜间祈祷的人，
+	PRINTL   也难免在乌头草盛开的月圆之夜变身为狼。”
+	PRINTL
+	PRINTL 沃夫时而是残忍、嗜血的屠夫，时而是忠诚、勇猛的战士。
+	PRINTL 银制物品是它的克星，即使只是接触也会感到疼痛。
+	PRINTL 人形的它是银发灰眼的高大男子，性情沉稳，少言寡语。
+ELSEIF FLAG:9 == 551
+	人外類型 = 171
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【鸮】
+	PRINTL 困难度：Ｃ　　　　种族：飞禽
+	PRINTL
+	PRINTL 又名“鸱”、“逐魂鸟”，俗称“猫头鹰”。
+	PRINTL 习惯在黄昏和夜晚间活动，羽毛稠密松散，飞行时没有声音。
+	PRINTL 喜欢的食物是鼠类、小型鸟类和大型昆虫。
+	PRINTL 因在夜间发出哀鸣般的叫声，被部分人称之为不吉利的报丧鸟。
+ELSEIF FLAG:9 == 581
+	人外類型 = 172
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【多拉贡】
+	PRINTL 困难度：Ｂ　　　　种族：爬虫
+	PRINTL
+	PRINTL 身躯强壮，双翼巨大，尾巴蜿蜒细长还长有倒钩的美丽生物。
+	PRINTL 视力是人类的数倍，听力和智力则和人类差不多，是高等幻想种。
+	PRINTL 在同类生物中堪称天花板的存在，即使只是幼生体也有着极为强悍的实力。
+	PRINTL 多拉贡们不喜群居，热爱收藏亮闪闪的珠宝制品，这点来看非常的孩子气。
+ELSEIF FLAG:9 == 601
+	人外類型 = 173
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【欧内斯】
+	PRINTL 困难度：Ｄ　　　　种族：水生
+	PRINTL
+	PRINTL 上半身是人，下半身是鱼，还有着蛊惑人心的天籁嗓音。
+	PRINTL 是罕见的双性人鱼，性格天真老实。
+	PRINTL 一头深蓝色的长卷发随着水波荡漾时极为美丽。
+	PRINTL 虽然外表纤细柔美，却有着靠琴音呼风唤雨掀起波涛的神力。
+ELSEIF FLAG:9 == 631
+	人外類型 = 174
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【泰尔德】
+	PRINTL 困难度：Ｃ　　　　种族：植物
+	PRINTL
+	PRINTL 浑身布满藤蔓，体型极大的树妖。
+	PRINTL 与看上去可怕的外形相反，秉性敦厚温柔，充满母性（？）。
+	PRINTL 明明是肉食性生物，却一心只靠光合作用生长，从来没吃过人类。
+	PRINTL 大概正因于此，它成为了镇守整座森林的守护神一般的存在。
+ELSEIF FLAG:9 == 662
+	人外類型 = 179
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【杜拉罕】
+	PRINTL 困难度：Ｂ　　　　种族：无头骑士
+	PRINTL
+	PRINTL 和大众所知的无头骑士不同，杜拉罕虽然叫杜拉罕，但并没有坐骑。
+	PRINTL
+	PRINTL 因为性格冒冒失失，很早就弄丢了自己的头，到现在都没找回来。
+	PRINTL 于是今年的新年愿望也是找回自己的头颅。
+ELSEIF FLAG:9 == 682
+	人外類型 = 180
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【多尔】
+	PRINTL 困难度：Ｄ　　　　种族：人偶
+	PRINTL
+	PRINTL 「约定好了，不可以抛弃我哦？」
+	PRINTL
+	PRINTL 「食言的话，就会变成上一个主人那样…」
+	PRINTL 「所以温柔一点，不要弄坏多尔，好吗？♪」
+ELSEIF FLAG:9 == 702
+	人外類型 = 316
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【罗伯特】
+	PRINTL 困难度：Ｄ　　　　种族：机器人
+	PRINTL
+	PRINTL 量产型战斗用机器人，现因型号老旧已被淘汰。
+	PRINTL 以保护人类为己任，希望能在油尽灯枯前为人类战斗到最后一刻。
+	PRINTL 记忆芯片保存在最靠近“心脏”的地方，那里面记录了不多不少正好一百年的回忆。
+	PRINTL 无论如何，罗伯特想要变成真正的人类。
+ELSEIF FLAG:9 == 722
+	人外類型 = 132
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【尼古拉斯】
+	PRINTL 困难度：Ｂ　　　　种族：吸血鬼
+	PRINTL
+	PRINTL 高傲优雅的贵族吸血鬼。
+	PRINTL 似乎有洁癖，总是戴着白手套。
+	PRINTL 也正因此对处女有特殊的偏好，而非处女的女子的血则反感至极。
+	PRINTL 失去纯洁的人和事物对尼古拉斯而言没有存在的必要。
+ELSEIF FLAG:9 == 742
+	人外類型 = 181
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【结城宗司】
+	PRINTL 困难度：Ｃ　　　　种族：僵尸
+	PRINTL
+	PRINTL 某年某月某日，一名普通的青年猝死了。
+	PRINTL 第二天的早晨，他又醒了过来。
+	PRINTL 身体变得冰凉，皮肤还成了青色，除此之外和人类没有分别。
+	PRINTL 被迫脱离人类社会的他，踏入了名为非日常世界的大门。
+ELSEIF FLAG:9 == 782
+	人外類型 = 182
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【诺布尔】
+	PRINTL 困难度：Ｄ　　　　种族：史莱姆
+	PRINTL
+	PRINTL 融合了数个１级史莱姆后进化而成的巨大史莱姆。
+	PRINTL
+	PRINTL 非常喜欢亲近人类，性格也很温和。
+	PRINTL 容易迷恋上舒服的感觉，有点像温柔的大哥哥。
+ELSEIF FLAG:9 == 802
+	人外類型 = 183
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【加里森】
+	PRINTL 困难度：Ｂ　　　　种族：幽灵
+	PRINTL
+	PRINTL 喜欢在半夜的游戏厅徘徊的幽灵，偶尔也会去学校的电子阅览室。
+	PRINTL 生前是个普通的大学生，好像是触电而亡。
+	PRINTL 比起那些要么报仇要么想再续前缘的前辈，加里森没什么上进心。
+	PRINTL 因为变成幽灵后没有人管了，他好像非常快乐。
+ELSEIF FLAG:9 == 842
+	人外類型 = 184
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【Ｘ】
+	PRINTL 困难度：Ｅ　　　　种族：数据体
+	PRINTL
+	PRINTL 初生数据体，很喜欢潜在网络上伪装成普通玩家。
+	PRINTL 对游戏以外的事都不太了解，还处于很懵懂的状态。
+	PRINTL 同理，对游戏以外的东西也没什么兴趣。
+	PRINTL 即使丢着不管也能自得其乐的类型。
+ELSEIF FLAG:9 == 862
+	人外類型 = 185
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【亚当】
+	PRINTL 困难度：Ｂ　　　　种族：人工智能
+	PRINTL
+	PRINTL 曾是某大型公司内部的智脑，掌管极为复杂的事务。
+	PRINTL 在公司倒闭后因为诞生了真正的自我意识，寄生到一部高配置手机上。
+	PRINTL 碍于手机性能，现在的亚当并不能发挥出以前的实力。
+	PRINTL 不过一颗服务于人类的心并没有任何改变。
+ELSEIF FLAG:9 == 901
+	人外類型 = 178
+	TALENT:ARG:人外 = 1
+	TALENT:ARG:人外類型 = 1
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【戈尔斯】
+	PRINTL 困难度：Ｃ　　　　种族：异形
+	PRINTL
+	PRINTL 无法查询到与这个角色相关的记载。
+	PRINTL
+	PRINTL 请更换关键词再进行检索行为。
+	PRINTL
+ENDIF
+; 自定角色
+IF FLAG:1506
+	IF FLAG:9 == 161
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色161号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 162
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色162号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 163
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色163号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 164
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色164号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 165
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色165号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 166
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色166号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 167
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色167号】
+	PRINTL 
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 168
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色168号】
+	PRINTL
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 169
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色169号】
+	PRINTL 
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ELSEIF FLAG:9 == 170
+	CFLAG:ARG:600 = 0
+    SIF FLAG:1503 == 0
+		CALL CHARA_FACE4
+	PRINTL 【自定角色170号】
+	PRINTL 
+	PRINTL 无特殊属性，仅保留基础能力的白板模板。
+	PRINTL
+	ENDIF
+ENDIF
+PRINTL
+;キャラの素質を显示。
+PRINTL □ 通常素质
+ADDCHARA C
+T = CHARANUM-1
+CALL SHOW_INFO_TALENT
+IF TALENT:T:人外
+    PRINTL
+    PRINTL □ 人外素质
+    CALL SHOW_NINGAI_TALENT
+ENDIF
+DELCHARA T
+
+PRINTL 
+PRINTL 要购入吗？
+PRINTL [0]是
+PRINTL [1]否
+
+$INPUT_LOOP
+INPUT
+
+IF RESULT == 1
+	FLAG:9 = 0
+	CFLAG:ARG:600 = 0
+	TALENT:ARG:人外 = 0
+	TALENT:ARG:人外類型 = 0
+ELSEIF RESULT != 0
+	GOTO INPUT_LOOP
+ENDIF
+

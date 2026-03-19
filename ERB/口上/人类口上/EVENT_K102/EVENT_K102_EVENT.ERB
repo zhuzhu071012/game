@@ -1,0 +1,419 @@
+﻿;郭嘉 口上
+;イベント口上集 CFLAG 261～299を使用
+;-------------------------------------------------
+@KOJO_MESSAGE_EVENT_K102
+;書きかえたい場所の「（基本の地の文を显示）」を消して変えてもいいです
+;表示される基本の地の文はEVENT_M_EVENT.ERB、を参照して下さい
+;TFLAG:13に入ってる数字イコール@EVENT_MESSAGE_XXのXXです。
+;まだテンプレが無いイベントの口上を書く場合は最初に　IF TFLAG:13 == XX　というように書いてください
+IF TFLAG:13 != 18 && TFLAG:13 != 19
+	CALL K102_EVENT_CUSTOM
+	RETURN 0
+ENDIF
+;-------------------------------------------------
+;调教後百合プ雷
+;-------------------------------------------------
+IF TFLAG:13 == 4
+	;贞操对和服腰带あり
+	IF TEQUIP:2 == 5
+		;PRINTFORML 
+	ELSE
+		;初めて
+		IF CFLAG:264 == 0
+			;PRINTFORMW 
+			;CFLAG:264 = 1
+		;それ以外
+		ELSEIF CFLAG:264 < 1 || FLAG:7 == 2
+			;PRINTFORMW 
+			;CFLAG:264 = 1
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;强精神药の反動
+;-------------------------------------------------
+IF TFLAG:13 == 6
+	IF CFLAG:266 < 1 || FLAG:7 == 2
+		;PRINTFORMW 
+		;CFLAG:266 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;调教後搾乳
+;-------------------------------------------------
+IF TFLAG:13 == 7
+	IF CFLAG:267 < 1 || FLAG:7 == 2
+		;PRINTFORMW 
+		;CFLAG:267 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;调教後自慰
+;-------------------------------------------------
+IF TFLAG:13 == 8
+	;贞操对和服腰带あり
+	IF TEQUIP:2 == 5
+		;PRINTFORML 
+	ELSE
+		IF CFLAG:268 < 1 || FLAG:7 == 2
+			;PRINTFORMW 
+			;CFLAG:268 = 1
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;黄色のキャンディ使用時
+;-------------------------------------------------
+IF TFLAG:13 == 10
+	IF CFLAG:270 < 1 || FLAG:7 == 2
+		;PRINTFORMW 
+		;CFLAG:270 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;怀孕発覚時
+;-------------------------------------------------
+IF TFLAG:13 == 11
+	SIF CFLAG:271 >= 1 && FLAG:7 != 2
+		RETURN 0
+	;PRINTFORMW 
+	;CFLAG:271 = 1
+ENDIF
+;-------------------------------------------------
+;分娩時
+;-------------------------------------------------
+IF TFLAG:13 == 12
+	IF CFLAG:272 < 1 || FLAG:7 == 2
+		;PRINTFORMW 
+		;CFLAG:272 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;育児室
+;-------------------------------------------------
+IF TFLAG:13 == 13
+	;分娩前
+	IF TALENT:153
+		IF CFLAG:273 < 1 || FLAG:7 == 2
+			;PRINTFORMW 
+			;CFLAG:273 = 1
+		ENDIF
+	;分娩後
+	ELSE
+		IF CFLAG:273 < 3 || FLAG:7 == 2
+			;PRINTFORMW 
+			;CFLAG:273 = 3
+		ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;親離れ時
+;-------------------------------------------------
+IF TFLAG:13 == 14
+	IF CFLAG:274 < 1 || FLAG:7 == 2
+		;PRINTFORMW 
+		;CFLAG:274 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;拍卖時
+;-------------------------------------------------
+IF TFLAG:13 == 18
+    PRINTL
+    PRINTL
+    PRINTL
+	;反抗刻印Lv3
+	IF MARK:3 == 3
+		PRINTFORMW 「原来如此。您终究还是决定，将嘉像一件旧物般转手了。」
+		PRINTFORMW 「也好。既已无话可说，嘉便不劳您再多费心。」
+		PRINTFORMW %CALLNAME:TARGET%神情冷淡地整了整衣襟，头也不回地跟着商人离开。
+	;それ以外
+	ELSE
+		IF TALENT:病娇
+            PRINTFORMW 「拍卖？把嘉……不，把属于您的东西交给别人？」
+            PRINTFORMW 「%MASTERNAME%，这种玩笑可一点也不好笑。」
+            PRINTFORMW 直到被人强行拽开，%CALLNAME:TARGET%仍死死盯着%PLAYER_NAME()%，像是想从那张脸上剜出一个答案。
+        ELSEIF TALENT:崩溃 || TALENT:疯癫
+        	PRINTFORMW 「不是这样的……%MASTERNAME%不会不要嘉，您们都在说谎……」
+        	PRINTFORMW %CALLNAME:TARGET%失神地摇着头，最后被商人和护卫半拖半拽地带走了。
+        ELSEIF TALENT:恋慕 || TALENT:相亲相爱
+			PRINTFORMW 「……是么，原来您也会有把嘉推出门外的一日。」
+			PRINTFORMW 「起初嘉还以为，纵使身份荒唐，至少这份心意可以换来片刻停留。」
+			PRINTFORMW %CALLNAME:TARGET%勉强露出一个极浅的笑，抬手轻轻抚过%PLAYER_NAME()%的袖口。
+			PRINTFORMW 「若这便是您的决定，嘉不再失仪纠缠。」
+			PRINTFORMW 「只是从今往后，还请偶尔也想起……曾有一人，真心实意地将自己的一切都托付给您。」
+			PRINTFORMW 说完，%CALLNAME:TARGET%俯首行了一礼，随着商人离去。
+        ELSEIF TALENT:服从 || TALENT:隶属
+			PRINTFORMW 「您的命令，是要嘉改侍奉别的人么？」
+			PRINTFORMW %CALLNAME:TARGET%怔了片刻，最终还是低下头，顺从地应了一声。
+			PRINTFORMW 「……明白了。既是您的意思，嘉照做便是。」
+        ELSEIF TALENT:淫乱 || TALENT:娼妇
+			PRINTFORMW 「要把嘉卖掉？呵……看来您是当真玩腻了。」
+			PRINTFORMW 「也罢。只是等嘉到了别处，若被别人用得更顺手些，您可别后悔。」
+			PRINTFORMW %CALLNAME:TARGET%笑着跟商人离开，那笑意却始终未达眼底。
+        ELSE
+			PRINTFORMW 「……终究还是走到了这一步。」
+			PRINTFORMW 「那便如此吧。只愿下一位主人，不必像您这般执拗得令人难堪。」
+        ENDIF
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;ビデオ拍卖時
+;-------------------------------------------------
+IF TFLAG:13 == 19
+	IF CFLAG:278 < 1 || FLAG:7 == 2
+		IF TALENT:恋慕 || TALENT:相亲相爱
+			PRINTFORMW 「连这等影像也要拿去兜售么……您当真不肯替嘉留半分颜面。」
+		ELSEIF TALENT:淫乱 || TALENT:娼妇
+			PRINTFORMW 「呵，原来嘉这副失态模样，还值得拿去给旁人助兴？」
+		ELSEIF TALENT:服从 || TALENT:隶属
+			PRINTFORMW 「若这样做能令您获利，嘉并无异议。」
+		ELSE
+			PRINTFORMW 「竟连这等东西也不肯私藏，非要昭示于人前……未免太恶劣了。」
+		ENDIF
+		CFLAG:278 = 1
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;衣服变更時 CFLAG:283（を適当に適用） 
+;T:A = Y　　　　着脱する衣服を限定する時
+;A = X　　　　　着脱部位全体を示す時
+;TEQUIP:A = Y　 今何を着ているか（着てない場合は0）
+;を組み合わせます。分かりにくくてスマン。
+;-------------------------------------------------
+IF TFLAG:13 == 25
+	;脱がしたときの口上
+	IF  Y == 0 && CFLAG:283 == 0 || FLAG:7 == 2
+		;贞操带取下
+		IF A == 2 && T:2 == 5
+			;PRINTFORMW 
+		;贞操带以外の下着取下
+		ELSEIF A == 2
+			;PRINTFORMW 
+		ENDIF
+		;CFLAG:283 = 1
+	;着せた時の口上
+	ELSEIF CFLAG:283 < 2 || FLAG:7 == 2
+		;女装：男性キャラ
+		IF (TALENT:137 || TALENT:140) && (T:1 == 4 || T:1 == 6 || T:2 == 1 || T:2 == 4 || T:2 == 6 || T:3 == 1 || T:3 == 2 || T:4 == 1 || T:4 == 6 || T:6 == 2 || T:6 == 3 || T:6 == 4 || T:6 == 6 || T:6 == 9 || T:6 == 10 || T:9 == 9)
+			;PRINTFORML 
+		ENDIF
+		;贞操带施錠
+		IF T:2 == 5
+			;PRINTFORML 
+		ENDIF
+		;CFLAG:283 = 2
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;朝料理イベント時 CFLAG:284 を、使用できるように確保してみる
+;書きかえたい場所の「」を消してごっそり変えてもいいかも
+;表示される基本の地の文はEVENT_M.ERBを参照にして下さい
+;-------------------------------------------------
+IF TFLAG:13 == 26
+	;最初から弁当を食べる時
+	IF K == 1
+		PRINTFORM 
+	;売るのをやめて食べる時
+	ELSEIF K == 2
+		PRINTFORM 
+	;主人が弁当を作るとき
+	ELSEIF K == 3
+		PRINTFORM 
+	;食後の運動(性的な意味で)直前
+	ELSEIF K == 4
+		PRINTFORM 
+	;毒を盛られた
+	ELSEIF K == 5
+		PRINTFORM 
+	;毒を見抜いたので弱みを握るイベント（相性のいい子に食べさせるver）
+	ELSEIF K == 6
+		PRINTFORM 
+	;毒を見抜いたので弱みを握るイベント（問い詰めるver）
+	ELSEIF K == 7
+		PRINTFORM 
+	;毒殺された
+	ELSEIF K == 8
+		PRINTFORM 
+	ENDIF
+ENDIF
+;-------------------------------------------------
+;@KOJO_MESSAGE_ENDING関係
+;-------------------------------------------------
+;-------------------------------------------------
+;条件设定
+;-------------------------------------------------
+@EVENTTURNEND
+#LATER
+SIF TARGET < 0
+	RETURN 0
+SIF NO:TARGET != 102
+	RETURN 0
+;特殊ハーレムエンド用条件判定構文
+;XX内に条件とするキャラの性格タイプ番号を入れてXXXにキャラ数を入れると、好きな組み合わせのハーレムエンドを设定できる
+;ハーレムエンドの条件を満たしたとき、ここの特殊ハーレムエンドの条件も満たしている場合、ハーレムエンドから派生する
+;A = 0
+;B = 0
+;REPEAT CHARANUM
+;	IF NO:COUNT == XX || NO:COUNT == XX || NO:COUNT == XX || NO:COUNT == XX || NO:COUNT == XX
+;		SIF TALENT:COUNT:6 || TALENT:COUNT:7 || TALENT:COUNT:8
+;			A += 1
+;		SIF TALENT:COUNT:3 || TALENT:COUNT:4 || TALENT:COUNT:5 || TALENT:COUNT:6 || TALENT:COUNT:7 || TALENT:COUNT:8
+;			B += 1
+;	ENDIF
+;REND
+;SIF A && A+B >= XXX
+;	CFLAG:21 = 2
+;単体エンド用分岐フラグ、単体エンドのある进阶素质のみコメントアウトを解除する
+SIF TALENT:相亲相爱
+	CFLAG:21 = 1
+SIF TALENT:娼妇
+	CFLAG:21 = 1
+SIF TALENT:隶属
+	CFLAG:21 = 1
+;-------------------------------------------------
+;エンド本文
+;-------------------------------------------------
+@KOJO_MESSAGE_ENDING_K102
+;恋慕単体エンド
+IF TALENT:相亲相爱 && CFLAG:21 == 1
+	DRAWLINE
+	PRINTFORMW …………
+	PRINTFORMW ………
+	PRINTFORMW ……
+	PRINTFORMW 在那之后，%PLAYER_NAME()%没有再把郭嘉当作一件可以随手丢开的筹码。
+	PRINTFORMW 而郭嘉，也不再用“及时行乐”来回避自己真正想要的人。
+	PRINTFORMW 白日里，他仍替%PLAYER_NAME()%参谋局势、推演人心，笑意懒散，落子却比谁都狠。
+	PRINTFORMW 到了夜里，他便把那点放浪与聪敏全数收拢，只把最真实的眷恋留在%PLAYER_NAME()%枕边。
+	PRINTFORMW 「嘉原以为，这一生只该拿来赌天下。」
+	PRINTFORMW 「可若赌注换成与您共度余生，嘉倒觉得怎么押都值。」
+	PRINTFORMW 于是，郭嘉不再只是漂泊无定的奉孝，而是真正把自己留在了这一人身侧。
+	PRINTFORMW 　　　　　　　　―― Ending No.102A (与奉孝共赌余生)
+;淫乱単体エンド
+ELSEIF TALENT:娼妇 && CFLAG:21 == 1
+	DRAWLINE
+	PRINTFORMW …………
+	PRINTFORMW ………
+	PRINTFORMW ……
+	PRINTFORMW 郭嘉依旧敏锐，甚至比往昔更懂得如何在最恰当的时机撩乱%PLAYER_NAME()%的心神。
+	PRINTFORMW 只是那份聪明，再不肯用在别处，而是全数耗在如何挑起欲火、如何让主人为自己沉迷。
+	PRINTFORMW 帷帐之中，他笑着引%PLAYER_NAME()%一步步失守，像在布一盘只通往欢愉的险棋。
+	PRINTFORMW 「若能叫您对嘉这副身子上瘾，那嘉这点鬼才，也算没白费。」
+	PRINTFORMW 那份天纵才思终究被情欲烧成一盏暖酒，自此只为主人一人而酣。
+	PRINTFORMW 　　　　　　　　―― Ending No.102B (鬼才春局)
+;服从単体エンド
+ELSEIF TALENT:隶属 && CFLAG:21 == 1
+	DRAWLINE
+	PRINTFORMW …………
+	PRINTFORMW ………
+	PRINTFORMW ……
+	PRINTFORMW 郭嘉最终学会了把取舍都交到%PLAYER_NAME()%手中。
+	PRINTFORMW 无论是进退筹谋，还是榻上该怎样迎合主人的兴致，他都不再先替自己留下退路。
+	PRINTFORMW 对他而言，最稳妥的胜算，已经不在天下棋局里，而在主人的一句吩咐里。
+	PRINTFORMW 「只要是%CALLNAME:MASTER%大人的意思，嘉自会办得妥妥当当。」
+	PRINTFORMW 「能被您这样握在掌中，倒也不失为一桩好归宿。」
+	PRINTFORMW 曾经恃才放旷的鬼才，最终温顺地伏在主人的身侧，成了最会揣度心意的一人。
+	PRINTFORMW 　　　　　　　　―― Ending No.102C (掌中鬼才)
+ENDIF
+;特殊ハーレムエンド
+;IF CFLAG:21 == 2
+	;DRAWLINE
+	;PRINTFORMW …………
+	;PRINTFORMW ………
+	;PRINTFORMW ……
+	;PRINTFORMW 
+	;PRINTFORMW 
+	;PRINTFORMW 　　　　　　　　―― Ending No.2X2 (○○エンド)
+;ENDIF
+;CALL GAME_CONTINUE
+;RETURN 0
+@K102_EVENT_CUSTOM
+IF TFLAG:13 == 4
+	IF CFLAG:264 == 0 || FLAG:7 == 2
+		PRINTFORMW 「主公这是要嘉亲眼看着您把旁人也哄得团团转？……呵，坏得很。」
+		CFLAG:264 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 6
+	IF CFLAG:266 < 1 || FLAG:7 == 2
+		PRINTFORMW 「脑子还发着晕，偏偏最先浮上来的还是主公的脸……嘉这可真是病得不轻。」
+		CFLAG:266 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 7
+	IF CFLAG:267 < 1 || FLAG:7 == 2
+		PRINTFORMW 「连这种狼狈样都被主公看得一清二楚了……行吧，算嘉又输您一局。」
+		CFLAG:267 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 8
+	IF CFLAG:268 < 1 || FLAG:7 == 2
+		PRINTFORMW 「主公一走，嘉这身子反倒更难安生了。看来今晚多半要自己想着您收尾。」
+		CFLAG:268 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 10
+	IF CFLAG:270 < 1 || FLAG:7 == 2
+		PRINTFORMW 「……这点小玩意儿也想乱嘉的心？可若是主公亲手喂的，嘉倒真未必撑得住。」
+		CFLAG:270 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 11
+	SIF CFLAG:271 >= 1 && FLAG:7 != 2
+		RETURN 0
+	PRINTFORMW 「……竟是真的。」
+	PRINTFORMW 「主公在嘉身上留下的，不只是痕迹，竟还有这样一份再也推不开的牵连。」
+	CFLAG:271 = 1
+ELSEIF TFLAG:13 == 12
+	IF CFLAG:272 < 1 || FLAG:7 == 2
+		PRINTFORMW 「哈……总算落了地。主公，您瞧，嘉竟连这种结局都陪您走到了。」
+		CFLAG:272 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 13
+	IF TALENT:153
+		IF CFLAG:273 < 1 || FLAG:7 == 2
+			PRINTFORMW 「主公若肯来看看，嘉便安心些。毕竟这孩子从一开始，就带着您的影子。」
+			CFLAG:273 = 1
+		ENDIF
+	ELSE
+		IF CFLAG:273 < 3 || FLAG:7 == 2
+			PRINTFORMW 「嘉原以为自己只会算人心，不会照看孩子。可若是和主公一起学，似乎也不算太难。」
+			CFLAG:273 = 3
+		ENDIF
+	ENDIF
+ELSEIF TFLAG:13 == 14
+	IF CFLAG:274 < 1 || FLAG:7 == 2
+		PRINTFORMW 「孩子总会自己走远，倒像嘉当年一样。只是这回，嘉还留在主公身边。」
+		CFLAG:274 = 1
+	ENDIF
+ELSEIF TFLAG:13 == 25
+	IF Y == 0 && (CFLAG:283 == 0 || FLAG:7 == 2)
+		PRINTFORMW 「主公连这层都要亲手解？……好吧，嘉站好，让您看个尽兴。」
+		CFLAG:283 = 1
+	ELSEIF CFLAG:283 < 2 || FLAG:7 == 2
+		IF T:2 == 5
+			PRINTFORMW 「连这处都要锁上，主公对嘉的占有心，可真是一点都不肯藏。」
+		ELSE
+			PRINTFORMW 「主公替嘉更衣的样子，倒比真动手时还更像在哄人。」
+		ENDIF
+		CFLAG:283 = 2
+	ENDIF
+ELSEIF TFLAG:13 == 26
+	IF K == 1
+		PRINTFORMW 「主公既然不卖，那嘉便陪您吃。就当这是嘉今日讨来的额外偏爱。」
+	ELSEIF K == 2
+		PRINTFORMW 「到嘴边的筹码都肯收回来……主公偶尔心软起来，倒真叫嘉喜欢得紧。」
+	ELSEIF K == 3
+		PRINTFORMW 「主公也亲自下厨？那嘉可得认真尝尝，免得错过您难得的手笔。」
+	ELSEIF K == 4
+		PRINTFORMW 「饭后还不肯放过嘉？……行，嘉就当主公这是另一种催人消食的法子。」
+	ELSEIF K == 5
+		PRINTFORMW 「竟敢在主公面前做这种手脚……啧，真把嘉当死的了？」
+	ELSEIF K == 6
+		PRINTFORMW 「主公若想借此拿人一把，嘉倒乐意在旁边替您添上最后一刀。」
+	ELSEIF K == 7
+		PRINTFORMW 「主公要当面拆穿？那嘉便站在您身侧，看那人还能嘴硬到几时。」
+	ELSEIF K == 8
+		PRINTFORMW 「……真闹到这一步，未免太煞风景。主公，下回可记得把人看紧些。」
+	ELSE
+		PRINTFORMW 「主公这一日过得倒是热闹，连嘉都快跟着您忙不过来了。」
+	ENDIF
+ELSE
+	PRINTFORMW 「主公又给嘉留了个新局面。既如此，嘉自然会陪您一道接下。」
+ENDIF
+RETURN 0

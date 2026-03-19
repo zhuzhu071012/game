@@ -1,0 +1,346 @@
+﻿;郭嘉 口上
+;调教前和调教後的台詞
+;-------------------------------------------------
+;eraQueenA用口上模板
+;口上を書けた部分の「CFLAG:2XX = 1」や「CFLAG:2XX = 2」のコメントアウトは解除してください。
+;-------------------------------------------------
+;--------------------------------------------------
+;口上文件的存在判定
+;--------------------------------------------------
+@EVENTSHOP
+#PRI
+FLAG:102 = 1
+SIF FLAG:7 == 0
+	FLAG:7 = 1
+;--------------------------------------------------
+;EVENTTRAIN关系
+;调教開始時的台词 CFLAG 201～219を使用
+;--------------------------------------------------
+@EVENTTRAIN
+;オプションで口上をオフした時は駄目
+SIF FLAG:7 <= 0
+	RETURN 0
+SIF NO:TARGET != 102
+	RETURN 0
+@KOJO_EVENTTRAIN_K102
+;--------------------------------------------------
+;特定助手時に特殊助手口上を呼び出す(Y1を助手との関係设定(CFLAG:2000～2100)の値に置換）
+;--------------------------------------------------
+;IF ASSI > 0 && ASSIPLAY
+;	IF CFLAG:(NO:ASSI + 2000) == Y1
+;		CALL EVENTTRAIN_PY1
+;		RETURN 0
+;	ENDIF
+;ENDIF
+;--------------------------------------------------
+;簡易助手口上の発動時に初调教時口上をスキップ（Y1を助手のキャラ性格番号にする）
+;複数人いる際には、SIF CFLAG:(NO:ASSI + 2000) == Y1 || CFLAG:(NO:ASSI + 2000) == Z1と追加していく
+;初调教時口上をスキップしない場合は使わなくてもいい
+;--------------------------------------------------
+;IF CFLAG:201 == 0 && ASSI > 0
+;	SIF CFLAG:(NO:ASSI + 2000) == Y1
+;		CFLAG:201 =1
+;ENDIF
+;-------------------------------------------------
+;调教開始時（一回のみの台詞） CFLAG201
+;-------------------------------------------------
+DRAWLINE
+SIF CFLAG:201 == 6
+	RETURN 0
+;初调教時
+IF CFLAG:201 == 0
+	PRINTFORMW 门被推开时，%CALLNAME%已半倚在榻边，像是早把来人的脚步声听了个分明。
+	PRINTFORMW 「主公终于肯亲自来了？嘉还当，您会继续躲在帘外，看嘉如何失态。」
+	PRINTFORMW 「若说不怨，那是假话。可若来的人是您……嘉偏又舍不得把话说得太绝。」
+	PRINTFORMW 「毕竟嘉这一生最会看人，也最知道自己究竟在盼谁。」
+	PRINTFORMW %CALLNAME%抬眼望来，唇边竟还噙着一丝若有若无的笑。
+	PRINTFORMW 「所以，主公今日是来驯服嘉，还是来听嘉亲口认输？」
+	PRINTFORMW 「……若您肯伸手，嘉会试着乖一点。只是您得记住，这份偏爱，嘉可只给您。」
+	PRINTFORMW 那带着狡黠与试探的低语，反倒让房中的气息先一步热了起来。
+	CFLAG:201 = 1
+	RETURN 0
+;恋慕陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:3) || (CFLAG:201 < 6 && TALENT:6)
+	IF CFLAG:201 < 5 && TALENT:恋慕
+		PRINTFORMW 「近来嘉最没出息的一件事，便是每次听见主公的脚步，心就先软了。」
+		PRINTFORMW 「明明还想装得从容些，偏偏一见着您，连先前准备好的话都忘了个干净。」
+		PRINTFORMW 「嘉原本最擅长算人心，可一旦牵扯到您，这点聪明倒总被喜欢搅得一塌糊涂。」
+		PRINTFORMW %CALLNAME%说着说着，自己先低低笑了一声，耳根却已悄悄泛红。
+		PRINTFORMW 「所以啊，主公若再那样看着嘉，嘉可就真要顺着您的意思，全都认下了。」
+		PRINTFORMW 「到那时，您可得负责把嘉接稳些。」
+		CFLAG:201 = 5
+		RETURN 0
+	;相亲相爱
+	ELSEIF CFLAG:201 < 6 && TALENT:相亲相爱
+		PRINTFORMW 「主公若还想听嘉坦白，那嘉便索性说个彻底。」
+		PRINTFORMW 「名声、礼法、分寸、退路……这些嘉从前总能算得清清楚楚。」
+		PRINTFORMW 「可到了您这里，嘉只想离您再近一点，再黏一点，最好叫您连推都舍不得推开。」
+		PRINTFORMW %CALLNAME%主动握住了%PLAYER_NAME()%的手，像把最后一点遮掩也一并送了出去。
+		PRINTFORMW 「嘉心悦您，也甘愿被您握在掌心。」
+		PRINTFORMW 「所以别再试探了，主公。您只要勾一勾手，嘉就会自己过去。」
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;淫乱陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:4) || (CFLAG:201 < 6 && TALENT:7)
+	IF CFLAG:201 < 5 && TALENT:淫乱
+		PRINTFORMW 「嘉从前总笑旁人贪欢失度，谁知轮到自己，竟也会被主公撩拨得这样厉害。」
+		PRINTFORMW 「明知该收敛些，可您一碰过来，身子便比嘉的脑子先一步软了。」
+		PRINTFORMW 「这般失序，实在不像话……可若叫嘉老实承认，嘉偏又有些喜欢。」
+		PRINTFORMW %CALLNAME%抬袖掩住唇边笑意，眼底却盛着压不住的潮热。
+		PRINTFORMW 「既然您最爱看嘉乱了方寸，那嘉今日便再多乱给您看些。」
+		CFLAG:201 = 5
+		RETURN 0
+	;娼妇
+	ELSEIF CFLAG:201 < 6 && TALENT:娼妇
+		PRINTFORMW 「主公可总算来了，嘉这身子都快替您等得发烫了。」
+		PRINTFORMW 「您瞧，不过是想到您要怎样碰嘉，嘉就先自己湿得一塌糊涂。」
+		PRINTFORMW 「廉耻也好，风骨也罢，若能换您多疼嘉一点，嘉倒觉得值当得很。」
+		PRINTFORMW %CALLNAME%笑吟吟地把自己往%PLAYER_NAME()%怀里送，像一只明知会被捉住还偏要扑人的狐狸。
+		PRINTFORMW 「所以今晚别只是看着。主公想怎样用嘉，都请尽兴些。」
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;服从陷落ルート
+ELSEIF (CFLAG:201 < 5 && TALENT:5) || (CFLAG:201 < 6 && TALENT:8)
+	IF CFLAG:201 < 5 && TALENT:服从
+		PRINTFORMW 「嘉这几日想了许久，终于想明白了一件事。」
+		PRINTFORMW 「主公要的，从来都不只是嘉的才智，更是嘉肯不肯顺着您，把自己也交出去。」
+		PRINTFORMW 「既然如此，嘉再端着那些无用的分寸，也只是平白惹您不快。」
+		PRINTFORMW %CALLNAME%轻轻垂下眼睫，神色里却并无死寂，反倒透着一点认命般的温顺。
+		PRINTFORMW 「那么，从今日起……只要是您的意思，嘉会学着好好照做。」
+		CFLAG:201 = 5
+		RETURN 0
+	ELSEIF CFLAG:201 < 6 && TALENT:隶属
+		PRINTFORMW 「若能被主公握在手里，嘉倒觉得，比四处漂泊安心得多。」
+		PRINTFORMW 「被您命令、被您约束、被您一点点调成最合心意的模样……这样的日子，嘉并不讨厌。」
+		PRINTFORMW %CALLNAME%顺从地低下头，将额角轻轻抵在%PLAYER_NAME()%手背上。
+		PRINTFORMW 「往后您要嘉笑，嘉便笑；要嘉乖，嘉便乖。」
+		PRINTFORMW 「只求您别丢开嘉……%CALLNAME:MASTER%大人。」
+		MASTERNAME = %CALLNAME:MASTER%大人
+		;口調が敬語タイプになる
+		CFLAG:601 = 2
+		CFLAG:201 = 6
+		RETURN 0
+	ENDIF
+;初めて屈服刻印Lv1になった
+ELSEIF CFLAG:201 < 2 && MARK:2 == 1
+	PRINTFORMW 「……只是皮肉之苦，嘉原本还不至于放在眼里。」
+	PRINTFORMW 「可主公偏擅长挑人的软处下手，叫嘉连心也跟着乱了几分。」
+	CFLAG:201 = 2
+	RETURN 0
+;初めて屈服刻印Lv2になった
+ELSEIF CFLAG:201 < 3 && MARK:2 == 2
+	PRINTFORMW 「被您逼得渐渐习惯，竟比单纯受刑还要叫人难堪……」
+	PRINTFORMW 「主公若是故意想看嘉一点点失守，那您这盘棋下得可真不坏。」
+	CFLAG:201 = 3
+	RETURN 0
+;初めて屈服刻印Lv3になった
+ELSEIF CFLAG:201 < 4 && MARK:2 == 3
+	PRINTFORMW 「……若连羞耻和嘴硬都被主公磨得差不多了，您总该满意些了吧？」
+	PRINTFORMW 「也罢。至少在您面前，嘉如今确实没那么想躲了。」
+	CFLAG:201 = 4
+	RETURN 0
+ENDIF
+
+;-------------------------------------------------
+;簡易助手口上（Y1を助手との関係设定の値に置換)
+;-------------------------------------------------
+;助手の有無をチェック（いない場合は二回目以降へ飛ぶ）
+IF ASSI < 0 
+	CALL EVENTTRAIN_SECOND_K102
+;例:助手が调教对象の兄の場合（CFLAG:(NO:ASSI + 2000)を1に设定）
+;ELSEIF CFLAG:(NO:ASSI + 2000) == 1
+;	;初めて
+;	IF CFLAG:(NO:ASSI + 700) == 0
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 1
+	;二回目以降
+;	ELSEIF CFLAG:(NO:ASSI + 700) < 2 || FLAG:7 ==2
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 2
+;	ENDIF
+;Y1を助手との関係设定の値に置換
+;ELSEIF CFLAG:(NO:ASSI + 2000) == Y1
+;	;初めて
+;	IF CFLAG:(NO:ASSI + 700) == 0
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 1
+	;二回目以降
+;	ELSEIF CFLAG:(NO:ASSI + 700) < 2 || FLAG:7 ==2
+;		PRINTFORMW 
+;		CFLAG:(NO:ASSI + 700) = 2
+;	ENDIF
+;口上のある助手が居ない場合は、通常の二回目以降の口上へ飛ぶ
+ELSE
+	CALL EVENTTRAIN_SECOND_K102
+ENDIF
+
+;-------------------------------------------------
+;调教開始時（2回目以降、「一回だけ表示」に设定してなければ何度も显示台詞です）
+;何度も显示わけなので、何種類かの短い台詞を用意したほうがいいかもしれません。
+;毎回表示されたら面倒くさいかもしれないので、「一回だけ表示」に设定していれば、三分の一の確率で表示されることしました。
+;-------------------------------------------------
+@EVENTTRAIN_SECOND_K102
+;反抗刻印Lv3が消された場合、「一回だけ表示」用のフラグを解除。
+SIF MARK:反抗刻印 < 3 && CFLAG:202 == 4
+	CFLAG:202 = 0
+;反抗刻印Lv3（最初に反抗刻印Lv3をついた時のの場合）
+IF MARK:反抗刻印 == 3 && CFLAG:202 < 4
+	PRINTFORML 「……主公把嘉逼到这一步，是想听嘉恨您，还是想听嘉求您？」
+	PRINTFORMW 「可惜啊，嘉纵然被逼红了眼，偏偏最先记住的还是您这张脸。」
+	CFLAG:202 = 4
+;反抗刻印Lv3、屈服刻印 < 2、顺从 <= 2　（毎回表示の場合）
+ELSEIF MARK:反抗刻印 == 3 && MARK:屈服刻印 < 2 && ABL:顺从 <= 2 && (CFLAG:202 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「主公若想看嘉低头，未免还早了些。」
+		PRINTFORMW 「不过您若肯再靠近一点，嘉倒也不是不能边瞪您边让您得手。」
+	ELSE
+		PRINTFORML 「您可真会欺负人，偏挑嘉最怕疼的时候下手。」
+		PRINTFORMW 「可嘉若真不想见您，又何必还留在这里同您说这些？」
+	ENDIF
+	CFLAG:202 = 4
+;屈服刻印Lv1以下
+ELSEIF MARK:2 <= 1 && (CFLAG:202 < 2 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「主公今日打算先哄嘉，还是先欺负嘉？」
+	ELSE
+		PRINTFORML 「嘉可还没那么好拿捏，您若想要什么，总得多费点心思。」
+	ENDIF
+	CFLAG:202 = 2
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2 && (CFLAG:202 < 3 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「……您每回这样看着嘉，都叫嘉有些招架不住。」
+	ELSE
+		PRINTFORML 「若主公再温柔些，嘉怕是连嘴硬都撑不了多久了。」
+	ENDIF
+	CFLAG:202 = 3
+;屈服刻印Lv3＋陷落素質无
+ELSEIF MARK:2 == 3 && !KANRAKU(TARGET) && (CFLAG:202 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF !RAND:2
+		PRINTFORML 「都到这一步了，嘉再装镇定，主公也不会信了吧。」
+	ELSE
+		PRINTFORML 「您若再勾一勾手，嘉大概真会乖乖过去。」
+	ENDIF
+	CFLAG:202 = 4
+;恋慕陷落ルート
+ELSEIF (TALENT:3 || TALENT:6) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:恋慕 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「主公，您再这样慢慢磨嘉，嘉可就要自己扑过去了。」
+		ELSE
+			PRINTFORML 「嘉本还想装得矜持些，可一见着您，心思就全写在脸上了。」
+		ENDIF
+		CFLAG:202 = 5
+	ELSEIF TALENT:相亲相爱 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「主公只管下令。旁人求不来的偏爱，嘉都肯主动捧给您。」
+		ELSE
+			PRINTFORML 「您来了就好。嘉方才还在想，今晚要怎么把您多留一阵。」
+		ENDIF
+		CFLAG:202 = 6
+	ENDIF
+;淫乱陷落ルート
+ELSEIF (TALENT:4 || TALENT:7) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:淫乱 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「主公才碰一碰，嘉这身子就先替您着了火，真是没出息。」
+		ELSE
+			PRINTFORML 「您再逗一逗，嘉怕是要自己笑着往您怀里送了。」
+		ENDIF
+		CFLAG:202 = 5
+	ELSEIF TALENT:娼妇 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「主公可别只看。嘉今日这副样子，本就是特意留给您赏的。」
+		ELSE
+			PRINTFORML 「嘉已经湿得厉害了，主公若再不动手，可就太坏心了。」
+		ENDIF
+		CFLAG:202 = 6
+	ENDIF
+;服从陷落ルート
+ELSEIF (TALENT:5 || TALENT:8) && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:服从 && (CFLAG:202 < 5 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「主公想要嘉怎么做，直说便是。嘉会认真学的。」
+		ELSE
+			PRINTFORML 「您一句话，便比嘉自己琢磨半日都来得管用。」
+		ENDIF
+		CFLAG:202 = 5
+	ELSEIF TALENT:隶属 && (CFLAG:202 < 6 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+		IF !RAND:2
+			PRINTFORML 「%CALLNAME:MASTER%大人，嘉已经候着了。您今日想先罚，还是先疼？」
+		ELSE
+			PRINTFORML 「只要是您的吩咐，嘉都会笑着接下。您尽可放心使唤。」
+		ENDIF
+		CFLAG:202 = 6
+	ENDIF
+ENDIF
+RETURN 0
+;-------------------------------------------------
+;EVENTEND関係
+;调教结束時のセリフ
+;-------------------------------------------------
+@EVENTEND
+SIF FLAG:7 <= 0
+	RETURN 0
+SIF NO:TARGET != 102
+	RETURN 0
+@KOJO_EVENTEND_K102
+;--------------------------------------------------
+;调教结束時のセリフ
+;--------------------------------------------------
+;调教をすぐやめたときは口上を不显示
+SIF PREVCOM == -1
+	RETURN 0
+DRAWLINE
+;最初に反抗刻印Lv3を取った時（一回だけ）
+IF MARK:3 == 3 && CFLAG:217 < 1
+	PRINTFORML 「……这局，算主公赢了半手。」
+	PRINTFORMW 「可嘉还没输光呢。您若真想把嘉全赢过去，就别半途松手。」
+	CFLAG:217 = 1
+;反抗刻印Lv3、屈服刻印 < 2、顺从 <= 2
+ELSEIF MARK:反抗刻印 == 3 && MARK:屈服刻印 < 2 && ABL:顺从 <= 2 && (CFLAG:217 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORML 「今日倒是肯收手了？」
+	PRINTFORMW 「嘉还以为，主公非要把人逼到哭出来才肯算完。」
+	CFLAG:217 = 1
+;屈服刻印Lv1以下
+ELSEIF MARK:2 <= 1 && (CFLAG:219 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「主公若是就这么走了，嘉可要把今晚这笔账好好记着。」
+	CFLAG:219 = 1
+;屈服刻印Lv2
+ELSEIF MARK:2 == 2 && (CFLAG:219 < 2 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「……让嘉缓一缓。再被您多看两眼，嘉怕是又要软下去了。」
+	CFLAG:219 = 2
+;屈服刻印Lv3＋陷落素質无
+ELSEIF MARK:2 == 3 && !KANRAKU(TARGET) && (CFLAG:219 < 3 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「主公如今一收手，嘉反倒会觉得这屋里空得厉害。」
+	CFLAG:219 = 3
+;陷落済み＋体力500未満
+ELSEIF KANRAKU(TARGET) && BASE:0 < 500 && (CFLAG:218 < 1 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	PRINTFORMW 「哈……主公总算肯停了。嘉这会儿连装作从容都做不到了……」
+	IF TALENT:恋慕 || TALENT:相亲相爱
+		PRINTFORMW 「您再多留一会儿吧。嘉如今累得厉害，正想赖着您讨一点安稳。」
+	ELSEIF TALENT:淫乱 || TALENT:娼妇
+		PRINTFORMW 「身子还烫着呢。您若就这么走，嘉多半要自己想着您想到睡不着。」
+	ELSEIF TALENT:服从 || TALENT:隶属
+		PRINTFORMW 「嘉会把自己收拾好，明日再继续候着。只要主公记得来就行。」
+	ELSE
+		PRINTFORMW 「……下回若还想这样折腾嘉，好歹先叫嘉喘匀了气。」
+	ENDIF
+	CFLAG:218 = 1
+;陷落済み
+ELSEIF KANRAKU(TARGET) && (CFLAG:219 < 4 || (FLAG:7 == 1 && !RAND:3) || FLAG:7 == 2)
+	IF TALENT:恋慕 || TALENT:相亲相爱
+		PRINTFORMW 「夜深了，主公。您若愿意再多留片刻，嘉会很高兴。」
+	ELSEIF TALENT:淫乱 || TALENT:娼妇
+		PRINTFORMW 「您若今夜就此离开，嘉可要抱着这身热意翻来覆去许久了。」
+	ELSEIF TALENT:服从 || TALENT:隶属
+		PRINTFORMW 「若您已满意，嘉便在此恭送。明日还请照旧吩咐嘉。」
+	ELSE
+		PRINTFORMW 「主公走慢些。嘉还得花点工夫，把方才乱掉的心思一点点收回来。」
+	ENDIF
+	CFLAG:219 = 4
+ENDIF
+DRAWLINE
+RETURN 0

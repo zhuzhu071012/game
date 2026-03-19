@@ -35,20 +35,21 @@ IF FLAG:9 == 101
 	PRINTL 你称他为“吾之子房”，
 	PRINTL 他也一路追随，从方寸之地，到半壁江山。
 	PRINTL 但你心里一直抱有怀疑：
-	PRINTL 荀彧，究竟是汉室的荀彧，还是曹魏的荀彧？
+	PRINTL 荀彧，究竟是汉室的荀彧，还是你曹孟德的荀彧？
 ELSEIF FLAG:9 == 102
 	CFLAG:ARG:600 = 95
     SIF FLAG:1503 == 0
 		CALL CHARA_FACE4
 	PRINTL 【郭嘉】
-	PRINTL 困难度：Ｂ　　　　性格：算无遗策
+	PRINTL 困难度：Ｂ　　　　性格：遗策定天
 	CALL PRINT_CAMP_ROLE_BY_NO(102)
 	PRINTL 
-	PRINTL 才策像雪夜里的火，亮得偏，也烧得偏。
-	PRINTL 奉孝总是笑着，像什么都不在意，连礼法也只当作案上的薄纸。
-	PRINTL 可乱局一到他手里，人心、胜机、死路、活路，
-	PRINTL 都会被他几句轻描淡写拆开摆平，
-	PRINTL 你看他像在玩，实际上，他比谁都更懂局势从不陪人儿戏。
+	PRINTL 郭奉孝像雪夜里的火，烧得亮，也烧得偏。
+	PRINTL 你知道你们志趣相投，他也相信你真乃明主，
+	PRINTL 但在他日益消瘦的背影和偶尔爆发的咳喘中，
+	PRINTL 你仍能瞥见“吾不南回”的阴影。
+	PRINTL 或许，挽回奉孝会是挽回赤壁败局的第一步？
+	PRINTL 你怀抱着期待做出了选择。
 ELSEIF FLAG:9 == 103
 	CFLAG:ARG:600 = 96
     SIF FLAG:1503 == 0
@@ -57,11 +58,11 @@ ELSEIF FLAG:9 == 103
 	PRINTL 困难度：Ａ　　　　性格：毒士乱武
 	CALL PRINT_CAMP_ROLE_BY_NO(103)
 	PRINTL 
-	PRINTL 兵荒马乱里活到最后的人，往往比聪明更懂沉默。
-	PRINTL 文和就是这样的人，话不多，眼不抬，心却比谁都算得深。
-	PRINTL 忠义、声名、风节，那些好听的字眼他不是不懂，
-	PRINTL 只是比起被人歌颂，他更愿意先活下来，
-	PRINTL 所以他的每一步都不漂亮，却都踩在最不容易死的地方。
+	PRINTL 作为在兵荒马乱中活到最后的人，贾文和总保持着谦逊的姿态。
+	PRINTL 他习惯了在混乱中辗转，也对人心多有揣摩，
+	PRINTL 走的每一步都不够敞亮，却走出了凉州到长安的步步杀机。
+	PRINTL 你对他能造成的破坏仍心有余悸，
+	PRINTL 又怎能错失这个永远控制他的良机。
 ELSEIF FLAG:9 == 104
 	CFLAG:ARG:600 = 97
     SIF FLAG:1503 == 0

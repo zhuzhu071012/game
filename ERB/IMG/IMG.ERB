@@ -77,6 +77,7 @@ ENDIF
     ;SIF !(TALENT:3 || TALENT:4 || TALENT:5 || TALENT:6 || TALENT:7 || TALENT:8)
     ;    HTML_PRINT "<shape type='space' param='0'><img src='L2' width='900' height='1100' ypos='-300'>"
 ;用于采购时的显示
+
 @CHARA_FACE2
 	臉圖判定 = 0
 	CALL NINGAI_CHECK
@@ -94,6 +95,7 @@ ENDIF
  	 HTML_PRINT 立繪顯示:3
 
 ;用于个人房间显示
+
 @CHARA_FACE3(ARG)
 	臉圖判定 = 1
 	CALL NINGAI_CHECK
@@ -115,6 +117,7 @@ ENDIF
  	 HTML_PRINT 立繪顯示:4
 	 
 ;用于人物簡介时的显示
+
 @CHARA_FACE4(ARG)
 	臉圖判定 = 1
 		IF FLAG:9 == 200 && CFLAG:ARG:666 == 0
@@ -149,6 +152,7 @@ REND
 	ENDIF	
 
 ;修改立绘--其他立绘 CFLAG:666------------------------------------------------
+
 @CHANGE_FACE
 	$INPUT_LOOP_FACE
 	PRINTL 
@@ -257,6 +261,7 @@ REND
 ;    引数はBARとほぼ一緒 + ARGSで描写文字の変更が可能(不指定場合はBARと同じ仕様)
 ;    ARG:3はバーの色(0xFFFFFF形式で指定),ARG:4はバーの背景色(0xFFFFFF形式で指定)
 ;===============================================================================
+
 @PRINT_COLORBAR(ARG, ARG:1, ARG:2, ARGS = "*", ARGS:1 = ".", ARG:3, ARG:4)
 #LOCALSIZE 5
 LOCAL:1 = ARG * ARG:2 / ARG:1
@@ -284,6 +289,7 @@ VARSET LOCAL
 ;カスタムバー用色布景関数@BARCOLORSET
 ;PRINT_COLORBARのARG:3に利用し、ARG;4にRESULTを使う
 ;-------------------------------------------------
+
 @BARCOLORSET, ARGS
 #FUNCTION
  ;LOCALに色を代入

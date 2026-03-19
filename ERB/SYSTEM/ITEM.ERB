@@ -249,6 +249,7 @@ IF F && P
 ENDIF
 
 ;购买道具
+
 @EVENTBUY
 ;購入したことを分かりやすくしてみよう
 SIF BOUGHT <= 39
@@ -294,6 +295,7 @@ I:2 = 0
 TFLAG:0 = -2
 
 ;複数個所持可能なアイテムについて、同時購入個数を選択
+
 @BUY_PLURAL
 ;現在の購入可能数、Bは所持可能最大数（現在100個）、Cは所持金によるもの
 ;Aはアイテムの単価、DはBとCのうち小さい方、EはB<=Cであれば0、B>Cであれば1
@@ -358,6 +360,7 @@ ELSE
 ENDIF
 
 ;使用道具
+
 @USE_ITEM
 DRAWLINE
 ;アイテムの効果を显示
@@ -1294,6 +1297,7 @@ RETURN 0
 
 
 ;産卵イベント　イメージとしては、非常にリスキーだが上手くやれば怀孕を无效にできるイベント
+
 @LAY_EGG
 ;イベント口上
 ;U = 0
@@ -1445,6 +1449,7 @@ BEGIN TURNEND
 
 
 ;アイテムで【崩溃】を得た場合のイベント
+
 @COLLAPSE_MIND_ITEM
 PRINTFORMW %CALLNAME:RESULT%的样子有些奇怪
 PRINTFORMW 在药物的影响下，%CALLNAME:RESULT%的精神似乎发生了异常
@@ -1480,6 +1485,7 @@ IF TALENT:RESULT:3 || TALENT:RESULT:4 || TALENT:RESULT:5 || TALENT:RESULT:6 || T
 ENDIF
 
 ;具现化持ちの子が扶她化するときにもまとめて判定されるように独立した関数にしてみる
+
 @FUTANARI
 ;处女・童贞素質のフラグを移动
 SIF (CFLAG:C:24 & 256) == 0
@@ -1541,6 +1547,7 @@ ELSE
 ENDIF
 
 ;仕様を無理やり変えたのでこっちで一括判定
+
 @SEX_RECORD
 ;CFLAG:24 |1=再生处女 |2=非处女 |4=非童贞 |256 = 仕様变更後
 ;SINGLE使えるのか良く分からなかったのでこういうことに

@@ -1,24 +1,19 @@
-﻿;キャラ購入時に解説を入れる
-;1~13号角色简介作者：天轨·嘻乐年华
-;人外角色简介作者：失格菌
-@PRINT_CAMP_ROLE_BY_NO(ARG)
+﻿@PRINT_CAMP_ROLE_BY_NO(ARG)
 SELECTCASE ARG
 	CASE 101 TO 106
-		PRINTL 阵营：魏　　　　　 职务：文
+		PRINTL 阵营：魏　　　　　职务：文
 	CASE 107
-		PRINTL 阵营：蜀　　　　　 职务：文
+		PRINTL 阵营：蜀　　　　　职务：文
 	CASE 108
-		PRINTL 阵营：吴　　　　　 职务：武
+		PRINTL 阵营：吴　　　　　职务：武
 	CASE 109
-		PRINTL 阵营：蜀　　　　　 职务：武
+		PRINTL 阵营：蜀　　　　　职务：武
 	CASE 110
-		PRINTL 阵营：群　　　　　 职务：武
+		PRINTL 阵营：群　　　　　职务：武
 	CASE 111
-		PRINTL 阵营：蜀　　　　　 职务：武
+		PRINTL 阵营：蜀　　　　　职务：武
 	CASE 112
-		PRINTL 阵营：吴　　　　　 职务：武
-	CASE 113
-		PRINTL 阵营：蜀　　　　　 职务：武
+		PRINTL 阵营：吴　　　　　职务：武
 ENDSELECT
 
 @CHARA_MANUAL(ARG)
@@ -83,10 +78,12 @@ ELSEIF FLAG:9 == 105
 	PRINTL 困难度：Ｃ　　　　性格：风流才子
 	CALL PRINT_CAMP_ROLE_BY_NO(105)
 	PRINTL 
-	PRINTL 字子建，才情冠绝一时的陈思王，诗名远播。
-	PRINTL 气质清隽，敏感多思，言行中常带着文人式的骄傲与脆弱。
-	PRINTL 比起权谋斗争，他更习惯沉入诗酒、风月与一瞬即逝的情绪。
-	PRINTL 然而真正触到伤处时，那份锋利与倔强也绝不会比任何人少。
+	PRINTL 骨气奇高，词采华茂；天下之才，独占八斗。
+	PRINTL 你与卞氏所生的第三子，曹子建。
+	PRINTL 年少时的白马湮没在诗词中，
+	PRINTL 铜雀不再，洛神转身，权力绕颈，
+	PRINTL 他变成善于纹饰情感的陈王。
+	PRINTL 你也不知道，你儿子的文字后背，到底有几分真心。
 ELSEIF FLAG:9 == 106
 	CFLAG:ARG:600 = 99
     SIF FLAG:1503 == 0
@@ -171,18 +168,6 @@ ELSEIF FLAG:9 == 112
 	PRINTL 心思不浅，极懂权衡取舍，也擅长在强敌之间维持平衡。
 	PRINTL 有上位者的骄矜与威仪，对局势与人心都有相当敏锐的判断。
 	PRINTL 并非锋芒最盛的类型，却绝不是会被轻易看透的人。
-ELSEIF FLAG:9 == 113
-	CFLAG:ARG:600 = 3
-    SIF FLAG:1503 == 0
-		CALL CHARA_FACE4
-	PRINTL 【关羽】
-	PRINTL 困难度：Ａ　　　　性格：忠义傲骨
-	CALL PRINT_CAMP_ROLE_BY_NO(113)
-	PRINTL 
-	PRINTL 字云长，威名赫赫、傲骨凛然的名将。
-	PRINTL 沉稳寡言，重情义也重名节，对自身操守要求极高。
-	PRINTL 不屑轻浮之事，也极少向他人低头，一举一动自有威压。
-	PRINTL 那份孤高与矜持，反而使人更难真正接近。
 ELSEIF FLAG:9 == 200
     SIF FLAG:1503 == 0
 		CALL CHARA_FACE4
@@ -554,4 +539,3 @@ IF RESULT == 1
 ELSEIF RESULT != 0
 	GOTO INPUT_LOOP
 ENDIF
-

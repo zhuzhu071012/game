@@ -36,6 +36,7 @@
 ;---------------------------------------------------------
 ;中田氏・怀孕フラグに絡む関数郡
 ;---------------------------------------------------------
+
 @IN_VAGINA_ALL
 FOR T, 0, CHARANUM
 	;怀孕判定
@@ -426,6 +427,7 @@ CALL KOJO_MESSAGE_EVENT
 TARGET = V
 
 ;臨月到達
+
 @REACH_FULL_TERM
 IF COUNT == MASTER
 	PRINTFORML %PLAYER_NAME(1)%即将临盆
@@ -455,6 +457,7 @@ IF MASTER == COUNT
 ENDIF
 
 ;分娩
+
 @CHILD_BIRTH
 A = -1
 REPEAT CHARANUM
@@ -769,6 +772,7 @@ ENDIF
 RETURN 1
 
 ;親離れ
+
 @DEPEARENT
 VARSET LOCAL
 LOCAL:3 = NO2(CFLAG:C:115)
@@ -960,6 +964,7 @@ ENDIF
 
 
 ;怀孕パッチまわりのフラグを重置
+
 @CLEAR_FLAG
 SIF CFLAG:C:42 == 2
 	CFLAG:C:42 = 0
@@ -974,6 +979,7 @@ CFLAG:C:112 = 0
 CFLAG:C:114 = 0
 
 ;子育て終了or怀孕強制終了時の胸サイズの縮小処理
+
 @REVERSE_B_SIZE
 ;爆→巨　巨→普　普→貧　貧・絶→就这样
 ;CFLAG:23が有ったら胸のサイズ関連の素質を復帰
@@ -995,6 +1001,7 @@ ELSEIF CFLAG:C:23 == 1
 ENDIF
 
 ;育児室にいるかの判定
+
 @CHECK_CHILD_CARE
 SIF (TALENT:C:怀孕 && CFLAG:C:110 - 3 <= DAY) || TALENT:C:育儿中
 	RETURN 1

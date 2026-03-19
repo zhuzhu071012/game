@@ -4,6 +4,7 @@
 ;マイ茄子に大きいと主人を畏怖する形で依赖していく
 ;依赖度ベクトルは各调教指令ごとで指示されており、増加と减少で処理は異なっている
 ;-------------------------------------------------
+
 @MASTER_DEPENDENCE_CHECK
 SIF NPC回合
 RETURN 0
@@ -46,6 +47,7 @@ RETURN 0
 
 
 ;依赖度増加処理
+
 @MASTER_DEPENDENCE_PLUS
 SIF NPC回合
 RETURN 0
@@ -163,6 +165,7 @@ RETURN 0
 
 
 ;依赖度减少処理
+
 @MASTER_DEPENDENCE_MINUS
 SIF NPC回合
 RETURN 0

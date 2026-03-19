@@ -40,6 +40,7 @@
 ;  RESULT:0				キャラ(1000の場合は"返回")
 ;  RESULT:1				ページ位置
 ;---------------------------------------------------------
+
 @LIST_CHARA(ARGS:0, ARG:0, ARGS:1)
 #DIM L_INPUT
 #DIM L_I
@@ -662,6 +663,7 @@ IF 發情期 && TALENT:ARG:164
 ELSE
 	PRINTFORM        
 ENDIF
+
 @VAR_BAR_BASE(ARG, ARG:1, ARG:2 = 0)
 A = BASE:ARG:0
 SIF BASE:ARG:0 < 0

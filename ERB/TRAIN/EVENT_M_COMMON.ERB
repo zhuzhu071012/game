@@ -3,6 +3,7 @@
 ;休憩実行時に出力されます
 ;選択されるのは必ずしもTARGETとは限らないので、口上存在判定をCFLAG:A:140を使って特殊にしています
 ;--------------------------------------------------
+
 @DAILY_LIFE_MASSAGE
 RESULT = 0
 LOCAL = TARGET
@@ -14,6 +15,7 @@ RETURN RESULT
 ;--------------------------------------------------
 ;--------------------------------------------------
 ;SELECTCOMに応じたテ接吻ト関数をCALLする
+
 @TRAIN_MESSAGE
 TFLAG:51 = 0
 TFLAG:52 = 0
@@ -83,10 +85,12 @@ ENDIF
 
 
 ;TFLAG:13に応じたテ接吻ト関数をCALLする
+
 @EVENT_MESSAGE
 TRYCALLFORM EVENT_MESSAGE_{TFLAG:13}
 
 ;指令口上の道具着脱分岐
+
 @MESSAGE_VARIATION
 SELECTCASE SELECTCOM
 	;阴蒂夹、触手揉阴

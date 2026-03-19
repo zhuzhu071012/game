@@ -2,6 +2,7 @@
 ;1000000　→　500000　に一括置き換えしただけです。：2011/06/05
 
 ;フリー使节終了判定
+
 @EVENTTURNEND
 #LATER
 SIF FLAG:5 == 8
@@ -9,6 +10,7 @@ SIF FLAG:5 == 8
 RETURN
 
 ;オープニング
+
 @OPENING
 DRAWLINE
 REPEAT 16
@@ -42,6 +44,7 @@ RETURN 0
 ;---------------------------------------------------,
 ;チュートリアル,
 ;---------------------------------------------------,
+
 @TUTORIAL
 PRINTFORMW 欢迎来到eraKingdom
 PRINTFORMW 这里是本游戏的食用指南
@@ -149,6 +152,7 @@ GOTO INPUT_LOOP
 
 
 ;エンディングチェック
+
 @ENDING_CHECK
 
 PRINTL 请选择上缴金钱的方式（结局内容会有所变化）
@@ -257,6 +261,7 @@ ELSE
 ENDIF
 
 ;バッドエンド
+
 @BADENDING_1
 DRAWLINE
 REPEAT 14
@@ -304,6 +309,7 @@ QUIT
 
 ;グッドエンド
 ;ノーマルエンド
+
 @ENDING_1
 DRAWLINE
 REPEAT 14
@@ -313,6 +319,7 @@ REND
 CALL GAME_CONTINUE
 
 ;恋慕単体エンド
+
 @ENDING_2
 SIF CFLAG:21 == 1
 	CALL KOJO_MESSAGE_ENDING
@@ -327,6 +334,7 @@ REND
 CALL GAME_CONTINUE
 
 ;淫乱単体エンド
+
 @ENDING_3
 SIF CFLAG:21 == 1
 	CALL KOJO_MESSAGE_ENDING
@@ -341,6 +349,7 @@ REND
 CALL GAME_CONTINUE
 
 ;服从単体エンド
+
 @ENDING_4
 SIF CFLAG:21 == 1
 	CALL KOJO_MESSAGE_ENDING
@@ -355,6 +364,7 @@ REND
 CALL GAME_CONTINUE
 
 ;ハーレムエンド
+
 @ENDING_5
 REPEAT CHARANUM
 	IF CFLAG:COUNT:21 == 2
@@ -391,6 +401,7 @@ PRINTFORMSW STR:1208
 CALL GAME_CONTINUE
 
 ;？？？エンド(魔改)
+
 @ENDING_0
 DRAWLINE
 REPEAT 75
@@ -445,6 +456,7 @@ ELSE
 ENDIF
 
 ;？？？エンド(原版)
+
 @ENDING_0_1
 DRAWLINE
 REPEAT 75
@@ -523,6 +535,7 @@ RETURN 1
 ;EXTRAや周回要素を前提とした大人数エンドはここでは処理しない
 ;A～Dは通常エンド判定で使用するため使用不可
 ;=============================================================================
+
 @ENDING_JUDGE
 
 ;;I列 プ雷内容に即した特殊エンド

@@ -63,6 +63,7 @@ REPEAT CHARANUM
 	PRINTFORML
 REND
 PRINTFORML [99] 谁都不带
+
 @打工
 #DIM 体力消耗
 #DIM 金钱变化
@@ -758,6 +759,7 @@ ELSE
 	GOTO LOOP
 ENDIF
 外出服 =  RESULT
+
 @绳装口上(ARG)
 	IF NO:ARG == 200
 		PRINTFORMW 「唔……%CSTR:ARG:0%的%CSTR:ARG:3%…真是……太爱捉弄人了……」
@@ -796,6 +798,7 @@ ENDIF
 	ELSE
 		PRINTFORMW 「啊……等等%CSTR:ARG:0%…%MASTERNAME:ARG%……%MASTERNAME:ARG%……」
 	ENDIF
+
 @情趣装口上(ARG)
 	IF NO:ARG == 200
 		PRINTFORMW 「嗯……已经……啊啊！%MASTERNAME:ARG%，别……别在这个地方……唔！啊啊！」	
@@ -987,6 +990,7 @@ ENDIF
 			PRINTFORMW 谨慎地围住了自己的下身遮掩了痕迹，然後两人才顺利地离开了餐厅……
 		ENDIF
 	ENDIF
+
 @收礼口上(ARG)
 	IF NO:ARG == 200
 		PRINTFORMW 「哦？%CSTR:ARG:3%希望%CSTR:ARG:0%把这个饰品…戴在哪个部位呢？」			

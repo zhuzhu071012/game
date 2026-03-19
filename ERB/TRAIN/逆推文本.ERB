@@ -1,4 +1,5 @@
 ﻿;逆推相关口上-----------------------------------------------------------------------------------------------
+
 @逆推詢問
 SIF FLAG:7 <= 0
 	RETURN 0
@@ -144,6 +145,7 @@ SIF FLAG:7 <= 0
 	ENDDATA
 		PRINTFORMW 
 	ENDIF
+
 @逆推被拒口上
 SIF FLAG:7 <= 0
 	RETURN 0
@@ -206,6 +208,7 @@ SIF FLAG:7 <= 0
 	ENDDATA	
 	ENDIF	
 	PRINTFORMW 
+
 @逆推進行中口上
 IF TFLAG:2 > 0
 	;奴隶射在主人里面

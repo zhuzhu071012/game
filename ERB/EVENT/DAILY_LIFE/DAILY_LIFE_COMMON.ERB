@@ -7,6 +7,7 @@
 ;戻り値:
 ;備　考:日常イベントで使用
 ;-------------------------------------------------
+
 @DAILYLIFE_GETJUEL(ARG, ARG:1, ARG:2)
 LOCAL = ARG:2 - (ARG:2 / 2) + RAND:(ARG:2)
 JUEL:ARG:(ARG:1) += LOCAL
@@ -20,6 +21,7 @@ PRINTFORML %CALLNAME:ARG%的%PALAMNAME:(ARG:1)%＋{LOCAL}
 ;戻り値:選択されたキャラのキャラ登录番号、存在しなければ-1を返す
 ;備　考:文中関数
 ;-------------------------------------------------
+
 @DAILYLIFE_GETCHARA(ARG)
 #FUNCTION
 VARSET LOCAL
@@ -69,6 +71,7 @@ RETURNF LOCAL:3
 ;戻り値:ピックアップしたキャラの登录番号、不在であれば-1を返す
 ;備　考:文中関数
 ;-------------------------------------------------
+
 @DAILYLIFE_GETTALENT_1(ARG,ARG:1,ARG:2,ARG:3,ARG:4,ARG:5,ARG:6,ARG:7,ARG:8,ARG:9)
 #FUNCTION
 VARSET LOCAL
@@ -104,6 +107,7 @@ RETURNF LOCAL:3
 ;戻り値:ピックアップしたキャラの登录番号、不在であれば-1を返す
 ;備　考:文中関数
 ;-------------------------------------------------
+
 @DAILYLIFE_GETTALENT_2(ARG,ARG:1,ARG:2,ARG:3,ARG:4,ARG:5,ARG:6,ARG:7,ARG:8,ARG:9)
 #FUNCTION
 VARSET LOCAL
@@ -138,6 +142,7 @@ RETURNF LOCAL:3
 ;戻り値:その場に居ないキャラの数
 ;備　考:
 ;-------------------------------------------------
+
 @NUMBER_OF_ABSENTEES
 #FUNCTION
 VARSET LOCAL
@@ -158,6 +163,7 @@ RETURNF LOCAL:1
 ;戻り値:イベント出現できれば1、不可なら0
 ;備　考:文中関数
 ;-------------------------------------------------
+
 @DAILYLIFE_CHARA(ARG, ARG:1)
 #FUNCTION
 LOCAL = 1
@@ -189,6 +195,7 @@ RETURNF LOCAL
 ;戻り値:イベント出現できればキャラ登录番号、不可なら-1
 ;備　考:文中関数
 ;-------------------------------------------------
+
 @DAILYLIFE_NOCHARA(ARG, ARG:1)
 #FUNCTION
 ;そのキャラが存在するか
@@ -219,6 +226,7 @@ ENDIF
 ;それ以外：　　高大＞普通＞矮小＞小人
 ;よって、キャラ２と比較してキャラ１が大きい＞同じくらい＞キャラ１が小さい 3 > 0 > -3
 ;-------------------------------------------------
+
 @BUILD2(ARG, ARG:1)
 #FUNCTION
 ;体型イメージ
@@ -351,6 +359,7 @@ RETURNF LOCAL
 ;戻り値:
 ;備　考:
 ;-------------------------------------------------
+
 @DAILY_MENSIKI(ARG, ARG:1, ARG:2, ARG:3)
 SIF ARG:1 > -1
 	CFLAG:(ARG:1):(799 + NO:ARG) |= 1

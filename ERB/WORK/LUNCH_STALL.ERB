@@ -1,6 +1,7 @@
 ﻿;LUNCH_STALL.ERB　屋台で定食を売って回る労役指令
 ;奴隶の料理の腕だけでなく、奴隶の能力が高いとフェロモンで売り上げが上がる
 ;ただし、基本的には厳しい
+
 @LUNCH_STALL
 ;使用する一時変数の初期化
 A = 0
@@ -953,6 +954,7 @@ ELSE
 ENDIF
 
 ;料理技巧に応じた料理名関数
+
 @LUNCH_NAME
 IF ABL:12 == 0
 	PRINT 不知如何评价的料理
@@ -969,6 +971,7 @@ ELSEIF ABL:12 >= 5
 ENDIF
 
 ;特定の料理名関数
+
 @LUNCH_NAME_SP(ARG)
 #FUNCTIONS
 IF TALENT:ARG:西洋风

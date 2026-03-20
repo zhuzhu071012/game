@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://cfw067l1gn21"]
+
+[ext_resource type="Script" uid="uid://b6p0mpj30yarq" path="res://Scripts/UI/MainMenu.cs" id="1_main"]
+
+[node name="MainMenu" type="Control" unique_id=1835274085]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_main")
+
+[node name="Backdrop" type="Control" parent="." unique_id=879943]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackgroundShade" type="ColorRect" parent="Backdrop" unique_id=1736921589]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.04, 0.03, 1)
+
+[node name="CoverArt" type="TextureRect" parent="Backdrop" unique_id=1966275263]
+modulate = Color(1, 1, 1, 0.72)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Overlay" type="Control" parent="." unique_id=1649216677]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="Overlay" unique_id=28587292]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.32)
+
+[node name="Margin" type="MarginContainer" parent="Overlay" unique_id=682529445]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 90.0
+offset_top = 60.0
+offset_right = -90.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Overlay/Margin" unique_id=897112138]
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Content" type="VBoxContainer" parent="Overlay/Margin/Panel" unique_id=1757736927]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="GameTitle" type="Label" parent="Overlay/Margin/Panel/Content" unique_id=2056670468]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Overlay/Margin/Panel/Content" unique_id=1707207165]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Notice" type="Label" parent="Overlay/Margin/Panel/Content" unique_id=1272608099]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="VBoxContainer" parent="Overlay/Margin/Panel/Content" unique_id=1271155524]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NewGame" type="Button" parent="Overlay/Margin/Panel/Content/Buttons" unique_id=1827735933]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+
+[node name="LoadGame" type="Button" parent="Overlay/Margin/Panel/Content/Buttons" unique_id=2019566221]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+
+[node name="Status" type="Label" parent="Overlay/Margin/Panel/Content" unique_id=43060797]
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[connection signal="pressed" from="Overlay/Margin/Panel/Content/Buttons/NewGame" to="." method="OnNewGamePressed"]
+[connection signal="pressed" from="Overlay/Margin/Panel/Content/Buttons/LoadGame" to="." method="OnLoadGamePressed"]

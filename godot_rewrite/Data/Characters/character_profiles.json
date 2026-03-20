@@ -1,0 +1,74 @@
+{
+  "101": {
+	"difficulty": "B",
+	"persona": "清正王佐",
+	"job": "文",
+	"portraitId": 94
+  },
+  "102": {
+	"difficulty": "B",
+	"persona": "遗策定天",
+	"job": "文",
+	"portraitId": 95
+  },
+  "103": {
+	"difficulty": "A",
+	"persona": "毒士乱武",
+	"job": "文",
+	"portraitId": 96
+  },
+  "104": {
+	"difficulty": "B",
+	"persona": "矜贵世子",
+	"job": "文",
+	"portraitId": 97
+  },
+  "105": {
+	"difficulty": "C",
+	"persona": "风流才子",
+	"job": "文",
+	"portraitId": 98
+  },
+  "106": {
+	"difficulty": "A",
+	"persona": "鹰视狼顾",
+	"job": "文",
+	"portraitId": 99
+  },
+  "107": {
+	"difficulty": "A",
+	"persona": "卧龙出山",
+	"job": "文",
+	"portraitId": 3
+  },
+  "108": {
+	"difficulty": "A",
+	"persona": "风雅都督",
+	"job": "武",
+	"portraitId": 7
+  },
+  "109": {
+	"difficulty": "B",
+	"persona": "忠勇虎将",
+	"job": "武",
+	"portraitId": 2
+  },
+  "110": {
+	"difficulty": "A",
+	"persona": "飞将无双",
+	"job": "武",
+	"portraitId": 6
+  },
+  "111": {
+	"difficulty": "B",
+	"persona": "仁德雄主",
+	"job": "武",
+	"portraitId": 1
+  },
+  "112": {
+	"difficulty": "B",
+	"persona": "江东雄主",
+	"job": "武",
+	"portraitId": 9
+  }
+}

@@ -1,0 +1,190 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/UI/FunctionMenu.cs" id="1_menu"]
+
+[node name="FunctionMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+
+[node name="TopLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Header" type="VBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Status" type="Label" parent="Margin/Content/Header"]
+layout_mode = 2
+text = ""
+
+[node name="HeaderLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="TargetPanel" type="MarginContainer" parent="Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 72)
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 12
+
+theme_override_constants/margin_bottom = 12
+
+[node name="TargetText" type="Label" parent="Margin/Content/TargetPanel"]
+layout_mode = 2
+text = ""
+vertical_alignment = 1
+
+[node name="MiddleLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="MenuGrid" type="GridContainer" parent="Margin/Content"]
+layout_mode = 2
+columns = 4
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 12
+
+[node name="StatusButton" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="PlaceholderA" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = "[---]"
+flat = true
+alignment = 0
+disabled = true
+
+[node name="PlaceholderB" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = "[---]"
+flat = true
+alignment = 0
+disabled = true
+
+[node name="PlaceholderC" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = "[---]"
+flat = true
+alignment = 0
+disabled = true
+
+[node name="ShopButton" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="RestButton" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="EventButton" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="PlaceholderD" type="Button" parent="Margin/Content/MenuGrid"]
+layout_mode = 2
+text = "[---]"
+flat = true
+alignment = 0
+disabled = true
+
+[node name="SystemGrid" type="GridContainer" parent="Margin/Content"]
+layout_mode = 2
+columns = 4
+theme_override_constants/h_separation = 24
+theme_override_constants/v_separation = 12
+
+[node name="SaveButton" type="Button" parent="Margin/Content/SystemGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="LoadButton" type="Button" parent="Margin/Content/SystemGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="OptionButton" type="Button" parent="Margin/Content/SystemGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="HelpButton" type="Button" parent="Margin/Content/SystemGrid"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="TravelRow" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="GoOutButton" type="Button" parent="Margin/Content/TravelRow"]
+layout_mode = 2
+text = ""
+flat = true
+alignment = 0
+
+[node name="BottomLine" type="HSeparator" parent="Margin/Content"]
+layout_mode = 2
+
+[node name="Footer" type="VBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Hint" type="Label" parent="Margin/Content/Footer"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+[node name="BottomBar" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+alignment = 2
+
+[node name="BackButton" type="Button" parent="Margin/Content/BottomBar"]
+layout_mode = 2
+text = ""
+flat = true
+
+[connection signal="pressed" from="Margin/Content/MenuGrid/ShopButton" to="." method="OnShopPressed"]
+[connection signal="pressed" from="Margin/Content/SystemGrid/LoadButton" to="." method="OnLoadPressed"]
+[connection signal="pressed" from="Margin/Content/BottomBar/BackButton" to="." method="OnBackPressed"]

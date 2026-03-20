@@ -1,0 +1,4 @@
+res://Scripts/UI/ShopView.cs
+res://Scripts/UI/SaveSelectView.cs
+res://Scripts/UI/MainMenu.cs
+res://Data/Text/ui.json

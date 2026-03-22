@@ -26,6 +26,9 @@ public sealed class StoryCondition
 	public string? RequiredUnlockedPoolId { get; set; }
 	public int? CharacterId { get; set; }
 	public FallStage? RequiredFallStage { get; set; }
+	public int? RequiredTimeSlot { get; set; }
+	public bool RequireCurrentTargetCharacter { get; set; }
+	public bool? RequiredHasMet { get; set; }
 	public int? MinDay { get; set; }
 	public int? MaxDay { get; set; }
 
@@ -42,6 +45,11 @@ public sealed class StoryCondition
 		}
 
 		if (MaxDay.HasValue && state.Day > MaxDay.Value)
+		{
+			return false;
+		}
+
+		if (RequiredTimeSlot.HasValue && state.TimeSlot != RequiredTimeSlot.Value)
 		{
 			return false;
 		}
@@ -87,6 +95,20 @@ public sealed class StoryCondition
 			}
 		}
 
+		if (CharacterId.HasValue && RequireCurrentTargetCharacter && state.CurrentTargetCharacterId != CharacterId.Value)
+		{
+			return false;
+		}
+
+		if (CharacterId.HasValue && RequiredHasMet.HasValue)
+		{
+			var character = state.GetOrCreateCharacter(CharacterId.Value);
+			if (character.HasMet != RequiredHasMet.Value)
+			{
+				return false;
+			}
+		}
+
 		return true;
 	}
 }
@@ -112,5 +134,7 @@ public enum StoryActionType
 	AddMoney = 3,
 	CompleteStory = 4,
 	UnlockCharacter = 5,
-	SetCurrentScene = 6
+	SetCurrentScene = 6,
+	OwnCharacter = 7,
+	SetCurrentTargetCharacter = 8
 }

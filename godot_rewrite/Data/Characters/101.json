@@ -8,6 +8,7 @@
   "persona": "清正王佐",
   "job": "文",
   "portraitId": 94,
+  "price": 1500,
   "sourceCsv": "CSV/Chara/魏国角色(101～199)/Chara101_荀彧.csv",
   "baseStats": {
 	"0": 1800,

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EraKingdomRewrite")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+721394b10694613b5be0bd13a79d455527b001c9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a76dd27626d389125e06979542359be4559696c")]
 [assembly: System.Reflection.AssemblyProductAttribute("EraKingdomRewrite")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EraKingdomRewrite")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

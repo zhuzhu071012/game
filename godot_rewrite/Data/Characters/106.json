@@ -8,6 +8,7 @@
   "persona": "鹰视狼顾",
   "job": "文",
   "portraitId": 99,
+  "price": 1000,
   "sourceCsv": "CSV/Chara/魏国角色(101～199)/Chara106_司马懿.csv",
   "baseStats": {
     "0": 1800,

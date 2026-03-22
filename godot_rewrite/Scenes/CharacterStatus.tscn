@@ -1,0 +1,281 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/UI/CharacterStatusView.cs" id="1_status"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait"]
+bg_color = Color(0.04, 0.04, 0.04, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.22, 0.22, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="CharacterStatus" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_status")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0627451, 0.0784314, 0.117647, 1)
+
+[node name="BackgroundTint" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.211765, 0.164706, 0.235294, 0.2)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 18.0
+offset_top = 16.0
+offset_right = -18.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="Header" type="PanelContainer" parent="Margin/Content"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 84)
+self_modulate = Color(0.588235, 0.65098, 0.764706, 0.9)
+
+[node name="HeaderBox" type="VBoxContainer" parent="Margin/Content/Header"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderTitle" type="Label" parent="Margin/Content/Header/HeaderBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="HeaderText" type="Label" parent="Margin/Content/Header/HeaderBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Body" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 18
+
+[node name="RosterPanel" type="PanelContainer" parent="Margin/Content/Body"]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+size_flags_vertical = 3
+self_modulate = Color(0.505882, 0.552941, 0.658824, 0.88)
+
+[node name="RosterMargin" type="MarginContainer" parent="Margin/Content/Body/RosterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="RosterBox" type="VBoxContainer" parent="Margin/Content/Body/RosterPanel/RosterMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="RosterTitle" type="Label" parent="Margin/Content/Body/RosterPanel/RosterMargin/RosterBox"]
+layout_mode = 2
+text = ""
+
+[node name="RosterHint" type="Label" parent="Margin/Content/Body/RosterPanel/RosterMargin/RosterBox"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+[node name="RosterScroll" type="ScrollContainer" parent="Margin/Content/Body/RosterPanel/RosterMargin/RosterBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="CharacterList" type="VBoxContainer" parent="Margin/Content/Body/RosterPanel/RosterMargin/RosterBox/RosterScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="DetailPanel" type="PanelContainer" parent="Margin/Content/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+self_modulate = Color(0.505882, 0.552941, 0.658824, 0.88)
+
+[node name="DetailMargin" type="MarginContainer" parent="Margin/Content/Body/DetailPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="DetailScroll" type="ScrollContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DetailBox" type="VBoxContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="MasterPanel" type="PanelContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+self_modulate = Color(0.8, 0.831373, 0.901961, 0.9)
+
+[node name="MasterMargin" type="MarginContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/MasterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="MasterBox" type="VBoxContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/MasterPanel/MasterMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MasterTitle" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/MasterPanel/MasterMargin/MasterBox"]
+layout_mode = 2
+text = ""
+
+[node name="MasterText" type="RichTextLabel" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/MasterPanel/MasterMargin/MasterBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 150)
+theme_override_constants/line_separation = 6
+bbcode_enabled = false
+scroll_active = false
+fit_content = true
+text = ""
+
+[node name="CharacterPanel" type="PanelContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+self_modulate = Color(0.8, 0.831373, 0.901961, 0.9)
+
+[node name="CharacterMargin" type="MarginContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="TopRow" type="HBoxContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="PortraitFrame" type="PanelContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(280, 392)
+theme_override_styles/panel = SubResource("StyleBoxFlat_portrait")
+
+[node name="PortraitMargin" type="MarginContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/PortraitFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Portrait" type="TextureRect" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/PortraitFrame/PortraitMargin"]
+layout_mode = 2
+custom_minimum_size = Vector2(264, 376)
+texture_filter = 2
+expand_mode = 1
+stretch_mode = 5
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="Overview" type="VBoxContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="Name" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/Overview"]
+layout_mode = 2
+text = ""
+
+[node name="Meta" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/Overview"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+[node name="SummaryTitle" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/Overview"]
+layout_mode = 2
+text = ""
+
+[node name="SummaryText" type="RichTextLabel" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/CharacterPanel/CharacterMargin/TopRow/Overview"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 180)
+theme_override_constants/line_separation = 6
+bbcode_enabled = false
+scroll_active = true
+fit_content = false
+text = ""
+
+[node name="TabBar" type="HBoxContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="GrowthTabButton" type="Button" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar"]
+layout_mode = 2
+text = ""
+
+[node name="RelationTabButton" type="Button" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar"]
+layout_mode = 2
+text = ""
+
+[node name="EventTabButton" type="Button" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar"]
+layout_mode = 2
+text = ""
+
+[node name="TabTitle" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+text = ""
+
+[node name="TabText" type="RichTextLabel" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 320)
+theme_override_constants/line_separation = 6
+bbcode_enabled = false
+scroll_active = true
+fit_content = false
+text = ""
+
+[node name="HintLabel" type="Label" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+
+[node name="BottomBar" type="HBoxContainer" parent="Margin/Content"]
+layout_mode = 2
+alignment = 2
+
+[node name="Back" type="Button" parent="Margin/Content/BottomBar"]
+layout_mode = 2
+text = ""
+
+[connection signal="pressed" from="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar/GrowthTabButton" to="." method="OnGrowthTabPressed"]
+[connection signal="pressed" from="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar/RelationTabButton" to="." method="OnRelationTabPressed"]
+[connection signal="pressed" from="Margin/Content/Body/DetailPanel/DetailMargin/DetailScroll/DetailBox/TabBar/EventTabButton" to="." method="OnEventTabPressed"]
+[connection signal="pressed" from="Margin/Content/BottomBar/Back" to="." method="OnBackPressed"]

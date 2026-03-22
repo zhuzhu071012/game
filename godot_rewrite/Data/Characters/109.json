@@ -8,6 +8,7 @@
   "persona": "忠勇虎将",
   "job": "武",
   "portraitId": 2,
+  "price": 3700,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara109_赵云.csv",
   "baseStats": {
     "0": 1850,

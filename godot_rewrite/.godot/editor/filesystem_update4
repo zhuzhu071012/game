@@ -1,4 +1,10 @@
 res://Scripts/UI/ShopView.cs
-res://Scripts/UI/SaveSelectView.cs
 res://Scripts/UI/MainMenu.cs
 res://Data/Text/ui.json
+res://Scripts/Core/CharacterState.cs
+res://Scripts/Core/GameState.cs
+res://Scripts/Story/StoryRunner.cs
+res://Scripts/Story/StoryEvent.cs
+res://Data/Characters/101.json
+res://Data/Characters/102.json
+res://Data/Characters/103.json

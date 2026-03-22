@@ -8,6 +8,7 @@
   "persona": "卧龙出山",
   "job": "文",
   "portraitId": 3,
+  "price": 3900,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara107_诸葛亮.csv",
   "baseStats": {
     "0": 1750,

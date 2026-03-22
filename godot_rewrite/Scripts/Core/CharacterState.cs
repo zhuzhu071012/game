@@ -21,6 +21,7 @@ public sealed class CharacterState
 	public int Dependency { get; set; }
 	public int Stress { get; set; }
 	public int Mood { get; set; }
+	public Dictionary<int, int> Palam { get; set; } = new();
 	public FallStage CurrentFallStage { get; set; } = FallStage.None;
 	public HashSet<FallStage> ReachedFallStages { get; set; } = new();
 	public Dictionary<int, int> BaseStats { get; set; } = new();
@@ -30,6 +31,7 @@ public sealed class CharacterState
 	public Dictionary<string, int> LocalFlags { get; set; } = new(StringComparer.Ordinal);
 	public HashSet<string> ActiveTraits { get; set; } = new(StringComparer.Ordinal);
 	public HashSet<string> TriggeredStoryIds { get; set; } = new(StringComparer.Ordinal);
+	public List<EventLogEntry> EventLog { get; set; } = new();
 	public bool HasReached(FallStage stage) => ReachedFallStages.Contains(stage);
 	public void ReachStage(FallStage stage)
 	{
@@ -39,6 +41,7 @@ public sealed class CharacterState
 	public int GetAbility(int id) => Abilities.TryGetValue(id, out var value) ? value : 0;
 	public int GetMark(int id) => Marks.TryGetValue(id, out var value) ? value : 0;
 	public int GetExperience(int id) => Experience.TryGetValue(id, out var value) ? value : 0;
+	public int GetPalam(int id) => Palam.TryGetValue(id, out var value) ? value : 0;
 	public static CharacterState CreateDefault(int characterId)
 	{
 		return new CharacterState

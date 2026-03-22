@@ -8,6 +8,7 @@
   "persona": "风雅都督",
   "job": "武",
   "portraitId": 7,
+  "price": 4100,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara108_周瑜.csv",
   "baseStats": {
     "0": 1800,

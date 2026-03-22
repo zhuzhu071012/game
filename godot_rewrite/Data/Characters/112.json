@@ -8,6 +8,7 @@
   "persona": "江东雄主",
   "job": "武",
   "portraitId": 9,
+  "price": 4000,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara112_孙权.csv",
   "baseStats": {
     "0": 1750,

@@ -8,6 +8,7 @@
   "persona": "毒士乱武",
   "job": "文",
   "portraitId": 96,
+  "price": 1200,
   "sourceCsv": "CSV/Chara/魏国角色(101～199)/Chara103_贾诩.csv",
   "baseStats": {
 	"0": 1700,

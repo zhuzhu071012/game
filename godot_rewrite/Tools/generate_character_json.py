@@ -49,6 +49,21 @@ FACTIONS = {
     112: "\u5434",
 }
 
+CHARACTER_PRICES = {
+    101: 1500,
+    102: 1400,
+    103: 1200,
+    104: 1600,
+    105: 1300,
+    106: 1000,
+    107: 3900,
+    108: 4100,
+    109: 3700,
+    110: 4400,
+    111: 3800,
+    112: 4000,
+}
+
 
 def load_profiles() -> Dict[int, dict]:
     if not PROFILE_PATH.exists():
@@ -79,12 +94,14 @@ def build_record(character_id: int, csv_path: Path, profile: dict) -> dict:
         "id": character_id,
         "name": "",
         "callName": "",
+        "gender": "",
         "faction": FACTIONS.get(character_id, ""),
         "poolId": CHARACTER_POOLS.get(character_id, ""),
         "difficulty": profile.get("difficulty", ""),
         "persona": profile.get("persona", ""),
         "job": profile.get("job", ""),
         "portraitId": int(profile.get("portraitId", 0) or 0),
+        "price": CHARACTER_PRICES.get(character_id, 0),
         "sourceCsv": str(csv_path.relative_to(ROOT)).replace(chr(92), "/"),
         "baseStats": {},
         "abilities": {},
@@ -125,6 +142,13 @@ def build_record(character_id: int, csv_path: Path, profile: dict) -> dict:
 
     if not record["callName"]:
         record["callName"] = record["name"]
+
+    if "男性" in record["talents"]:
+        record["gender"] = "male"
+    elif "女性" in record["talents"]:
+        record["gender"] = "female"
+    else:
+        record["gender"] = "unknown"
 
     for idx in range(92, 99):
         text = record["cstr"].get(str(idx), "")

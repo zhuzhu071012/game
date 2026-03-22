@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scripts/UI/ShopView.cs" id="1_shop"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_portrait"]
+bg_color = Color(0.04, 0.04, 0.04, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.22, 0.22, 0.22, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="Shop" type="Control"]
 layout_mode = 3
@@ -107,6 +119,7 @@ theme_override_constants/separation = 18
 [node name="PortraitFrame" type="PanelContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailBox/TopRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(300, 420)
+theme_override_styles/panel = SubResource("StyleBoxFlat_portrait")
 
 [node name="PortraitMargin" type="MarginContainer" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailBox/TopRow/PortraitFrame"]
 layout_mode = 2
@@ -118,6 +131,7 @@ theme_override_constants/margin_bottom = 8
 [node name="Portrait" type="TextureRect" parent="Margin/Content/Body/DetailPanel/DetailMargin/DetailBox/TopRow/PortraitFrame/PortraitMargin"]
 layout_mode = 2
 custom_minimum_size = Vector2(284, 404)
+texture_filter = 2
 expand_mode = 1
 stretch_mode = 5
 size_flags_horizontal = 4

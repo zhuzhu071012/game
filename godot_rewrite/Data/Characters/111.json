@@ -8,6 +8,7 @@
   "persona": "仁德雄主",
   "job": "武",
   "portraitId": 1,
+  "price": 3800,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara111_刘备.csv",
   "baseStats": {
     "0": 1700,

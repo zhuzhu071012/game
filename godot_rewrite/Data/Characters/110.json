@@ -8,6 +8,7 @@
   "persona": "飞将无双",
   "job": "武",
   "portraitId": 6,
+  "price": 4400,
   "sourceCsv": "CSV/Chara/其他国家角色(417～1000)/Chara110_吕布.csv",
   "baseStats": {
     "0": 1950,

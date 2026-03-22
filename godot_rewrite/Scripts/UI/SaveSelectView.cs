@@ -37,6 +37,11 @@ public partial class SaveSelectView : Control
             _titleLabel.Text = TextDb.Ui("save_select.load_title");
             _tipLabel.Text = TextDb.Ui("save_select.load_tip");
         }
+        else if (_mode == "save")
+        {
+            _titleLabel.Text = TextDb.Ui("save_select.save_title");
+            _tipLabel.Text = TextDb.Ui("save_select.save_tip");
+        }
         else
         {
             _titleLabel.Text = TextDb.Ui("save_select.new_title");
@@ -70,6 +75,16 @@ public partial class SaveSelectView : Control
 
     private void SelectSlot(int slot)
     {
+        if (_mode == "save")
+        {
+            var activeState = SessionContext.ActiveState ?? CreateNewGameState();
+            SessionContext.ActiveSlot = slot;
+            SessionContext.ActiveState = activeState;
+            _saveManager.Save(activeState, slot);
+            GetTree().ChangeSceneToFile("res://Scenes/FunctionMenu.tscn");
+            return;
+        }
+
         var state = _mode == "load" ? _saveManager.LoadOrCreate(slot) : CreateNewGameState();
         SessionContext.ActiveSlot = slot;
         SessionContext.ActiveState = state;
@@ -81,6 +96,8 @@ public partial class SaveSelectView : Control
             var nextScene = state.CurrentScene switch
             {
                 "Shop" => "res://Scenes/Shop.tscn",
+                "Status" => "res://Scenes/CharacterStatus.tscn",
+                "Training" => "res://Scenes/Training.tscn",
                 _ => "res://Scenes/FunctionMenu.tscn"
             };
             GetTree().ChangeSceneToFile(nextScene);
@@ -107,6 +124,7 @@ public partial class SaveSelectView : Control
 
     private void OnBackPressed()
     {
-        GetTree().ChangeSceneToFile("res://Scenes/MainMenu.tscn");
+        var nextScene = _mode == "save" ? "res://Scenes/FunctionMenu.tscn" : "res://Scenes/MainMenu.tscn";
+        GetTree().ChangeSceneToFile(nextScene);
     }
 }

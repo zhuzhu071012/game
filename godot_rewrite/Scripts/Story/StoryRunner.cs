@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using EraKingdomRewrite.Scripts.Core;
+using EraKingdomRewrite.Scripts.Text;
 
 namespace EraKingdomRewrite.Scripts.Story;
 
@@ -24,18 +25,56 @@ public sealed class StoryRunner
 		}
 
 		state.TriggeredStoryIds.Add(storyEvent.Id);
+		if (storyEvent.Condition.CharacterId.HasValue)
+		{
+			state.GetOrCreateCharacter(storyEvent.Condition.CharacterId.Value).TriggeredStoryIds.Add(storyEvent.Id);
+			state.AddCharacterEvent(
+				storyEvent.Condition.CharacterId.Value,
+				$"story.trigger.{storyEvent.Id}",
+				TextDb.UiFormat("event_log.story_triggered_title", storyEvent.Title),
+				TextDb.UiFormat("event_log.story_triggered_detail", storyEvent.Id));
+		}
+		else
+		{
+			state.AddGlobalEvent(
+				$"story.trigger.{storyEvent.Id}",
+				TextDb.UiFormat("event_log.story_triggered_title", storyEvent.Title),
+				TextDb.UiFormat("event_log.story_triggered_detail", storyEvent.Id));
+		}
+
 		var appliedActions = new List<StoryAction>();
+		var completedStoryIds = new List<string>();
 
 		foreach (var action in storyEvent.Actions)
 		{
-			ApplyAction(action, state);
+			ApplyAction(action, state, completedStoryIds);
 			appliedActions.Add(action);
+		}
+
+		foreach (var storyId in completedStoryIds)
+		{
+			var title = storyId == storyEvent.Id ? storyEvent.Title : storyId;
+			if (storyEvent.Condition.CharacterId.HasValue)
+			{
+				state.AddCharacterEvent(
+					storyEvent.Condition.CharacterId.Value,
+					$"story.complete.{storyId}",
+					TextDb.UiFormat("event_log.story_completed_title", title),
+					TextDb.UiFormat("event_log.story_completed_detail", storyId));
+			}
+			else
+			{
+				state.AddGlobalEvent(
+					$"story.complete.{storyId}",
+					TextDb.UiFormat("event_log.story_completed_title", title),
+					TextDb.UiFormat("event_log.story_completed_detail", storyId));
+			}
 		}
 
 		return StoryResult.Triggered(storyEvent.Id, storyEvent.Lines, appliedActions);
 	}
 
-	private static void ApplyAction(StoryAction action, GameState state)
+	private static void ApplyAction(StoryAction action, GameState state, ICollection<string> completedStoryIds)
 	{
 		switch (action.Type)
 		{
@@ -50,6 +89,7 @@ public sealed class StoryRunner
 				break;
 			case StoryActionType.CompleteStory:
 				state.CompletedStoryIds.Add(action.StringValue);
+				completedStoryIds.Add(action.StringValue);
 				break;
 			case StoryActionType.UnlockCharacter:
 				state.GetOrCreateCharacter(action.IntValue).IsUnlocked = true;
@@ -58,6 +98,20 @@ public sealed class StoryRunner
 				if (!string.IsNullOrWhiteSpace(action.StringValue))
 				{
 					state.CurrentScene = action.StringValue;
+				}
+				break;
+			case StoryActionType.OwnCharacter:
+			{
+				var characterState = state.GetOrCreateCharacter(action.IntValue);
+				characterState.IsOwned = true;
+				characterState.IsUnlocked = true;
+				characterState.HasMet = true;
+				break;
+			}
+			case StoryActionType.SetCurrentTargetCharacter:
+				if (action.IntValue > 0)
+				{
+					state.CurrentTargetCharacterId = action.IntValue;
 				}
 				break;
 			case StoryActionType.None:

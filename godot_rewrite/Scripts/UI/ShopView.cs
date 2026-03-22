@@ -1,9 +1,8 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Godot;
 using EraKingdomRewrite.Scripts.Core;
 using EraKingdomRewrite.Scripts.Data;
+using EraKingdomRewrite.Scripts.Story;
 using EraKingdomRewrite.Scripts.Text;
 
 namespace EraKingdomRewrite.Scripts.UI;
@@ -47,6 +46,7 @@ public partial class ShopView : Control
 		_saveManager = new SaveManager();
 		_state = SessionContext.ActiveState ?? new GameState();
 		SessionContext.ActiveState = _state;
+		_state.CurrentScene = "Shop";
 
 		var loader = new CsvLoader();
 		_repository = new CharacterRepository();
@@ -63,7 +63,7 @@ public partial class ShopView : Control
 		_headerTitleLabel.Text = TextDb.Ui("shop.header_title");
 		_rosterTitleLabel.Text = TextDb.Ui("shop.roster_title");
 		_rosterHintLabel.Text = TextDb.Ui("shop.roster_hint");
-		_actionButton.Text = TextDb.Ui("shop.select");
+		_actionButton.Text = TextDb.Ui("shop.locked");
 		_backButton.Text = TextDb.Ui("shop.back");
 	}
 
@@ -120,20 +120,43 @@ public partial class ShopView : Control
 	private void ShowCharacterDetail(int characterId)
 	{
 		_selectedCharacterId = characterId;
-		_state.CurrentTargetCharacterId = characterId;
 
 		var character = _repository.GetRequired(characterId);
 		var unlocked = _state.IsPoolUnlocked(character.PoolId);
+		var characterState = _state.GetOrCreateCharacter(characterId);
+		var isOwned = characterState.IsOwned;
+		var isCurrentTarget = _state.CurrentTargetCharacterId == characterId;
 		_manualTitleLabel.Text = character.Name;
 		_metaLabel.Text = BuildMetaText(character);
 		_summaryLabel.Text = BuildSummaryText(character);
-		_portraitRect.Texture = LoadPortrait(character.PortraitId);
+		_portraitRect.Texture = CharacterPortraitLoader.LoadPortrait(character.PortraitId);
 
-		_actionButton.Disabled = !unlocked;
-		_actionButton.Text = unlocked ? TextDb.Ui("shop.select") : TextDb.Ui("shop.locked");
-		_hintLabel.Text = unlocked
-			? string.Empty
-			: TextDb.Ui("shop.hint_locked");
+		if (!unlocked)
+		{
+			_actionButton.Disabled = true;
+			_actionButton.Text = TextDb.Ui("shop.locked");
+			_hintLabel.Text = TextDb.Ui("shop.hint_locked");
+		}
+		else if (!isOwned)
+		{
+			_actionButton.Disabled = false;
+			_actionButton.Text = TextDb.UiFormat("shop.action_buy_format", character.Price);
+			_hintLabel.Text = _state.Money >= character.Price
+				? TextDb.UiFormat("shop.hint_purchase_ready_format", character.Price)
+				: TextDb.UiFormat("shop.hint_insufficient_funds_format", character.Name, character.Price);
+		}
+		else if (isCurrentTarget)
+		{
+			_actionButton.Disabled = true;
+			_actionButton.Text = TextDb.Ui("shop.action_current_target");
+			_hintLabel.Text = TextDb.UiFormat("shop.hint_target_current_format", character.Name);
+		}
+		else
+		{
+			_actionButton.Disabled = false;
+			_actionButton.Text = TextDb.Ui("shop.action_set_target");
+			_hintLabel.Text = TextDb.UiFormat("shop.hint_owned_format", character.Name);
+		}
 
 		SaveActiveState();
 	}
@@ -156,49 +179,6 @@ public partial class ShopView : Control
 			: "\n" + string.Join("\n", profileLines);
 	}
 
-	private Texture2D? LoadPortrait(int portraitId)
-	{
-		if (portraitId <= 0)
-		{
-			return null;
-		}
-
-		foreach (var portraitPath in EnumeratePortraitCandidates(portraitId))
-		{
-			if (!File.Exists(portraitPath))
-			{
-				continue;
-			}
-
-			var image = new Image();
-			var error = image.Load(portraitPath);
-			if (error == Error.Ok)
-			{
-				return ImageTexture.CreateFromImage(image);
-			}
-
-			GD.PushWarning($"Failed to load portrait: {portraitPath} ({error})");
-		}
-
-		GD.PushWarning($"Portrait file not found for id {portraitId}.");
-		return null;
-	}
-
-	private static IEnumerable<string> EnumeratePortraitCandidates(int portraitId)
-	{
-		var fileName = $"600_{portraitId}.png";
-		yield return Path.Combine(ResolveOriginalResourceRoot(), fileName);
-		yield return Path.Combine(ProjectSettings.GlobalizePath("res://"), "Resources", "portraits", fileName);
-	}
-
-	private static string ResolveOriginalResourceRoot()
-	{
-		var projectRoot = ProjectSettings.GlobalizePath("res://").TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-		var originalRoot = Directory.GetParent(projectRoot)?.FullName
-			?? throw new DirectoryNotFoundException("Cannot resolve original project root.");
-		return Path.Combine(originalRoot, "resources");
-	}
-
 	private void OnActionButtonPressed()
 	{
 		if (_selectedCharacterId == 0)
@@ -206,13 +186,56 @@ public partial class ShopView : Control
 			return;
 		}
 
-		_state.CurrentTargetCharacterId = _selectedCharacterId;
-		var characterState = _state.GetOrCreateCharacter(_selectedCharacterId);
-		characterState.HasMet = true;
-		SaveActiveState();
-
 		var character = _repository.GetRequired(_selectedCharacterId);
+		if (!_state.IsPoolUnlocked(character.PoolId))
+		{
+			_hintLabel.Text = TextDb.Ui("shop.hint_locked");
+			return;
+		}
+
+		var characterState = _state.GetOrCreateCharacter(_selectedCharacterId);
+		if (!characterState.IsOwned)
+		{
+			if (_state.Money < character.Price)
+			{
+				_hintLabel.Text = TextDb.UiFormat("shop.hint_insufficient_funds_format", character.Name, character.Price);
+				return;
+			}
+
+			var storyEvent = new PurchaseEventFactory().Create(character);
+			var result = new StoryRunner().Trigger(storyEvent, _state);
+			if (!result.WasTriggered)
+			{
+				_hintLabel.Text = TextDb.UiFormat("shop.hint_purchase_unavailable_format", character.Name);
+				return;
+			}
+
+			SessionContext.PendingStoryRequest = new StoryPlaybackRequest
+			{
+				StoryId = result.StoryId,
+				Title = storyEvent.Title,
+				Lines = result.Lines.ToList(),
+				ReturnScene = "res://Scenes/Shop.tscn",
+				ReturnSceneName = "Shop",
+				SkipText = TextDb.Ui("story.skip_purchase"),
+				FinishText = TextDb.Ui("story.finish_purchase")
+			};
+			SaveActiveState();
+			GetTree().ChangeSceneToFile("res://Scenes/StoryScene.tscn");
+			return;
+		}
+
+		_state.CurrentTargetCharacterId = _selectedCharacterId;
+		var firstSelection = !characterState.HasMet;
+		characterState.HasMet = true;
+		_state.AddCharacterEvent(
+			_selectedCharacterId,
+			$"shop.select.{_selectedCharacterId}",
+			TextDb.UiFormat("event_log.shop_select_title", character.Name),
+			TextDb.Ui(firstSelection ? "event_log.shop_select_detail_first" : "event_log.shop_select_detail_repeat"));
 		_hintLabel.Text = TextDb.UiFormat("shop.hint_selected", character.Name);
+		ShowCharacterDetail(_selectedCharacterId);
+		SaveActiveState();
 	}
 
 	private void OnBackPressed()

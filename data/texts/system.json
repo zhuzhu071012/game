@@ -1,0 +1,119 @@
+{
+  "slots": {
+	"governance": {
+	  "title": "治事",
+	  "body": "处理政务、军务与财赋，获取稳定收益。"
+	},
+	"audience": {
+	  "title": "召对",
+	  "body": "与人物深谈，调整关系、流言与任务走向。"
+	},
+	"research": {
+	  "title": "案读",
+	  "body": "研读书信、情报与材料，推出新线索或事件。"
+	},
+	"recruit": {
+	  "title": "访求",
+	  "body": "花费金钱外出访求，寻访人物与资源。"
+	},
+	"rest": {
+	  "title": "入寐",
+	  "body": "恢复健康与心智，并处理病势与梦境。"
+	}
+  },
+  "slot_details": {
+	"governance": "[b]治事[/b]\n处理政务、军务与财赋。曹操亲自参与收益更高，但会额外消耗健康或心智。",
+	"research": "[b]案读[/b]\n将材料与人物投入案头研读，解锁线索、任务与新事件。",
+	"recruit": "[b]访求[/b]\n消耗金钱与任务外出搜求，可能带回新人物、新资源或地方线索。",
+	"audience": "[b]召对[/b]\n曹操与人物对谈，可提升好感、压低流言或触发关系事件。",
+	"rest": "[b]入寐[/b]\n用于恢复健康、心智。"
+  },
+  "roles": {
+	"lord": "主君",
+	"strategist": "谋士",
+	"advisor": "参谋",
+	"general": "将领",
+	"consort": "内助",
+	"retainer": "从属"
+  },
+  "resource_categories": {
+	"money": "财用",
+	"medicine": "医药",
+	"intel": "情报",
+	"task": "文书",
+	"rest": "调养"
+  },
+  "event_categories": {
+	"crisis": "危机",
+	"omen": "异兆",
+	"character": "人物",
+	"rumor": "流言",
+	"dream": "梦境"
+  },
+  "tags": {
+	"leader": "主君",
+	"politics": "政务",
+	"war": "军务",
+	"scheme": "机谋",
+	"research": "研读",
+	"rumor": "流言",
+	"crisis": "危机",
+	"captives": "俘虏",
+	"steady": "稳健",
+	"governance": "治事",
+	"military": "军略",
+	"discipline": "军纪",
+	"swift": "疾战",
+	"camp": "营务",
+	"relation": "关系",
+	"rest": "休养",
+	"medicine": "医药",
+	"support": "内助",
+	"gift": "赠礼",
+	"intel": "情报",
+	"task": "任务",
+	"recruit": "访求",
+	"naval": "水战",
+	"mind": "心智",
+	"logistics": "后勤",
+	"charm": "魅力",
+	"money": "钱粮",
+	"document": "文牍",
+	"secret_report": "密报",
+	"influence": "时效",
+	"care": "照护"
+  },
+  "relations": {
+	"cold": "疏离",
+	"steady": "平稳",
+	"trusted": "亲近",
+	"bonded": "深契",
+	"summary": "%s / 好感 %d / 流言 %d"
+  },
+  "character_templates": {
+	"profile": "%s\n\n词条：%s\n执行 %d / 见识 %d / 武略 %d / 魅力 %d / 医术 %d",
+	"guojia_stage": "\n病势阶段：%d",
+	"locked_hint": "\n尚未通过访求或事件加入。"
+  },
+  "resource_templates": {
+	"subtitle": "%s / 持有 %d"
+  },
+  "lead_templates": {
+	"subtitle": "可访求人物",
+	"body": "可通过访求获得。\n词条：%s"
+  },
+  "risk_detail": {
+	"line": "%s × %d"
+  },
+  "endings": {
+	"headwind": "神离",
+	"alienation": "众散",
+	"miasma": "疫溃",
+	"rumor": "谤成",
+	"seasick": "覆舟",
+	"fire": "赤壁之火"
+  },
+  "traits": {
+	"line": "词条：%s"
+  }
+}

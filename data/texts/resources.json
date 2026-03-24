@@ -1,0 +1,30 @@
+{
+  "silver_pack": {
+	"name": "银两",
+	"description": "一份可立即动用的银钱，用于访求、赏赐或解决燃眉之急。"
+  },
+  "herbal_tonic": {
+	"name": "汤药",
+	"description": "调养病体的药物，可用于郭嘉疗养或压制疫气。"
+  },
+  "spy_report": {
+	"name": "谍报",
+	"description": "来自前线与地方的零散情报，适合案读或危机处置。"
+  },
+  "recruit_writ": {
+	"name": "招贤文书",
+	"description": "用于访求人才的文书与凭信，可提高招揽成功率。"
+  },
+  "naval_chart": {
+	"name": "水战图",
+	"description": "关于江面与船阵的图录，可提升水战准备。"
+  },
+  "calming_incense": {
+	"name": "安神香",
+	"description": "可在召对或入寐时使用，帮助恢复心智并降低流言风险。"
+  },
+  "sealed_letter": {
+	"name": "密信",
+	"description": "第一次治事后送到案头的书信，能开启案读与后续访求。"
+  }
+}

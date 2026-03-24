@@ -1,0 +1,22 @@
+{
+  "grain_shortage": {
+	"title": "粮道吃紧",
+	"description": "军前粮道转运迟滞，若不尽快处置，将损及军心与荆州稳定。"
+  },
+  "river_omens": {
+	"title": "江上异兆",
+	"description": "水军与船工都在议论江上怪象。若置之不理，晕舟与火势都可能悄然增长。"
+  },
+  "guojia_relapse": {
+	"title": "郭嘉病发",
+	"description": "郭嘉病势反复，仍坚持理事。若不干预，可能转为更严重的病势与疫气风险。"
+  },
+  "jingzhou_whispers": {
+	"title": "荆州流言",
+	"description": "关于军心与局势的流言在营中扩散。若处理失当，离心与流言都会积累。"
+  },
+  "ember_dream": {
+	"title": "残火梦兆",
+	"description": "入寐时梦见舟楫与烈焰交织。若能解读，也许能提前窥见赤壁之火的走向。"
+  }
+}

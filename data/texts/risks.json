@@ -1,0 +1,22 @@
+{
+  "headwind": {
+	"name": "头风",
+	"description": "主君头风发作，轻则损心智，重则神离而局崩。"
+  },
+  "alienation": {
+	"name": "离心",
+	"description": "人心不齐，政令渐失约束，持续累积将导致众散。"
+  },
+  "miasma": {
+	"name": "疫气",
+	"description": "病气与营中秽气蔓延，不及时压制便会引发疫溃。"
+  },
+  "rumor": {
+	"name": "流言",
+	"description": "营内外流言四起，轻则扰军，重则谤成，动摇全局。"
+  },
+  "seasick": {
+	"name": "晕舟",
+	"description": "对江战与舟行的畏惧不断累积，最终会在水上彻底失控。"
+  }
+}

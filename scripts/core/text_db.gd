@@ -1,12 +1,15 @@
 extends RefCounted
 class_name TextDB
 
+# 文本数据库：统一加载 data/texts 下的文案文件。
+# 运行时的名字、描述、日志都从这里取，方便后续单独补剧情文本。
 const TEXT_ROOT: String = "res://data/texts"
 
 static var _loaded: bool = false
 static var _root: Dictionary = {}
 
 static func reload_texts() -> void:
+	# 当文本文件被手动修改后，可通过此入口重新加载。
 	_loaded = false
 	_root.clear()
 	_ensure_loaded()
@@ -36,6 +39,7 @@ static func get_array(path: String) -> Array:
 	return value if value is Array else []
 
 static func format_text(path: String, args: Array = [], named: Dictionary = {}, fallback: String = "") -> String:
+	# 支持简单的位置参数与命名参数替换，给日志和结算文本复用。
 	var template: String = get_text(path, fallback)
 	for key_variant in named.keys():
 		var key: String = str(key_variant)
@@ -68,6 +72,7 @@ static func _ensure_loaded() -> void:
 	dir.list_dir_end()
 
 static func _load_json(path: String) -> Variant:
+	# 文本文件请统一保存为 UTF-8，避免 Godot 读入时出现乱码。
 	if not FileAccess.file_exists(path):
 		return {}
 	var raw: String = FileAccess.get_file_as_string(path)

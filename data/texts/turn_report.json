@@ -1,0 +1,22 @@
+{
+  "confirm": {
+	"title": "结束回合",
+	"subtitle": "进入统一结算",
+	"body": "确认后结算本回合。"
+  },
+  "buttons": {
+	"confirm": "确认结束",
+	"cancel": "暂不结束",
+	"close": "知道了"
+  },
+  "report": {
+	"title": "第 %d 回合汇报",
+	"subtitle": "%s",
+	"summary_header": "[b]本回合摘要[/b]",
+	"placeholder_header": "[b]文案预留[/b]",
+	"placeholder_body": "这里可补回合旁白、军报或剧情文案。",
+	"empty": "本回合暂无显著变化。"
+  },
+  "narratives": {
+  }
+}

@@ -18,6 +18,10 @@ config/name="赤壁前夜"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.6")
 
+[audio]
+
+buses/default_bus_layout="uid://btrennenbti84"
+
 [display]
 
 window/size/viewport_width=1600
@@ -31,3 +35,4 @@ project/assembly_name="CaoSimulator"
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
+textures/vram_compression/import_etc2_astc=true

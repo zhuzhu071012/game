@@ -1,119 +1,220 @@
 {
-  "slots": {
-	"governance": {
-	  "title": "治事",
-	  "body": "处理政务、军务与财赋，获取稳定收益。"
+	"slots": {
+		"governance": {
+			"title": "治事",
+			"body": "处理政务、军务与财赋，维持后方与军心。"
+		},
+		"audience": {
+			"title": "召对",
+			"body": "与人物深谈、安抚、施压，处理人心与流言。"
+		},
+		"research": {
+			"title": "案读",
+			"body": "研读书信、情报与材料，把知识转化为优势。"
+		},
+		"recruit": {
+			"title": "访求",
+			"body": "花费金钱与文书访求人才，也可能带回资源或线索。"
+		},
+		"rest": {
+			"title": "入寐",
+			"body": "恢复健康与心智，并处理病势与梦境。"
+		}
 	},
-	"audience": {
-	  "title": "召对",
-	  "body": "与人物深谈，调整关系、流言与任务走向。"
+	"slot_details": {
+		"governance": "[b]治事[/b]\n可投入：角色A + 辅助角色B（可空缺）。\n用于处理政务、军务与财赋，主处理者以体质与智力结算收益。",
+		"research": "[b]案读[/b]\n可投入：角色A + 辅助角色B（可空缺）+ 事件或材料 + 资源修正。\n用于研读事件、情报与材料，产出线索、密报与后续修正。",
+		"recruit": "[b]访求[/b]\n可投入：角色A + 辅助角色B（可空缺）+ 银两 + 招贤文书或任务牌。\n用于寻访人物、搜求物资与扩展处理路径。",
+		"audience": "[b]召对[/b]\n可投入：1）曹操 + 召对角色 + 资源；2）角色A + 辅助角色B（可空缺）+ 流言或离心。\n礼物最多 1 个，银两可叠加；拖入隐患牌时会转为安抚处理。",
+		"rest": "[b]入寐[/b]\n可投入：目标角色A + 草药或银两或逍遥 + 医疗角色B（可空缺）。\n用于恢复健康、心智，缓解病势，并处理头风等长期隐患。"
 	},
-	"research": {
-	  "title": "案读",
-	  "body": "研读书信、情报与材料，推出新线索或事件。"
+	"roles": {
+		"lord": "主君",
+		"strategist": "谋士",
+		"advisor": "重臣",
+		"general": "将领",
+		"heir": "宗子",
+		"scholar": "才士",
+		"physician": "医者"
 	},
-	"recruit": {
-	  "title": "访求",
-	  "body": "花费金钱外出访求，寻访人物与资源。"
+	"resource_categories": {
+		"money": "财用",
+		"medicine": "医药",
+		"intel": "情报",
+		"task": "文书",
+		"rest": "调养",
+		"gift": "赠礼"
 	},
-	"rest": {
-	  "title": "入寐",
-	  "body": "恢复健康与心智，并处理病势与梦境。"
+	"event_categories": {
+		"crisis": "危机",
+		"omen": "异兆",
+		"character": "人物",
+		"rumor": "流言",
+		"dream": "梦境",
+		"relation": "关系"
+	},
+	"tags": {
+		"leader": "主君",
+		"politics": "政务",
+		"war": "军务",
+		"scheme": "机谋",
+		"research": "案读",
+		"rumor": "流言",
+		"crisis": "危机",
+		"captives": "俘虏",
+		"steady": "稳健",
+		"governance": "治事",
+		"military": "军略",
+		"discipline": "军纪",
+		"swift": "疾战",
+		"camp": "营务",
+		"relation": "人心",
+		"rest": "调养",
+		"medicine": "医药",
+		"support": "辅佐",
+		"gift": "赠礼",
+		"intel": "情报",
+		"task": "文书",
+		"recruit": "访求",
+		"naval": "水战",
+		"mind": "心智",
+		"logistics": "后勤",
+		"charm": "才名",
+		"money": "钱粮",
+		"document": "文牍",
+		"secret_report": "密报",
+		"influence": "时效",
+		"care": "照护"
+	},
+	"relations": {
+		"cold": "疏离",
+		"steady": "平稳",
+		"trusted": "亲近",
+		"bonded": "深契",
+		"summary": "%s / 好感 %d / 流言 %d"
+	},
+	"character_templates": {
+		"profile": "%s\n\n特征：%s\n专长：%s\n当前属性：力量 %d / 敏捷 %d / 体质 %d / 智力 %d / 感知 %d / 魅力 %d",
+		"guojia_stage": "\n病势阶段：%d",
+		"locked_hint": "\n尚未通过访求或事件加入。",
+		"current_note": "\n当前属性会受伤病、疲劳与事件状态影响。"
+	},
+	"resource_templates": {
+		"subtitle": "%s / 持有 %d"
+	},
+	"lead_templates": {
+		"subtitle": "可访求人物",
+		"body": "尚未加入麾下。\n线索：%s"
+	},
+	"risk_detail": {
+		"line": "%s × %d",
+		"current": "当前层数：%d",
+		"penalty_title": "层数效果：",
+		"mild": "1 张：%s",
+		"severe": "2 张：%s",
+		"ending": "3 张：直接触发坏结局【%s】"
+	},
+	"traits": {
+		"line": "特征：%s"
+	},
+	"terms": [
+		"建安十二年·秋分",
+		"建安十二年·寒露",
+		"建安十二年·霜降",
+		"建安十二年·立冬",
+		"建安十二年·小雪",
+		"建安十二年·大雪",
+		"建安十二年·冬至",
+		"建安十二年·小寒",
+		"建安十二年·大寒",
+		"建安十二年·立春",
+		"建安十二年·雨水",
+		"建安十二年·惊蛰",
+		"建安十二年·春分",
+		"建安十二年·清明",
+		"建安十二年·谷雨",
+		"建安十二年·立夏",
+		"建安十二年·小满",
+		"建安十二年·芒种",
+		"建安十二年·夏至",
+		"建安十二年·小暑",
+		"建安十二年·大暑",
+		"建安十二年·立秋",
+		"建安十二年·处暑",
+		"建安十二年·白露",
+		"建安十三年·秋分",
+		"建安十三年·寒露",
+		"建安十三年·霜降",
+		"建安十三年·立冬",
+		"建安十三年·小雪",
+		"建安十三年·大雪",
+		"建安十三年·冬至",
+		"建安十三年·小寒"
+	],
+	"fire_levels": {
+		"low": "可控",
+		"medium": "升压",
+		"high": "逼岸"
+	},
+	"endings": {
+		"good": "相对好结局：北岸暂稳",
+		"normal": "普通结局：危局未解",
+		"final_bad": "坏结局：火逼赤壁",
+		"headwind": "神离",
+		"alienation": "众散",
+		"miasma": "疫溃",
+		"rumor": "谤成",
+		"seasick": "覆舟",
+		"fire": "赤壁之火",
+		"favorable": "得胜结局：火中取稳",
+		"defeat": "败局结局：江上失机"
+	},
+	"settlement_term": "结局结算",
+	"turn_fallback": "第 %d 回合",
+	"attributes": {
+		"strength": "力量",
+		"agility": "敏捷",
+		"constitution": "体质",
+		"intelligence": "智力",
+		"perception": "感知",
+		"charisma": "魅力"
+	},
+	"specialties": {
+		"medical": "医疗",
+		"stratagem": "奇谋",
+		"search": "搜索",
+		"negotiation": "交涉",
+		"deception": "欺诈",
+		"intimidation": "威慑",
+		"command": "治军"
+	},
+	"camp_attributes": {
+		"supplies": "粮草",
+		"forces": "兵力",
+		"cohesion": "人心",
+		"strategy": "军略"
+	},
+	"finale": {
+		"phases": {
+			"preparation": "战前整备",
+			"fire": "火攻变局",
+			"ruse": "诈降机谋",
+			"battle": "正面决战"
+		},
+		"outcomes": {
+			"major_success": "大成功",
+			"success": "成功",
+			"fail": "失败",
+			"major_fail": "大失败"
+		}
+	},
+	"penalty_targets": {
+		"health": "健康",
+		"mind": "心智",
+		"morale": "人心",
+		"stability": "稳定",
+		"naval": "军略",
+		"alliance": "联盟",
+		"fire": "火势"
 	}
-  },
-  "slot_details": {
-	"governance": "[b]治事[/b]\n处理政务、军务与财赋。曹操亲自参与收益更高，但会额外消耗健康或心智。",
-	"research": "[b]案读[/b]\n将材料与人物投入案头研读，解锁线索、任务与新事件。",
-	"recruit": "[b]访求[/b]\n消耗金钱与任务外出搜求，可能带回新人物、新资源或地方线索。",
-	"audience": "[b]召对[/b]\n曹操与人物对谈，可提升好感、压低流言或触发关系事件。",
-	"rest": "[b]入寐[/b]\n用于恢复健康、心智。"
-  },
-  "roles": {
-	"lord": "主君",
-	"strategist": "谋士",
-	"advisor": "参谋",
-	"general": "将领",
-	"consort": "内助",
-	"retainer": "从属"
-  },
-  "resource_categories": {
-	"money": "财用",
-	"medicine": "医药",
-	"intel": "情报",
-	"task": "文书",
-	"rest": "调养"
-  },
-  "event_categories": {
-	"crisis": "危机",
-	"omen": "异兆",
-	"character": "人物",
-	"rumor": "流言",
-	"dream": "梦境"
-  },
-  "tags": {
-	"leader": "主君",
-	"politics": "政务",
-	"war": "军务",
-	"scheme": "机谋",
-	"research": "研读",
-	"rumor": "流言",
-	"crisis": "危机",
-	"captives": "俘虏",
-	"steady": "稳健",
-	"governance": "治事",
-	"military": "军略",
-	"discipline": "军纪",
-	"swift": "疾战",
-	"camp": "营务",
-	"relation": "关系",
-	"rest": "休养",
-	"medicine": "医药",
-	"support": "内助",
-	"gift": "赠礼",
-	"intel": "情报",
-	"task": "任务",
-	"recruit": "访求",
-	"naval": "水战",
-	"mind": "心智",
-	"logistics": "后勤",
-	"charm": "魅力",
-	"money": "钱粮",
-	"document": "文牍",
-	"secret_report": "密报",
-	"influence": "时效",
-	"care": "照护"
-  },
-  "relations": {
-	"cold": "疏离",
-	"steady": "平稳",
-	"trusted": "亲近",
-	"bonded": "深契",
-	"summary": "%s / 好感 %d / 流言 %d"
-  },
-  "character_templates": {
-	"profile": "%s\n\n词条：%s\n执行 %d / 见识 %d / 武略 %d / 魅力 %d / 医术 %d",
-	"guojia_stage": "\n病势阶段：%d",
-	"locked_hint": "\n尚未通过访求或事件加入。"
-  },
-  "resource_templates": {
-	"subtitle": "%s / 持有 %d"
-  },
-  "lead_templates": {
-	"subtitle": "可访求人物",
-	"body": "可通过访求获得。\n词条：%s"
-  },
-  "risk_detail": {
-	"line": "%s × %d"
-  },
-  "endings": {
-	"headwind": "神离",
-	"alienation": "众散",
-	"miasma": "疫溃",
-	"rumor": "谤成",
-	"seasick": "覆舟",
-	"fire": "赤壁之火"
-  },
-  "traits": {
-	"line": "词条：%s"
-  }
 }

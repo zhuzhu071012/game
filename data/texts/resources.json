@@ -1,30 +1,46 @@
 {
   "silver_pack": {
 	"name": "银两",
-	"description": "一份可立即动用的银钱，用于访求、赏赐或解决燃眉之急。"
+	"description": "案头流转的现银，可在访求、召对与疗养中直接支用。"
   },
   "herbal_tonic": {
-	"name": "汤药",
-	"description": "调养病体的药物，可用于郭嘉疗养或压制疫气。"
+	"name": "草药",
+	"description": "用于压病、疗伤与处理疫气，疾病类恢复必须投入草药。"
   },
   "spy_report": {
-	"name": "谍报",
-	"description": "来自前线与地方的零散情报，适合案读或危机处置。"
+	"name": "密报",
+	"description": "由案读或访求整理出的情报，可强化军略、诈降与研究判定。"
   },
   "recruit_writ": {
 	"name": "招贤文书",
-	"description": "用于访求人才的文书与凭信，可提高招揽成功率。"
+	"description": "用于访求人才的文书，没有它时很难真正招到人。"
   },
   "naval_chart": {
-	"name": "水战图",
-	"description": "关于江面与船阵的图录，可提升水战准备。"
+	"name": "舟图",
+	"description": "记录水道与风向的图册，可用于水事与火攻相关事件。"
   },
   "calming_incense": {
-	"name": "安神香",
-	"description": "可在召对或入寐时使用，帮助恢复心智并降低流言风险。"
+	"name": "逍遥",
+	"description": "关系升温或人物线中得到的安神之物，可用于入寝与头风缓解。"
   },
   "sealed_letter": {
 	"name": "密信",
-	"description": "第一次治事后送到案头的书信，能开启案读与后续访求。"
+	"description": "治事与案读中得到的书信，可用于召对、关系事件与研究推进。"
+  },
+  "gift": {
+	"name": "礼物",
+	"description": "可在召对时赠出，用来推进关系、安抚人心。"
+  },
+  "yecheng_letter": {
+	"name": "邺城来信",
+	"description": "荐彧自邺城寄来的书信。信中言道：大战将近，主公案前不可无人襄理，营中尤缺能整肃军纪之人。若要稳住后方，可先访求于禁。"
+  },
+  "sanjian_dao": {
+	"name": "三尖刀",
+	"description": "一柄精修过的旧制佩刀，锋芒尚在。更适合作为赠礼，示以器重与托付。"
+  },
+  "night_watch_roll": {
+	"name": "夜巡更簿",
+	"description": "营门夜巡的旧更簿，能核对口令、轮值与缺岗处，是查清营中漏巡的关键线索。"
   }
 }

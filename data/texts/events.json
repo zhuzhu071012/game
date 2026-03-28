@@ -1,22 +1,50 @@
 {
   "grain_shortage": {
 	"title": "粮道吃紧",
-	"description": "军前粮道转运迟滞，若不尽快处置，将损及军心与荆州稳定。"
+	"description": "前线转运迟滞，粮秣渐见空缺。若不尽快调度，军心与荆州稳定都会被拖累。"
   },
   "river_omens": {
 	"title": "江上异兆",
-	"description": "水军与船工都在议论江上怪象。若置之不理，晕舟与火势都可能悄然增长。"
+	"description": "舟师与工匠都在议论江上的怪象。若置之不理，晕舟与火势都可能暗中攀升。"
   },
   "guojia_relapse": {
 	"title": "郭嘉病发",
-	"description": "郭嘉病势反复，仍坚持理事。若不干预，可能转为更严重的病势与疫气风险。"
+	"description": "郭嘉病势反复，却仍坚持理事。若不及时干预，病势会继续恶化。"
   },
   "jingzhou_whispers": {
 	"title": "荆州流言",
-	"description": "关于军心与局势的流言在营中扩散。若处理失当，离心与流言都会积累。"
+	"description": "营中关于军心与用人的议论四起。若处理失当，离心与流言都会继续累积。"
   },
   "ember_dream": {
 	"title": "残火梦兆",
-	"description": "入寐时梦见舟楫与烈焰交织。若能解读，也许能提前窥见赤壁之火的走向。"
+	"description": "你在入寐时梦见火光、战舟与江风交织。若能静心解读，或许能提前窥见赤壁之火的走向。"
+  },
+  "xun_yu_letters": {
+	"title": "尚书台来札",
+	"description": "荀彧对近来的军政安排有所保留。若迟迟不给出回应，这份疑虑会慢慢扩散成人心裂痕。"
+  },
+  "camp_fever": {
+	"title": "营中病气",
+	"description": "营中病气渐起，若不及时调治，疫气会迅速蔓延。"
+  },
+  "hidden_correspondence": {
+	"title": "暗札线索",
+	"description": "旧札牵出隐秘线索。若能及时拆解，便可得密报与书信。"
+  },
+  "harbor_survey": {
+	"title": "江口水路",
+	"description": "江口水势多变。若能提前勘定航路，后续水事会轻松许多。"
+  },
+  "tribute_market": {
+	"title": "市集礼物",
+	"description": "商旅带来礼物门路。处理得当，可得适合召对的礼物。"
+  },
+  "talent_trace": {
+	"title": "招贤风闻",
+	"description": "地方传来可用之人的风闻。若能整合书信与访求安排，便可换来招贤线索。"
+  },
+  "tutorial_patrol_gap": {
+	"title": "辕门漏巡",
+	"description": "前营夜里传来消息：辕门值夜的人数对不上，口令也有缺漏。若不尽快查清，营纪会先松一层。于禁擅治军纪，但还缺一份能对照轮值的实据。"
   }
 }

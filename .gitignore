@@ -1,0 +1,7 @@
+﻿.godot/
+android/build/
+android/.build_version
+export_credentials.cfg
+*.log
+_codex_*
+*_encoding_test.txt

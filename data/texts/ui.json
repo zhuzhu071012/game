@@ -1,74 +1,111 @@
 {
-  "buttons": {
-	"end_turn": "结束回合",
-	"show_log": "显示日志",
-	"hide_log": "隐藏日志",
-	"close": "关闭"
-  },
-  "headers": {
-	"events": "临时事件",
-	"roster": "人物牌堆",
-	"resources": "资源牌堆",
-	"leads": "线索与访求"
-  },
-  "fallback": {
-	"card": "卡牌"
-  },
-  "status": {
-	"stage": "阶段 %d",
-	"turn": "回合 %d",
-	"health": "健康 %d",
-	"mind": "心智 %d",
-	"money": "金钱 %d",
-	"morale": "军心 %d",
-	"fire": "火势 %d"
-  },
-  "slot_subtitle": "常驻功能槽",
-  "list_separator": "、",
-  "event_subtitle": {
-	"collapsed": "点击展开 / 剩余 %d 回合",
-	"expanded": "可投入处理 / 剩余 %d 回合"
-  },
-  "assigned": {
-	"prefix": "已投入：%s",
-	"empty": "无",
-	"empty_slot": "空槽",
-	"committed": "本回合已投入",
-	"locked_hint": "尚未入仕",
-	"not_joined": "尚未加入"
-  },
-  "roster": {
-	"available": "可用",
-	"locked": "未解锁"
-  },
-  "messages": {
-	"no_events": "当前暂无待处理事件。",
-	"bad_ending": "[b]坏结局[/b]\\n%s\\n\\n局势已无法挽回，本局到此结束。",
-	"overview": "[b]局势总览[/b]\\n荆州稳定：%d\\n水战准备：%d\\n孙刘联盟：%d\\n郭嘉病势：%d\\n\\n[b]隐患[/b]\\n%s"
-  },
-  "event_slots": {
-	"character_title": "人物投入",
-	"character_subtitle": "拖入参与处理",
-	"character_body": "放入一名人物，决定事件处理方向。",
-	"resource_title": "资源投入",
-	"resource_subtitle": "拖入辅助资源",
-	"resource_body": "放入资源牌，强化事件处理效果。"
-  },
-  "slot_badge": {
-	"empty": "空位",
-	"count": "已置 %d",
-	"count_max": "%d/%d"
-  },
-  "slot_detail": {
-	"empty": "当前尚未投入卡牌。",
-	"assigned": "已投入：%s"
-  },
-  "detail_panel": {
-	"overview_title": "局势总览",
-	"overview_subtitle": "赤壁前夜",
-	"slot_subtitle": "本回合操作",
-	"assignment_title": "投入位",
-	"slot_hint": "将合适卡牌拖入操作按钮后的抽屉面板，会在回合结束时统一结算。右键卡牌可快速投入。",
-	"turn_hint": "当前显示整体局势。点击操作按钮可展开对应操作面板。"
-  }
+	"buttons": {
+		"end_turn": "结束回合",
+		"show_log": "显示日志",
+		"hide_log": "隐藏日志",
+		"close": "关闭",
+		"next": "继续",
+		"finish": "完成"
+	},
+	"headers": {
+		"events": "临时事件",
+		"roster": "人物牌堆",
+		"resources": "资源牌堆",
+		"leads": "隐患与线索"
+	},
+	"fallback": {
+		"card": "卡牌",
+		"none": "无"
+	},
+	"status": {
+		"term": "节气 %s %d/%d",
+		"stage": "局势 %d阶",
+		"turn": "内回合 %d",
+		"health": "健康 %d",
+		"mind": "心智 %d",
+		"money": "金钱 %d",
+		"morale": "军心 %d",
+		"fire": "火势 %d · %s"
+	},
+	"slot_subtitle": "常驻功能槽",
+	"list_separator": "、",
+	"event_subtitle": {
+		"collapsed": "点击展开 / 剩余 %d 回合",
+		"expanded": "可投入处理 / 剩余 %d 回合"
+	},
+	"assigned": {
+		"prefix": "已投入：%s",
+		"empty": "无",
+		"empty_slot": "空槽",
+		"committed": "本回合已投入",
+		"locked_hint": "尚未入仕",
+		"not_joined": "尚未加入"
+	},
+	"roster": {
+		"available": "可用",
+		"locked": "未解锁"
+	},
+	"messages": {
+		"no_events": "当前暂无待处理事件。",
+		"good_ending": "[b]相对好结局[/b]\n%s\n\n你暂且压住了局势，但火种未灭。",
+		"normal_ending": "[b]普通结局[/b]\n%s\n\n你撑到了终局，却没能真正扭转风向。",
+		"bad_ending": "[b]坏结局[/b]\n%s\n\n局势已无法挽回，本局到此结束。",
+		"overview": "[b]局势总览[/b]\n荆州稳定：%d\n水战准备：%d\n孙刘联盟：%d\n郭嘉病势：%d\n\n[b]阵营属性[/b]\n%s\n\n[b]隐患[/b]\n%s",
+		"favorable_ending": "[b]得胜结局[/b]\n%s\n\n你赢下了终局的一口气，却仍未彻底扑灭余焰。",
+		"defeat_ending": "[b]败局结局[/b]\n%s\n\n你撑到终场，却在最后的对撞里失了先机。",
+		"personal_missing": "%s未能来到你的案前。",
+		"personal_joined": "%s仍在帐下，结局随大势沉浮。",
+		"personal_trusted": "%s仍愿追随你，心意未改。",
+		"personal_strained": "%s虽未离去，心中已生裂隙。",
+		"personal_sick": "%s病势沉重，终未能尽其才。",
+		"personal_lost": "%s已不在终局之列。",
+		"personal_progressed": "%s的个人线留下了额外余波。"
+	},
+	"event_slots": {
+		"character_title": "人物投入",
+		"character_subtitle": "拖入参与处理",
+		"character_body": "放入一名人物，决定事件处理方向。",
+		"resource_title": "资源投入",
+		"resource_subtitle": "拖入辅助资源",
+		"resource_body": "放入资源牌，强化事件处理效果。"
+	},
+	"slot_badge": {
+		"empty": "空位",
+		"count": "已置 %d",
+		"count_max": "%d/%d"
+	},
+	"slot_detail": {
+		"empty": "当前尚未投入卡牌。",
+		"assigned": "已投入：%s"
+	},
+	"detail_panel": {
+		"overview_title": "局势总览",
+		"overview_subtitle": "赤壁前夜",
+		"slot_subtitle": "本回合操作",
+		"assignment_title": "投入位",
+		"slot_hint": "将合适卡牌拖入操作按钮后的抽屉面板，会在回合结束时统一结算。右键卡牌可快速投入。",
+		"turn_hint": "当前显示整体局势。点击操作按钮可展开对应操作面板。"
+	},
+	"event_rules": {
+		"summary": "最低要求 %d / 成功阈值 %d / 检定 DC %d / 时限 %d 回合",
+		"rule_line": "达到成功阈值则必定成功；达到最低要求但未达阈值时，进行 D20 检定。",
+		"pressure": "当前火势使检定压力 +%d",
+		"attributes": "本事件调用属性：%s",
+		"specialties": "推荐专长：%s",
+		"resources": "推荐资源：%s",
+		"required_resources": "解决此事必须投入：%s"
+	},
+	"finale": {
+		"preparation_line": "战前整备：粮草 %d / 人心 %d，胜利值 %s",
+		"roll_line": "%s：%s（d20=%d，总值=%d，对抗=%d）",
+		"fire_penalty": "火攻受创：兵力 -%d",
+		"battle_bonus": "识破机谋：正面决战额外 +%d",
+		"camp_line": "粮草 %d / 兵力 %d / 人心 %d / 军略 %d",
+		"score_line": "最终胜利值：%d",
+		"report_title": "终局判定",
+		"personal_title": "人物尾声",
+		"step_counter": "终局阶段 %d / %d",
+		"result_line": "结局：%s",
+		"no_personal": "此局暂无可展示的人物尾声。"
+	}
 }

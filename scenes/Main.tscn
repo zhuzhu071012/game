@@ -5,8 +5,6 @@
 [ext_resource type="Script" uid="uid://b832a8jmo2tv3" path="res://scripts/managers/event_manager.gd" id="3"]
 [ext_resource type="Script" uid="uid://x64psvr3mqxv" path="res://scripts/managers/relation_manager.gd" id="4"]
 [ext_resource type="Script" uid="uid://56daepdodl28" path="res://scripts/managers/turn_manager.gd" id="5"]
-[ext_resource type="Texture2D" uid="uid://cdhep7y5xulgf" path="res://assets/ui/cover_banner.svg" id="6"]
-
 [node name="Main" type="Control" unique_id=860741833]
 layout_mode = 3
 anchors_preset = 15
@@ -46,24 +44,6 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 18
-
-[node name="CoverPanel" type="PanelContainer" parent="Root/Layout" unique_id=468446532]
-custom_minimum_size = Vector2(0, 68)
-layout_mode = 2
-
-[node name="CoverMargin" type="MarginContainer" parent="Root/Layout/CoverPanel" unique_id=1372277924]
-layout_mode = 2
-theme_override_constants/margin_left = 6
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 6
-theme_override_constants/margin_bottom = 6
-
-[node name="CoverTexture" type="TextureRect" parent="Root/Layout/CoverPanel/CoverMargin" unique_id=110295493]
-layout_mode = 2
-size_flags_horizontal = 3
-texture = ExtResource("6")
-expand_mode = 1
-stretch_mode = 6
 
 [node name="Desk" type="HBoxContainer" parent="Root/Layout" unique_id=538520101]
 layout_mode = 2
@@ -294,12 +274,12 @@ layout_mode = 2
 unique_name_in_owner = true
 visible = false
 z_index = 15
-custom_minimum_size = Vector2(460, 300)
+custom_minimum_size = Vector2(840, 248)
 layout_mode = 0
-offset_left = 570.0
-offset_top = 210.0
-offset_right = 1030.0
-offset_bottom = 510.0
+offset_left = 340.0
+offset_top = 220.0
+offset_right = 1180.0
+offset_bottom = 468.0
 
 [node name="EventDialogMargin" type="MarginContainer" parent="EventDialog" unique_id=1423001231]
 layout_mode = 2
@@ -350,29 +330,57 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(76, 32)
 layout_mode = 2
 
-[node name="EventDialogBody" type="RichTextLabel" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=1662505518]
+[node name="EventDialogBodyPanel" type="PanelContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=1662505518]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+
+[node name="EventDialogBodyMargin" type="MarginContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogBodyPanel" unique_id=1262505518]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="EventDialogBody" type="RichTextLabel" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogBodyPanel/EventDialogBodyMargin" unique_id=1462505518]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 74)
 layout_mode = 2
 size_flags_vertical = 3
 bbcode_enabled = true
 
-[node name="EventDialogSlotTitle" type="Label" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=831796364]
+[node name="EventDialogSlotPanel" type="PanelContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=19861503]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 178)
+layout_mode = 2
+
+[node name="EventDialogSlotMargin" type="MarginContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel" unique_id=29861503]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="EventDialogSlotVBox" type="VBoxContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel/EventDialogSlotMargin" unique_id=39861503]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EventDialogSlotTitle" type="Label" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel/EventDialogSlotMargin/EventDialogSlotVBox" unique_id=831796364]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
-[node name="EventDialogSlotRow" type="HBoxContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=79861503]
+[node name="EventDialogSlotRow" type="HBoxContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel/EventDialogSlotMargin/EventDialogSlotVBox" unique_id=79861503]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 148)
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="EventDialogAssignedTitle" type="Label" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=473619952]
+[node name="EventDialogAssignedTitle" type="Label" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel/EventDialogSlotMargin/EventDialogSlotVBox" unique_id=473619952]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 
-[node name="EventDialogAssignedRow" type="HBoxContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox" unique_id=1258823075]
+[node name="EventDialogAssignedRow" type="HBoxContainer" parent="EventDialog/EventDialogMargin/EventDialogVBox/EventDialogSlotPanel/EventDialogSlotMargin/EventDialogSlotVBox" unique_id=1258823075]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8

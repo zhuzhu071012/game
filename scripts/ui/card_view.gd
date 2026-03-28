@@ -6,6 +6,11 @@ signal card_clicked(card_id: String)
 signal quick_assign_requested(payload: Dictionary)
 signal remove_requested(payload: Dictionary)
 
+const DEFAULT_CARD_WIDTH: float = 156.0
+const COMPACT_PORTRAIT_WIDTH: float = 120.0
+const COMPACT_PORTRAIT_HEIGHT: float = 160.0
+const COMPACT_PORTRAIT_ART_HEIGHT: float = 116.0
+
 var art_frame: PanelContainer
 var art_texture: TextureRect
 var art_label: Label
@@ -13,6 +18,8 @@ var title_label: Label
 var subtitle_label: Label
 var body_label: RichTextLabel
 var assigned_label: Label
+var stack_badge: PanelContainer
+var stack_badge_label: Label
 
 var card_payload: Dictionary = {}
 var target_mode: bool = false
@@ -30,7 +37,7 @@ var drag_started: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	z_as_relative = false
+	_apply_layer_mode()
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 	default_z_index = z_index
@@ -43,8 +50,21 @@ func setup(payload: Dictionary, as_target: bool = false) -> void:
 	compact_mode = bool(card_payload.get("compact_details", false))
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_apply_layer_mode()
+	default_z_index = z_index
 	_bind_nodes()
 	_apply_payload()
+
+func _apply_layer_mode() -> void:
+	var embedded: bool = bool(card_payload.get("embedded", false))
+	z_as_relative = embedded
+	if embedded:
+		z_index = 0
+		hover_z_index = 0
+	else:
+		if z_index < 0:
+			z_index = 0
+		hover_z_index = 6 if bool(card_payload.get("icon_button", false)) else 8
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -55,7 +75,7 @@ func _gui_input(event: InputEvent) -> void:
 					emit_signal("remove_requested", card_payload.duplicate(true))
 					accept_event()
 				elif str(card_payload.get("card_type", "")) in ["character", "resource"]:
-					emit_signal("quick_assign_requested", card_payload.duplicate(true))
+					emit_signal("quick_assign_requested", _assignment_payload())
 					accept_event()
 			return
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
@@ -85,7 +105,29 @@ func _bind_nodes() -> void:
 		body_label = get_node_or_null("Margin/VBox/Body") as RichTextLabel
 	if assigned_label == null:
 		assigned_label = get_node_or_null("Margin/VBox/Assigned") as Label
-	for node in [art_frame, art_texture, art_label, title_label, subtitle_label, body_label, assigned_label, get_node_or_null("Margin"), get_node_or_null("Margin/VBox")]:
+	var art_content: Control = get_node_or_null("Margin/VBox/ArtFrame/ArtMargin/ArtContent") as Control
+	if stack_badge == null and art_content != null:
+		stack_badge = PanelContainer.new()
+		stack_badge.name = "StackBadge"
+		stack_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack_badge.anchor_left = 1.0
+		stack_badge.anchor_top = 0.0
+		stack_badge.anchor_right = 1.0
+		stack_badge.anchor_bottom = 0.0
+		stack_badge.offset_left = -38.0
+		stack_badge.offset_top = 6.0
+		stack_badge.offset_right = -6.0
+		stack_badge.offset_bottom = 30.0
+		art_content.add_child(stack_badge)
+		stack_badge_label = Label.new()
+		stack_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stack_badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		stack_badge_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stack_badge_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		stack_badge.add_child(stack_badge_label)
+	elif stack_badge != null and stack_badge_label == null:
+		stack_badge_label = stack_badge.get_child(0) as Label
+	for node in [art_frame, art_texture, art_label, title_label, subtitle_label, body_label, assigned_label, stack_badge, stack_badge_label, get_node_or_null("Margin"), get_node_or_null("Margin/VBox")]:
 		if node != null and node is Control:
 			(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -94,7 +136,7 @@ func _apply_payload() -> void:
 		return
 	if title_label == null or subtitle_label == null or body_label == null or assigned_label == null:
 		return
-	base_card_width = custom_minimum_size.x if custom_minimum_size.x > 0.0 else 156.0
+	base_card_width = float(card_payload.get("card_width", custom_minimum_size.x if custom_minimum_size.x > 0.0 else DEFAULT_CARD_WIDTH))
 	expanded_height = float(card_payload.get("expanded_height", custom_minimum_size.y if custom_minimum_size.y > 0.0 else 252.0))
 	collapsed_height = float(card_payload.get("collapsed_height", expanded_height - 66.0))
 	title_label.text = str(card_payload.get("title", TextDB.get_text("ui.fallback.card")))
@@ -103,6 +145,7 @@ func _apply_payload() -> void:
 	assigned_label.text = str(card_payload.get("assigned_text", ""))
 	compact_mode = bool(card_payload.get("compact_details", compact_mode))
 	_apply_art()
+	_apply_stack_badge()
 	_refresh_compact_state()
 	tooltip_text = ""
 	_update_style(card_payload.get("color", Color(0.23, 0.19, 0.14)))
@@ -118,6 +161,10 @@ func _apply_art() -> void:
 	var image_label_text: String = str(card_payload.get("image_label", card_payload.get("title", "")))
 	art_label.text = image_label_text
 	art_label.visible = image_texture == null
+	if card_payload.has("art_label_color"):
+		art_label.add_theme_color_override("font_color", card_payload.get("art_label_color", Color(1, 1, 1, 1)))
+	if card_payload.has("art_label_font_size"):
+		art_label.add_theme_font_size_override("font_size", int(card_payload.get("art_label_font_size", 16)))
 	var art_style: StyleBoxFlat = StyleBoxFlat.new()
 	art_style.bg_color = (card_payload.get("art_bg_color", card_payload.get("color", Color(0.23, 0.19, 0.14))) as Color).darkened(0.12)
 	art_style.corner_radius_top_left = 8
@@ -168,11 +215,50 @@ func _refresh_compact_state() -> void:
 	size = Vector2(size.x, target_height)
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
-	if target_mode or bool(card_payload.get("locked", false)) or bool(card_payload.get("assigned", false)):
+	if target_mode or bool(card_payload.get("locked", false)):
+		return null
+	if bool(card_payload.get("assigned", false)) and not bool(card_payload.get("removable", true)):
 		return null
 	drag_started = true
 	set_drag_preview(_build_drag_preview())
-	return card_payload
+	return _assignment_payload()
+
+func _assignment_payload() -> Dictionary:
+	var payload: Dictionary = card_payload.duplicate(true)
+	payload.erase("stack_count")
+	payload["assigned"] = false
+	payload["assigned_text"] = ""
+	return payload
+
+func _apply_stack_badge() -> void:
+	if stack_badge == null or stack_badge_label == null:
+		return
+	var count: int = int(card_payload.get("stack_count", 0))
+	var badge_text: String = str(card_payload.get("badge_text", "")).strip_edges()
+	var use_custom_badge: bool = not badge_text.is_empty()
+	if count <= 1 and not use_custom_badge:
+		stack_badge.visible = false
+		return
+	stack_badge.visible = true
+	stack_badge_label.text = badge_text if use_custom_badge else (str(count) if count < 100 else "99+")
+	stack_badge_label.add_theme_font_size_override("font_size", 10 if use_custom_badge else 11)
+	stack_badge.custom_minimum_size = Vector2(48.0, 24.0) if use_custom_badge else Vector2(32.0, 24.0)
+	stack_badge.offset_left = -54.0 if use_custom_badge else -38.0
+	stack_badge.offset_top = 6.0
+	stack_badge.offset_right = -6.0
+	stack_badge.offset_bottom = 30.0
+	var badge_style: StyleBoxFlat = StyleBoxFlat.new()
+	badge_style.bg_color = Color(0.10, 0.10, 0.11, 0.94)
+	badge_style.border_width_left = 1
+	badge_style.border_width_top = 1
+	badge_style.border_width_right = 1
+	badge_style.border_width_bottom = 1
+	badge_style.border_color = Color(0.70, 0.70, 0.72, 0.92)
+	badge_style.corner_radius_top_left = 10
+	badge_style.corner_radius_top_right = 10
+	badge_style.corner_radius_bottom_left = 10
+	badge_style.corner_radius_bottom_right = 10
+	stack_badge.add_theme_stylebox_override("panel", badge_style)
 
 func _build_drag_preview() -> Control:
 	var preview: PanelContainer = PanelContainer.new()
@@ -199,7 +285,7 @@ func _build_drag_preview() -> Control:
 	box.add_theme_constant_override("separation", 3)
 	margin.add_child(box)
 	var art: ColorRect = ColorRect.new()
-	art.custom_minimum_size = Vector2(0, 112)
+	art.custom_minimum_size = Vector2(0, float(card_payload.get("art_height", COMPACT_PORTRAIT_ART_HEIGHT)))
 	art.color = (card_payload.get("art_bg_color", card_payload.get("color", Color(0.23, 0.19, 0.14))) as Color).darkened(0.08)
 	box.add_child(art)
 	var title: Label = Label.new()
@@ -235,12 +321,18 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END:
+		var was_drag_source: bool = drag_started
 		pending_click = false
 		drag_started = false
+		if not was_drag_source:
+			return
 		if not is_drag_successful() and not target_mode:
-			modulate = Color(1.0, 0.7, 0.7)
-			await get_tree().create_timer(0.18).timeout
-			modulate = Color.WHITE
+			if bool(card_payload.get("assigned", false)) and bool(card_payload.get("removable", true)):
+				emit_signal("remove_requested", card_payload.duplicate(true))
+			else:
+				modulate = Color(1.0, 0.7, 0.7)
+				await get_tree().create_timer(0.18).timeout
+				modulate = Color.WHITE
 
 func _update_style(color: Color) -> void:
 	var style: StyleBoxFlat = StyleBoxFlat.new()

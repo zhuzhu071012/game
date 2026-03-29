@@ -9,23 +9,23 @@ const SLOT_CAPACITY: Dictionary = {
 	"audience": {"character": 2, "resource": 2, "risk": 1},
 	"research": {"character": 2, "resource": 2, "event": 1},
 	"recruit": {"character": 2, "resource": 2},
-	"rest": {"character": 2, "resource": 2}
+	"rest": {"character": 2, "resource": 2, "risk": 1}
 }
 
 const SLOT_TAG_REQUIREMENTS: Dictionary = {
 	"governance": {"character": []},
 	"audience": {"character": [], "resource": ["gift", "relation", "support", "mind", "money", "document"], "risk": ["rumor", "alienation"]},
-	"research": {"character": [], "resource": ["research", "intel", "document", "secret_report", "naval", "gift"]},
+	"research": {"character": [], "resource": ["research", "intel", "document", "secret_report", "naval", "gift", "money"]},
 	"recruit": {"character": [], "resource": ["task", "recruit", "money", "document"]},
-	"rest": {"character": [], "resource": ["rest", "medicine", "care", "mind", "money"]}
+	"rest": {"character": [], "resource": ["rest", "medicine", "care", "mind", "money"], "risk": ["headwind", "miasma"]}
 }
 
 const SLOT_TAG_PREFERENCES: Dictionary = {
 	"governance": ["leader", "politics", "governance", "military", "discipline", "steady", "camp"],
 	"audience": ["relation", "gift", "support", "mind", "rumor", "charm", "money", "document"],
-	"research": ["research", "intel", "document", "secret_report", "scheme", "naval", "mind", "gift"],
+	"research": ["research", "intel", "document", "secret_report", "scheme", "naval", "mind", "gift", "money"],
 	"recruit": ["leader", "recruit", "task", "money", "document", "scheme", "relation", "governance"],
-	"rest": ["rest", "medicine", "care", "support", "mind", "relation", "money"]
+	"rest": ["rest", "medicine", "care", "support", "mind", "relation", "money", "headwind"]
 }
 
 const SLOT_RESOLUTION_ORDER: Array[String] = ["governance", "audience", "research", "recruit", "rest"]
@@ -581,6 +581,14 @@ static func can_drop_on_slot(slot_id: String, payload: Dictionary, current_cards
 		return false
 	if _count_card_type(current_cards, card_type) >= limit:
 		return false
+	if slot_id == "research" and card_type == "event":
+		return true
+	if slot_id == "research" and card_type == "resource" and card_id == "silver_pack":
+		return true
+	if slot_id == "rest" and card_type == "resource" and card_id == "calming_incense":
+		return true
+	if slot_id == "rest" and card_type == "risk" and card_id in ["headwind", "miasma"]:
+		return true
 	if card_type == "character" and card_id == "cao_cao" and slot_id in ["governance", "recruit", "audience"]:
 		return true
 	if slot_id == "recruit" and _is_recruit_resource(payload):

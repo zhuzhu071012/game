@@ -15,7 +15,7 @@ const STACK_CARD_SEPARATION := -82
 const LIST_CARD_WIDTH := 120.0
 const LIST_CARD_HEIGHT := 160.0
 const LIST_CARD_ART_HEIGHT := 116.0
-const DETAIL_PANEL_WINDOW_SIZE := Vector2(720.0, 540.0)
+const DETAIL_PANEL_WINDOW_SIZE := Vector2(640.0, 480.0)
 const CHARACTER_DETAIL_WINDOW_SIZE := Vector2(720.0, 540.0)
 const CHARACTER_DETAIL_ART_SIZE := Vector2(180.0, 240.0)
 
@@ -90,6 +90,7 @@ var settlement_page_index: int = -1
 var end_turn_confirm_active: bool = false
 var turn_report_dialog_active: bool = false
 var defer_settlement_popup: bool = false
+var tutorial_prompt_after_popup: bool = false
 var detail_window_layer: Control
 var active_detail_windows: Array = []
 var detail_window_by_key: Dictionary = {}
@@ -100,6 +101,7 @@ var detail_window_spawn_index: int = 0
 var dragging_detail_panel: bool = false
 var detail_panel_drag_offset: Vector2 = Vector2.ZERO
 var detail_panel_has_position: bool = false
+var detail_assignment_scroll: ScrollContainer
 var tutorial_manager
 
 @onready var board_manager: BoardManager = $BoardManager
@@ -293,8 +295,44 @@ func _prepare_detail_panel_window() -> void:
 	detail_panel.z_index = 18
 	detail_panel.custom_minimum_size = DETAIL_PANEL_WINDOW_SIZE
 	detail_panel.size = DETAIL_PANEL_WINDOW_SIZE
+	detail_panel.clip_contents = true
 	detail_header.mouse_filter = Control.MOUSE_FILTER_STOP
 	detail_panel.visible = false
+	_prepare_detail_assignment_scroll()
+
+func _prepare_detail_assignment_scroll() -> void:
+	if detail_assignment_row == null:
+		return
+	if detail_assignment_row.get_parent() is ScrollContainer:
+		detail_assignment_scroll = detail_assignment_row.get_parent() as ScrollContainer
+		return
+	var parent_box: VBoxContainer = detail_assignment_row.get_parent() as VBoxContainer
+	if parent_box == null:
+		return
+	var row_index: int = detail_assignment_row.get_index()
+	parent_box.remove_child(detail_assignment_row)
+	detail_assignment_scroll = ScrollContainer.new()
+	detail_assignment_scroll.name = "DetailAssignmentScroll"
+	detail_assignment_scroll.custom_minimum_size = Vector2(0.0, LIST_CARD_HEIGHT + 18.0)
+	detail_assignment_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_assignment_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	detail_assignment_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	detail_assignment_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	detail_assignment_scroll.clip_contents = true
+	parent_box.add_child(detail_assignment_scroll)
+	parent_box.move_child(detail_assignment_scroll, row_index)
+	detail_assignment_scroll.add_child(detail_assignment_row)
+	detail_assignment_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	detail_assignment_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
+func _apply_detail_panel_window_size() -> void:
+	if detail_panel == null:
+		return
+	detail_panel.custom_minimum_size = DETAIL_PANEL_WINDOW_SIZE
+	detail_panel.size = DETAIL_PANEL_WINDOW_SIZE
+	detail_panel.update_minimum_size()
+	if detail_assignment_scroll != null:
+		detail_assignment_scroll.custom_minimum_size = Vector2(0.0, LIST_CARD_HEIGHT + 18.0)
 
 func _raise_window_layer(panel: Control) -> void:
 	if panel == null:
@@ -747,15 +785,26 @@ func _show_message_popup(title: String, subtitle: String, body: String) -> void:
 	popup_art.texture = null
 	detail_overlay.visible = true
 
-func _show_tutorial_prompt_if_needed(force: bool = false) -> void:
+func _show_tutorial_prompt_if_needed(force: bool = false) -> bool:
 	if tutorial_manager == null or run_state == null:
-		return
+		return false
 	if detail_overlay.visible:
-		return
+		return false
 	var prompt: Dictionary = tutorial_manager.force_prompt(run_state) if force else tutorial_manager.consume_prompt(run_state)
 	if prompt.is_empty():
-		return
+		return false
 	_show_message_popup(str(prompt.get("title", "")), str(prompt.get("subtitle", "")), str(prompt.get("body", "")))
+	return true
+
+func _show_tutorial_followup_if_needed() -> bool:
+	if tutorial_manager == null or run_state == null or detail_overlay.visible:
+		return false
+	var popup: Dictionary = tutorial_manager.consume_followup_popup(run_state)
+	if popup.is_empty():
+		return false
+	_show_message_popup(str(popup.get("title", "")), str(popup.get("subtitle", "")), str(popup.get("body", "")))
+	tutorial_prompt_after_popup = bool(popup.get("chain_to_prompt", false))
+	return true
 
 func _configure_popup_for_detail() -> void:
 	popup_panel.custom_minimum_size = POPUP_DETAIL_SIZE
@@ -877,22 +926,25 @@ func _refresh_events() -> void:
 	event_ui_controller.refresh(run_state, events, board_manager, _is_minimal_mode(), get_viewport_rect().size)
 
 func _build_committed_preview(card: Dictionary) -> CardView:
+	return _build_committed_preview_with_size(card, LIST_CARD_WIDTH, LIST_CARD_HEIGHT, LIST_CARD_ART_HEIGHT)
+
+func _build_committed_preview_with_size(card: Dictionary, card_width: float, card_height: float, art_height: float) -> CardView:
 	var preview: CardView = CARD_SCENE.instantiate()
 	var payload: Dictionary = card.duplicate(true)
 	payload["subtitle"] = ""
 	payload["body"] = ""
 	payload["compact_details"] = true
-	payload["card_width"] = LIST_CARD_WIDTH
-	payload["art_height"] = LIST_CARD_ART_HEIGHT
-	payload["collapsed_height"] = LIST_CARD_HEIGHT
-	payload["expanded_height"] = LIST_CARD_HEIGHT
+	payload["card_width"] = card_width
+	payload["art_height"] = art_height
+	payload["collapsed_height"] = card_height
+	payload["expanded_height"] = card_height
 	payload["show_subtitle_in_compact"] = false
 	payload["show_assigned_in_compact"] = false
 	payload["assigned"] = true
 	payload["removable"] = true
 	payload["embedded"] = true
 	preview.setup(payload)
-	preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
+	preview.custom_minimum_size = Vector2(card_width, card_height)
 	preview.card_clicked.connect(_on_detail_card_clicked)
 	preview.remove_requested.connect(_on_card_remove_requested)
 	return preview
@@ -1083,6 +1135,10 @@ func _refresh_log() -> void:
 
 func _refresh_detail() -> void:
 	if selected_slot_id.is_empty():
+		if tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state):
+			detail_panel_open = false
+			detail_panel.visible = false
+			return
 		_show_overview_detail()
 		return
 	_show_slot_detail(selected_slot_id)
@@ -1298,6 +1354,9 @@ func _close_detail_popup() -> void:
 	turn_report_dialog_active = false
 	_configure_popup_for_detail()
 	detail_overlay.visible = false
+	if tutorial_prompt_after_popup:
+		tutorial_prompt_after_popup = false
+		_show_tutorial_prompt_if_needed()
 
 func _close_all_detail_views() -> void:
 	dragging_detail_panel = false
@@ -1338,6 +1397,7 @@ func _detail_setup(title: String, subtitle: String, body: String, icon_path: Str
 	var detail_panel_was_visible: bool = detail_panel.visible
 	detail_panel_open = true
 	detail_panel.visible = true
+	_apply_detail_panel_window_size()
 	_ensure_detail_panel_position()
 	if focus_window or not detail_panel_was_visible:
 		_focus_detail_panel()
@@ -1354,6 +1414,7 @@ func _detail_setup(title: String, subtitle: String, body: String, icon_path: Str
 	else:
 		detail_icon.texture = null
 	_refresh_detail_assignment_row(selected_slot_id, assigned_cards)
+	call_deferred("_apply_detail_panel_window_size")
 
 func _build_detail_assignment_well(content: Control) -> PanelContainer:
 	var panel: PanelContainer = PanelContainer.new()
@@ -1387,17 +1448,23 @@ func _refresh_detail_assignment_row(slot_id: String, assigned_cards: Array) -> v
 	for child in detail_assignment_row.get_children():
 		child.queue_free()
 	detail_assignment_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	for card_variant in assigned_cards:
+	var remaining_slots: int = _detail_remaining_capacity(slot_id, assigned_cards)
+	var display_cards: Array = _group_assigned_cards_for_display(assigned_cards)
+	var total_slots: int = display_cards.size() + remaining_slots
+	var layout: Dictionary = _detail_assignment_layout(total_slots)
+	var card_width: float = float(layout.get("card_width", LIST_CARD_WIDTH))
+	var card_height: float = float(layout.get("card_height", LIST_CARD_HEIGHT))
+	var art_height: float = float(layout.get("art_height", LIST_CARD_ART_HEIGHT))
+	for card_variant in display_cards:
 		var card: Dictionary = card_variant as Dictionary
-		var preview: CardView = _build_committed_preview(card)
-		preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
+		var preview: CardView = _build_committed_preview_with_size(card, card_width, card_height, art_height)
+		preview.custom_minimum_size = Vector2(card_width, card_height)
 		preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		preview.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		detail_assignment_row.add_child(preview)
-	var remaining_slots: int = _detail_remaining_capacity(slot_id, assigned_cards)
 	for index in range(remaining_slots):
 		var placeholder: SlotView = SLOT_SCENE.instantiate()
-		placeholder.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
+		placeholder.custom_minimum_size = Vector2(card_width, card_height)
 		placeholder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		placeholder.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		placeholder.setup({
@@ -1419,11 +1486,11 @@ func _refresh_detail_assignment_row(slot_id: String, assigned_cards: Array) -> v
 			"hide_body": true,
 			"drop_slot": true,
 			"embedded": true,
-			"card_width": LIST_CARD_WIDTH,
-			"art_height": LIST_CARD_ART_HEIGHT,
+			"card_width": card_width,
+			"art_height": art_height,
 			"current_cards": assigned_cards,
-			"collapsed_height": LIST_CARD_HEIGHT,
-			"expanded_height": LIST_CARD_HEIGHT
+			"collapsed_height": card_height,
+			"expanded_height": card_height
 		}, true)
 		placeholder.target_drop_requested.connect(_on_target_drop_requested)
 		detail_assignment_row.add_child(placeholder)
@@ -1438,6 +1505,40 @@ func _detail_remaining_capacity(slot_id: String, assigned_cards: Array) -> int:
 		for value_variant in capacities.values():
 			total_capacity += int(value_variant)
 	return maxi(0, total_capacity - assigned_cards.size())
+
+func _detail_assignment_layout(total_slots: int) -> Dictionary:
+	var safe_total: int = maxi(total_slots, 1)
+	var spacing: float = 8.0
+	var available_width: float = DETAIL_PANEL_WINDOW_SIZE.x - 48.0
+	var card_width: float = floor((available_width - spacing * float(maxi(safe_total - 1, 0))) / float(safe_total))
+	card_width = clampf(card_width, 88.0, LIST_CARD_WIDTH)
+	var card_height: float = round(card_width * 4.0 / 3.0)
+	var art_height: float = round(card_height * 0.725)
+	return {
+		"card_width": card_width,
+		"card_height": card_height,
+		"art_height": art_height
+	}
+
+func _group_assigned_cards_for_display(cards: Array) -> Array:
+	var display_cards: Array = []
+	var resource_groups: Dictionary = {}
+	for card_variant in cards:
+		var card: Dictionary = card_variant as Dictionary
+		if str(card.get("card_type", "")) != "resource":
+			display_cards.append(card)
+			continue
+		var resource_id: String = str(card.get("id", ""))
+		if not resource_groups.has(resource_id):
+			var grouped_card: Dictionary = card.duplicate(true)
+			grouped_card["stack_count"] = 1
+			resource_groups[resource_id] = grouped_card
+			display_cards.append(grouped_card)
+			continue
+		var existing_group: Dictionary = resource_groups[resource_id] as Dictionary
+		existing_group["stack_count"] = int(existing_group.get("stack_count", 1)) + 1
+		resource_groups[resource_id] = existing_group
+	return display_cards
 
 func _decorate_body_with_tags(base_text: String, tags: Array) -> String:
 	if tags.is_empty():
@@ -1742,10 +1843,12 @@ func _close_turn_report_dialog() -> void:
 		settlement_page_index = -1
 		_refresh_settlement_sequence()
 		return
+	if _show_tutorial_followup_if_needed():
+		return
 	if tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state):
 		selected_slot_id = ""
-		detail_panel_open = true
-		_show_overview_detail()
+		detail_panel_open = false
+		detail_panel.visible = false
 
 func _confirm_end_turn() -> void:
 	end_turn_confirm_active = false

@@ -375,6 +375,7 @@ func _risk_ids_from_cards(cards: Array) -> Array[String]:
 
 func _research_resource_bonus(cards: Array) -> int:
 	var bonus: int = 0
+	bonus += _resource_count(cards, "silver_pack")
 	bonus += _resource_count(cards, "spy_report") * 3
 	bonus += _resource_count(cards, "sealed_letter") * 2
 	bonus += _resource_count(cards, "naval_chart") * 2

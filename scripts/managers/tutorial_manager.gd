@@ -5,6 +5,8 @@ const TUTORIAL_EVENT_ID: String = "tutorial_patrol_gap"
 const TUTORIAL_LETTER_ID: String = "yecheng_letter"
 const TUTORIAL_GIFT_ID: String = "sanjian_dao"
 const TUTORIAL_CLUE_ID: String = "night_watch_roll"
+const STEP_ONE_POPUP_ID: String = "step_1_letter"
+const STEP_THREE_POPUP_ID: String = "step_3_dialogue"
 
 func current_step(run_state: RunState) -> int:
 	return int(run_state.flags.get("tutorial_step", 0))
@@ -86,10 +88,10 @@ func can_assign(run_state: RunState, _board_manager: BoardManager, target_id: St
 			return false
 		4:
 			if slot_id == "rest":
-				if card_type == "character":
-					return card_id == "cao_cao"
+				if card_type == "risk":
+					return card_id == "headwind"
 				if card_type == "resource":
-					return card_id == "herbal_tonic"
+					return card_id == "calming_incense"
 				return false
 			if slot_id == "research":
 				if card_type == "character":
@@ -122,6 +124,18 @@ func force_prompt(run_state: RunState) -> Dictionary:
 		"body": TextDB.get_text("tutorial.steps.step_%d.body" % step)
 	}
 
+func consume_followup_popup(run_state: RunState) -> Dictionary:
+	var popup_id: String = str(run_state.flags.get("tutorial_pending_popup", ""))
+	if popup_id.is_empty():
+		return {}
+	run_state.flags["tutorial_pending_popup"] = ""
+	return {
+		"title": TextDB.get_text("tutorial.followups.%s.title" % popup_id),
+		"subtitle": TextDB.get_text("tutorial.followups.%s.subtitle" % popup_id),
+		"body": TextDB.get_text("tutorial.followups.%s.body" % popup_id),
+		"chain_to_prompt": true
+	}
+
 func blocked_prompt(run_state: RunState) -> Dictionary:
 	var prompt: Dictionary = force_prompt(run_state)
 	if prompt.is_empty():
@@ -147,7 +161,7 @@ func end_turn_status(run_state: RunState, board_manager: BoardManager) -> Dictio
 		3:
 			ok = _matches_slot(board_manager.get_slot_cards("audience"), ["cao_cao", "yu_jin"], [TUTORIAL_GIFT_ID], [])
 		4:
-			var rest_ok: bool = _matches_slot(board_manager.get_slot_cards("rest"), ["cao_cao"], ["herbal_tonic"], [])
+			var rest_ok: bool = _matches_slot(board_manager.get_slot_cards("rest"), [], ["calming_incense"], [], ["headwind"])
 			var research_ok: bool = _matches_slot(board_manager.get_slot_cards("research"), ["yu_jin"], ["silver_pack"], [TUTORIAL_EVENT_ID])
 			ok = rest_ok and research_ok
 		_:
@@ -201,11 +215,11 @@ func _resolve_step_one(run_state: RunState) -> Array[String]:
 	_gain_resource(run_state, "silver_pack", 2)
 	_gain_resource(run_state, TUTORIAL_LETTER_ID, 1)
 	_gain_resource(run_state, "recruit_writ", 1)
-	_gain_resource(run_state, "herbal_tonic", 1)
 	_gain_resource(run_state, TUTORIAL_GIFT_ID, 1)
 	run_state.flags["first_governance_done"] = true
 	run_state.flags["unlocked_recruit"] = true
 	run_state.flags["tutorial_step"] = 2
+	run_state.flags["tutorial_pending_popup"] = STEP_ONE_POPUP_ID
 	return [
 		TextDB.get_text("tutorial.logs.step_1_governance"),
 		TextDB.get_text("tutorial.logs.step_1_rewards")
@@ -245,6 +259,7 @@ func _resolve_step_three(run_state: RunState, relation_manager: RelationManager)
 	run_state.flags["first_headwind_seen"] = true
 	_ensure_tutorial_event(run_state)
 	run_state.flags["tutorial_step"] = 4
+	run_state.flags["tutorial_pending_popup"] = STEP_THREE_POPUP_ID
 	return [
 		TextDB.get_text("tutorial.logs.step_3_audience"),
 		TextDB.get_text("tutorial.logs.step_3_growth"),
@@ -254,8 +269,9 @@ func _resolve_step_three(run_state: RunState, relation_manager: RelationManager)
 
 func _resolve_step_four(run_state: RunState) -> Array[String]:
 	_consume_resource(run_state, "silver_pack", 1)
-	_consume_resource(run_state, "herbal_tonic", 1)
-	_restore_cao(run_state, 1, 1)
+	_consume_resource(run_state, "calming_incense", 1)
+	_restore_cao(run_state, 0, 1)
+	run_state.risk_states["headwind"] = maxi(0, int(run_state.risk_states.get("headwind", 0)) - 1)
 	_gain_resource(run_state, TUTORIAL_CLUE_ID, 1)
 	run_state.flags["tutorial_completed"] = true
 	run_state.flags["tutorial_step"] = 0
@@ -275,10 +291,11 @@ func _ensure_tutorial_event(run_state: RunState) -> void:
 	run_state.active_event_ids.append(TUTORIAL_EVENT_ID)
 	run_state.active_event_states[TUTORIAL_EVENT_ID] = {"turns_left": 3, "timeout_total": 3}
 
-func _matches_slot(cards: Array, expected_characters: Array[String], expected_resources: Array[String], expected_events: Array[String]) -> bool:
+func _matches_slot(cards: Array, expected_characters: Array[String], expected_resources: Array[String], expected_events: Array[String], expected_risks: Array[String] = []) -> bool:
 	var actual_characters: Array[String] = []
 	var actual_resources: Array[String] = []
 	var actual_events: Array[String] = []
+	var actual_risks: Array[String] = []
 	for card_variant in cards:
 		var card: Dictionary = card_variant as Dictionary
 		match str(card.get("card_type", "")):
@@ -288,16 +305,21 @@ func _matches_slot(cards: Array, expected_characters: Array[String], expected_re
 				actual_resources.append(str(card.get("id", "")))
 			"event":
 				actual_events.append(str(card.get("id", "")))
+			"risk":
+				actual_risks.append(str(card.get("id", "")))
 	actual_characters.sort()
 	actual_resources.sort()
 	actual_events.sort()
+	actual_risks.sort()
 	var sorted_expected_characters: Array[String] = expected_characters.duplicate()
 	var sorted_expected_resources: Array[String] = expected_resources.duplicate()
 	var sorted_expected_events: Array[String] = expected_events.duplicate()
+	var sorted_expected_risks: Array[String] = expected_risks.duplicate()
 	sorted_expected_characters.sort()
 	sorted_expected_resources.sort()
 	sorted_expected_events.sort()
-	return actual_characters == sorted_expected_characters and actual_resources == sorted_expected_resources and actual_events == sorted_expected_events
+	sorted_expected_risks.sort()
+	return actual_characters == sorted_expected_characters and actual_resources == sorted_expected_resources and actual_events == sorted_expected_events and actual_risks == sorted_expected_risks
 
 func _gain_resource(run_state: RunState, resource_id: String, amount: int) -> void:
 	if amount <= 0:

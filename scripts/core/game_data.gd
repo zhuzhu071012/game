@@ -48,7 +48,8 @@ static func create_run_state() -> RunState:
 		"ending_tier": "",
 		"tutorial_step": 1,
 		"tutorial_completed": false,
-		"tutorial_last_report_step": 0
+		"tutorial_last_report_step": 0,
+		"tutorial_pending_popup": ""
 	}
 	run_state.resource_states = {
 		"silver_pack": 0,

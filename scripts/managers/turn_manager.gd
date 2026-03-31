@@ -284,6 +284,7 @@ func _resolve_rest(run_state: RunState, cards: Array, relation_manager: Relation
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var herb_count: int = _resource_count(cards, "herbal_tonic")
 	var xiaoyao_count: int = _resource_count(cards, "calming_incense")
+	var risk_ids: Array[String] = _risk_ids_from_cards(cards)
 	var medical_support: bool = _character_has_specialty(support_id, "medical", characters)
 	var health_restore: int = 0
 	var mental_restore: int = 0
@@ -307,7 +308,7 @@ func _resolve_rest(run_state: RunState, cards: Array, relation_manager: Relation
 		_apply_favor_progression(run_state, relation_manager, "guo_jia", int(stage_reduction > 0))
 		if medical_support:
 			run_state.active_character_states["guo_jia"]["guarded"] = true
-	if xiaoyao_count > 0:
+	if xiaoyao_count > 0 and target_id == "cao_cao" and risk_ids.has("headwind"):
 		run_state.risk_states["headwind"] = maxi(0, int(run_state.risk_states.get("headwind", 0)) - 1)
 	if herb_count > 0 or medical_support:
 		run_state.risk_states["miasma"] = maxi(0, int(run_state.risk_states.get("miasma", 0)) - 1)

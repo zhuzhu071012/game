@@ -74,7 +74,7 @@ func _gui_input(event: InputEvent) -> void:
 				if bool(card_payload.get("assigned", false)) and not str(card_payload.get("uid", "")).is_empty() and bool(card_payload.get("removable", true)):
 					emit_signal("remove_requested", card_payload.duplicate(true))
 					accept_event()
-				elif str(card_payload.get("card_type", "")) in ["character", "resource"]:
+				elif str(card_payload.get("card_type", "")) in ["character", "resource", "event", "risk"]:
 					emit_signal("quick_assign_requested", _assignment_payload())
 					accept_event()
 			return
@@ -147,7 +147,8 @@ func _apply_payload() -> void:
 	_apply_art()
 	_apply_stack_badge()
 	_refresh_compact_state()
-	tooltip_text = ""
+	var explicit_tooltip: String = str(card_payload.get("tooltip_text", "")).strip_edges()
+	tooltip_text = explicit_tooltip if not explicit_tooltip.is_empty() else ""
 	_update_style(card_payload.get("color", Color(0.23, 0.19, 0.14)))
 
 func _apply_art() -> void:
@@ -309,13 +310,88 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 		accepted_drop = GameRules.can_drop_on_event(payload)
 	else:
 		accepted_drop = GameRules.can_drop_on_slot(target_id, payload, current_cards)
+		if accepted_drop and not _matches_drop_slot_filter(payload):
+			accepted_drop = false
 		if not accepted_drop and target_id == "governance" and str(payload.get("id", "")) == "cao_cao":
-			accepted_drop = true
+			accepted_drop = _matches_drop_slot_filter(payload)
 	_update_style(_target_color())
 	return accepted_drop
 
+func _matches_drop_slot_filter(payload: Dictionary) -> bool:
+	if not bool(card_payload.get("drop_slot", false)):
+		return true
+	var payload_type: String = str(payload.get("card_type", ""))
+	var payload_id: String = str(payload.get("id", ""))
+	var slot_key: String = str(card_payload.get("slot_key", ""))
+	var allowed_types: Array = card_payload.get("allowed_card_types", [])
+	if not allowed_types.is_empty() and not allowed_types.has(payload_type):
+		return false
+	if slot_key == "recruit_money":
+		return payload_type == "resource" and payload_id == "silver_pack"
+	if slot_key == "recruit_task" and payload_type == "resource" and payload_id == "recruit_writ":
+		return true
+	var allowed_ids: Array = card_payload.get("allowed_card_ids", [])
+	if not allowed_ids.is_empty():
+		if payload_type == "risk":
+			if not allowed_ids.has(payload_id):
+				return false
+		elif slot_key not in ["audience_guest", "rest_caregiver"]:
+			if not allowed_ids.has(payload_id):
+				return false
+	var blocked_ids: Array = card_payload.get("blocked_card_ids", [])
+	if blocked_ids.has(payload_id):
+		return false
+	var required_tags: Array = card_payload.get("required_tags", [])
+	if not _rest_slot_filter_allows(payload):
+		return false
+	if required_tags.is_empty():
+		return true
+	var payload_tags: Array = payload.get("tags", [])
+	for tag_variant in required_tags:
+		if payload_tags.has(tag_variant):
+			return true
+	return false
+
+func _rest_slot_filter_allows(payload: Dictionary) -> bool:
+	var slot_key: String = str(card_payload.get("slot_key", ""))
+	if slot_key not in ["rest_resource_1", "rest_caregiver"]:
+		return true
+	var current_cards: Array = card_payload.get("current_cards", [])
+	var current_resource_id: String = ""
+	var has_headwind: bool = false
+	var caregiver_present: bool = false
+	for card_variant in current_cards:
+		var card: Dictionary = card_variant as Dictionary
+		match str(card.get("card_type", "")):
+			"resource":
+				current_resource_id = str(card.get("id", ""))
+			"risk":
+				if str(card.get("id", "")) == "headwind":
+					has_headwind = true
+			"character":
+				if str(card.get("id", "")) != "cao_cao":
+					caregiver_present = true
+	var payload_type: String = str(payload.get("card_type", ""))
+	var payload_id: String = str(payload.get("id", ""))
+	if slot_key == "rest_resource_1":
+		if payload_type != "resource":
+			return false
+		if has_headwind:
+			return payload_id == "calming_incense"
+		if caregiver_present:
+			return payload_id in ["silver_pack", "herbal_tonic"]
+		return payload_id in ["silver_pack", "herbal_tonic", "calming_incense"]
+	if payload_type == "risk":
+		return payload_id == "headwind" and current_resource_id == "calming_incense"
+	if payload_type == "character":
+		if str(payload.get("id", "")) == "cao_cao":
+			return false
+		return current_resource_id in ["silver_pack", "herbal_tonic"]
+	return false
+
 func _drop_data(_at_position: Vector2, data: Variant) -> void:
-	emit_signal("target_drop_requested", str(card_payload.get("target_id", card_payload.get("id", ""))), data)
+	var assign_target_id: String = str(card_payload.get("assign_target_id", card_payload.get("target_id", card_payload.get("id", ""))))
+	emit_signal("target_drop_requested", assign_target_id, data)
 	accepted_drop = false
 	_update_style(_target_color())
 

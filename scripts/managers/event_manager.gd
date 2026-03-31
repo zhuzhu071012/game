@@ -128,8 +128,7 @@ func _check_condition_trigger(event: EventData, run_state: RunState) -> bool:
 	var condition_id: String = event.trigger_condition_id if not event.trigger_condition_id.is_empty() else event.id
 	match condition_id:
 		"guojia_relapse":
-			var guo_state: Dictionary = run_state.active_character_states.get("guo_jia", {})
-			return run_state.roster_ids.has("guo_jia") and int(guo_state.get("sick_stage", 1)) >= 2
+			return false
 		"jingzhou_whispers":
 			return bool(run_state.flags.get("jingzhou_rumor_active", false))
 		"ember_dream":
@@ -140,7 +139,7 @@ func _check_condition_trigger(event: EventData, run_state: RunState) -> bool:
 			var xun_yu_state: Dictionary = run_state.relation_states.get("xun_yu", {})
 			return run_state.fire_progress >= 4 and int(xun_yu_state.get("favor", 0)) <= 1
 		"camp_fever":
-			return run_state.turn_index >= 6 and int(run_state.risk_states.get("miasma", 0)) >= 1
+			return false
 	return false
 
 func _event_timeout(event: EventData) -> int:

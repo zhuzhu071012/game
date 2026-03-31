@@ -1,22 +1,27 @@
 {
   "confirm": {
 	"title": "结束回合",
-	"subtitle": "进入统一结算",
-	"body": "确认后结算本回合。"
+	"subtitle": "进入本回合统一结算",
+	"body": "确认后，将结算本回合的行动与事件。"
   },
   "buttons": {
 	"confirm": "确认结束",
 	"cancel": "暂不结束",
-	"close": "知道了"
+	"close": "继续"
   },
   "report": {
-	"title": "第 %d 回合汇报",
-	"subtitle": "%s",
-	"summary_header": "[b]本回合摘要[/b]",
-	"placeholder_header": "[b]文案预留[/b]",
-	"placeholder_body": "这里可补回合旁白、军报或剧情文案。",
-	"empty": "本回合暂无显著变化。"
+	"title": "第 %d 回合",
+	"subtitle": "",
+	"story_intro": "这一回合里，%s 的风声从案前掀过，营中诸事也在灯下慢慢定了去向。",
+	"story_quiet": "这一回合里，%s 的案头并无太大起落，灯火静静燃着，诸事暂且维持原样。",
+	"story_closing": "夜色又深了一层，这一回合便这样记下了。",
+	"story_connectors": [
+	  "先是",
+	  "随后",
+	  "紧接着",
+	  "再往后",
+      "待到回合将尽时"
+	]
   },
-  "narratives": {
-  }
+  "narratives": {}
 }

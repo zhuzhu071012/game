@@ -1,7 +1,7 @@
 res://default_bus_layout.tres
-res://data/texts/events.json
-res://scripts/main.gd
-res://scripts/core/game_data.gd
+res://data/texts/turn_report.json
+res://data/texts/tutorial.json
+res://data/texts/ui.json
 res://scripts/managers/tutorial_manager.gd
-res://scripts/core/game_rules.gd
-res://scripts/managers/turn_manager.gd
+res://scripts/main.gd
+res://data/texts/resources.json

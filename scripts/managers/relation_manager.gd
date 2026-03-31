@@ -22,11 +22,6 @@ func add_rumor_risk(run_state: RunState, character_id: String, delta: int) -> vo
 
 func resolve_personal_lines(run_state: RunState) -> Array[String]:
 	var logs: Array[String] = []
-	if run_state.roster_ids.has("guo_jia"):
-		var guo_state: Dictionary = run_state.active_character_states.get("guo_jia", {})
-		if int(guo_state.get("sick_stage", 0)) >= 2 and not bool(run_state.flags.get("guojia_personal_line_seen", false)):
-			run_state.flags["guojia_personal_line_seen"] = true
-			logs.append(TextDB.get_text("logs.personal.guojia_pressure"))
 	if run_state.roster_ids.has("xun_yu"):
 		var xun_yu_state: Dictionary = run_state.relation_states.get("xun_yu", {})
 		if run_state.fire_progress >= 4 and int(xun_yu_state.get("favor", 0)) <= 1 and not bool(run_state.flags.get("xun_yu_personal_line_seen", false)):

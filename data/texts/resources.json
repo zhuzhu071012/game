@@ -12,7 +12,7 @@
 	"description": "由案读或访求整理出的情报，可强化军略、诈降与研究判定。"
   },
   "recruit_writ": {
-	"name": "招贤文书",
+	"name": "求贤文书",
 	"description": "用于访求人才的文书，没有它时很难真正招到人。"
   },
   "naval_chart": {
@@ -42,5 +42,9 @@
   "night_watch_roll": {
 	"name": "夜巡更簿",
 	"description": "营门夜巡的旧更簿，能核对口令、轮值与缺岗处，是查清营中漏巡的关键线索。"
+  },
+  "northern_corps": {
+	"name": "本部北军",
+	"description": "由前营重新整编出的本部兵力，军纪尚整，可在终局与部分军务判定中提供助力。"
   }
 }

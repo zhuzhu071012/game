@@ -13,11 +13,11 @@ static func create_run_state() -> RunState:
 	run_state.stage_index = 1
 	run_state.cao_health = 10
 	run_state.cao_mind = 9
-	run_state.money = 16
-	run_state.morale = 5
-	run_state.jingzhou_stability = 6
-	run_state.naval_readiness = 1
-	run_state.alliance_strength = 4
+	run_state.money = 0
+	run_state.morale = 0
+	run_state.jingzhou_stability = 0
+	run_state.naval_readiness = 0
+	run_state.alliance_strength = 1
 	run_state.fire_progress = 0
 	run_state.roster_ids = ["cao_cao"]
 	run_state.locked_character_ids = ["xun_yu", "guo_jia", "zhang_liao", "yu_jin", "cao_pi", "cao_zhi", "hua_tuo"]
@@ -49,7 +49,11 @@ static func create_run_state() -> RunState:
 		"tutorial_step": 1,
 		"tutorial_completed": false,
 		"tutorial_last_report_step": 0,
-		"tutorial_pending_popup": ""
+		"tutorial_pending_popup": "",
+		"camp_supplies_base": 3,
+		"camp_forces_base": 1,
+		"camp_cohesion_base": 1,
+		"camp_strategy_base": 1
 	}
 	run_state.resource_states = {
 		"silver_pack": 0,
@@ -62,7 +66,8 @@ static func create_run_state() -> RunState:
 		"sealed_letter": 0,
 		"yecheng_letter": 0,
 		"sanjian_dao": 0,
-		"night_watch_roll": 0
+		"night_watch_roll": 0,
+		"northern_corps": 0
 	}
 	for relation_variant in create_relations():
 		var relation: RelationData = relation_variant as RelationData
@@ -288,6 +293,16 @@ static func create_resources() -> Dictionary:
 		"tags": ["document", "intel", "task"],
 		"value": 1,
 		"consumable": true,
+		"art_path": "res://assets/cards/resource_placeholder.svg"
+	})
+	map["northern_corps"] = _make_resource({
+		"id": "northern_corps",
+		"display_name": TextDB.get_text("resources.northern_corps.name"),
+		"category": "military",
+		"description": TextDB.get_text("resources.northern_corps.description"),
+		"tags": ["military", "troop", "command"],
+		"value": 2,
+		"consumable": false,
 		"art_path": "res://assets/cards/resource_placeholder.svg"
 	})
 	return map
@@ -613,6 +628,30 @@ static func create_events() -> Dictionary:
 		"success_effect_id": "tutorial_patrol_secured",
 		"fail_effect_id": "fire_and_risk",
 		"expire_effect_id": "fire_and_risk",
+		"trigger_type": "condition",
+		"trigger_condition_id": "",
+		"trigger_turn": -1,
+		"art_path": "res://assets/cards/event_placeholder.svg"
+	})
+	map["tutorial_strategist_descends"] = _make_event({
+		"id": "tutorial_strategist_descends",
+		"title": TextDB.get_text("events.tutorial_strategist_descends.title"),
+		"description": TextDB.get_text("events.tutorial_strategist_descends.description"),
+		"category": "opportunity",
+		"tags": ["scheme", "research", "relation"],
+		"stage_min": 1,
+		"stage_max": 3,
+		"weight": 0,
+		"timeout_turns": 1,
+		"minimum_requirement": 1,
+		"success_threshold": 1,
+		"difficulty_class": 8,
+		"recommended_tags": ["leader", "scheme"],
+		"recommended_resource_ids": [],
+		"required_resource_ids": [],
+		"success_effect_id": "none",
+		"fail_effect_id": "none",
+		"expire_effect_id": "none",
 		"trigger_type": "condition",
 		"trigger_condition_id": "",
 		"trigger_turn": -1,

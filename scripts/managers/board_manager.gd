@@ -78,6 +78,38 @@ func assign_to_event(event_id: String, payload: Dictionary, slot_type: String = 
 	emit_signal("board_changed")
 	return true
 
+func snapshot_state() -> Dictionary:
+	return {
+		"slot_assignments": slot_assignments.duplicate(true),
+		"event_assignments": event_assignments.duplicate(true),
+		"committed_cards": committed_cards.duplicate(true)
+	}
+
+func restore_state(event_ids: Array[String], snapshot: Dictionary) -> void:
+	slot_assignments = {
+		"governance": [],
+		"audience": [],
+		"research": [],
+		"recruit": [],
+		"rest": []
+	}
+	for slot_id_variant in (snapshot.get("slot_assignments", {}) as Dictionary).keys():
+		var slot_id: String = str(slot_id_variant)
+		slot_assignments[slot_id] = ((snapshot.get("slot_assignments", {}) as Dictionary).get(slot_id, []) as Array).duplicate(true)
+	event_assignments.clear()
+	for event_id in event_ids:
+		event_assignments[event_id] = {"character": [], "resource": []}
+	var saved_events: Dictionary = snapshot.get("event_assignments", {}) as Dictionary
+	for event_id_variant in saved_events.keys():
+		var event_id: String = str(event_id_variant)
+		var slots: Dictionary = saved_events[event_id] as Dictionary
+		event_assignments[event_id] = {
+			"character": (slots.get("character", []) as Array).duplicate(true),
+			"resource": (slots.get("resource", []) as Array).duplicate(true)
+		}
+	committed_cards = (snapshot.get("committed_cards", {}) as Dictionary).duplicate(true)
+	emit_signal("board_changed")
+
 func is_committed(card_uid: String) -> bool:
 	return committed_cards.has(card_uid)
 

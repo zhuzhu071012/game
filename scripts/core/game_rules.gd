@@ -405,8 +405,6 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 		var character: CharacterData = character_defs[character_id] as CharacterData
 		if _character_has_any_tag(character, ["military", "discipline", "swift", "camp"]):
 			military_units += 1
-		elif _character_has_any_tag(character, ["leader"]):
-			military_units += 1
 		if character.specialty_tags.has("stratagem"):
 			strategist_units += 1
 		if character.specialty_tags.has("command"):
@@ -427,28 +425,27 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 					strategy_bonus += 1
 			"zhang_liao", "yu_jin":
 				forces_bonus += 1
-			"cao_cao":
-				strategy_bonus += 1
-	var supplies: int = 1 + int(floor(float(run_state.money) / 6.0)) + int(floor(float(run_state.jingzhou_stability) / 3.0))
+	military_units += int(run_state.resource_states.get("northern_corps", 0))
+	var supplies: int = int(run_state.flags.get("camp_supplies_base", 1)) + int(floor(float(run_state.money) / 6.0)) + int(floor(float(run_state.jingzhou_stability) / 3.0))
 	supplies += mini(2, int(run_state.resource_states.get("silver_pack", 0)))
 	supplies += mini(1, int(run_state.resource_states.get("sealed_letter", 0)))
 	supplies += supplies_bonus
 	supplies -= int(floor(float(run_state.fire_progress) / 5.0))
 
-	var forces: int = 1 + military_units * 2 + int(floor(float(run_state.money) / 10.0))
+	var forces: int = int(run_state.flags.get("camp_forces_base", 1)) + military_units * 2 + int(floor(float(run_state.money) / 10.0))
 	forces += mini(2, int(run_state.resource_states.get("recruit_writ", 0)))
 	forces += mini(1, int(run_state.resource_states.get("naval_chart", 0)))
 	forces += forces_bonus
 	forces -= int(floor(float(run_state.fire_progress) / 4.0))
 
-	var cohesion: int = 1 + int(floor(float(run_state.morale) / 2.0)) + int(floor(float(run_state.jingzhou_stability) / 4.0))
+	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 1)) + int(floor(float(run_state.morale) / 2.0)) + int(floor(float(run_state.jingzhou_stability) / 4.0))
 	cohesion += mini(3, int(floor(float(positive_favor) / 3.0)))
 	cohesion += cohesion_bonus
 	cohesion -= int(run_state.risk_states.get("alienation", 0))
 	cohesion -= int(run_state.risk_states.get("rumor", 0))
 	cohesion -= int(floor(float(rumor_drag) / 3.0))
 
-	var strategy: int = 1 + run_state.naval_readiness + strategist_units * 2
+	var strategy: int = int(run_state.flags.get("camp_strategy_base", 1)) + run_state.naval_readiness + strategist_units * 2
 	strategy += int(run_state.resource_states.get("spy_report", 0)) * 2
 	strategy += int(run_state.resource_states.get("sealed_letter", 0))
 	strategy += int(run_state.resource_states.get("naval_chart", 0)) * 2
@@ -575,6 +572,8 @@ static func can_drop_on_slot(slot_id: String, payload: Dictionary, current_cards
 		return false
 	if not SLOT_CAPACITY.has(slot_id):
 		return false
+	if slot_id == "rest":
+		return _can_drop_on_rest_slot(payload, current_cards)
 	var capacity_by_type: Dictionary = SLOT_CAPACITY[slot_id]
 	var limit: int = int(capacity_by_type.get(card_type, 0))
 	if limit <= 0:
@@ -584,10 +583,6 @@ static func can_drop_on_slot(slot_id: String, payload: Dictionary, current_cards
 	if slot_id == "research" and card_type == "event":
 		return true
 	if slot_id == "research" and card_type == "resource" and card_id == "silver_pack":
-		return true
-	if slot_id == "rest" and card_type == "resource" and card_id == "calming_incense":
-		return true
-	if slot_id == "rest" and card_type == "risk" and card_id in ["headwind", "miasma"]:
 		return true
 	if card_type == "character" and card_id == "cao_cao" and slot_id in ["governance", "recruit", "audience"]:
 		return true
@@ -599,6 +594,54 @@ static func can_drop_on_slot(slot_id: String, payload: Dictionary, current_cards
 		if _is_audience_resource(payload):
 			return true
 	return _matches_slot_requirements(slot_id, card_type, payload)
+
+static func _can_drop_on_rest_slot(payload: Dictionary, current_cards: Array = []) -> bool:
+	var card_type: String = str(payload.get("card_type", ""))
+	var card_id: String = str(payload.get("id", ""))
+	var character_ids: Array[String] = []
+	var resource_ids: Array[String] = []
+	var risk_ids: Array[String] = []
+	for card_variant in current_cards:
+		var card: Dictionary = card_variant as Dictionary
+		match str(card.get("card_type", "")):
+			"character":
+				character_ids.append(str(card.get("id", "")))
+			"resource":
+				resource_ids.append(str(card.get("id", "")))
+			"risk":
+				risk_ids.append(str(card.get("id", "")))
+	var target_present: bool = not character_ids.is_empty()
+	var caregiver_present: bool = character_ids.size() >= 2
+	var has_headwind: bool = risk_ids.has("headwind")
+	var support_resource_id: String = ""
+	for resource_id in resource_ids:
+		if resource_id in ["silver_pack", "herbal_tonic", "calming_incense"]:
+			support_resource_id = resource_id
+			break
+	var has_support_resource: bool = not support_resource_id.is_empty()
+	if card_type == "character":
+		if not target_present:
+			return true
+		if caregiver_present:
+			return false
+		if has_headwind:
+			return false
+		return support_resource_id in ["silver_pack", "herbal_tonic"]
+	if card_type == "resource":
+		if has_support_resource:
+			return false
+		if card_id == "calming_incense":
+			return not caregiver_present and (has_headwind or not caregiver_present)
+		if card_id in ["silver_pack", "herbal_tonic"]:
+			return not has_headwind
+		return false
+	if card_type == "risk":
+		if card_id != "headwind":
+			return false
+		if has_headwind or caregiver_present:
+			return false
+		return support_resource_id == "calming_incense"
+	return false
 
 static func can_drop_on_event(payload: Dictionary) -> bool:
 	if payload.is_empty():

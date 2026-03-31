@@ -4,6 +4,7 @@ class_name EventUiController
 signal refresh_requested
 signal target_drop_requested(target_id: String, payload: Dictionary)
 signal detail_requested(card_id: String)
+signal quick_assign_requested(payload: Dictionary)
 signal remove_requested(payload: Dictionary)
 signal dialog_focus_requested
 
@@ -137,6 +138,7 @@ func _refresh_event_list(run_state: RunState, event_defs: Dictionary, board_mana
 		var turns_left: int = int(state.get("turns_left", 0))
 		event_card.setup(_make_event_icon_payload(event, turns_left, assigned_cards, _expanded_event_id == event_id))
 		event_card.card_clicked.connect(_on_event_card_clicked)
+		event_card.quick_assign_requested.connect(_on_event_quick_assign_requested)
 		event_column.add_child(event_card)
 	if run_state.active_event_ids.is_empty():
 		var label: Label = Label.new()
@@ -431,6 +433,9 @@ func _clamp_dialog_position(position: Vector2, viewport_size: Vector2) -> Vector
 		clampf(position.x, 0.0, maxf(0.0, viewport_size.x - dialog_size.x)),
 		clampf(position.y, 0.0, maxf(0.0, viewport_size.y - dialog_size.y))
 	)
+
+func _on_event_quick_assign_requested(payload: Dictionary) -> void:
+	emit_signal("quick_assign_requested", payload)
 
 func _on_event_card_clicked(event_id: String) -> void:
 	toggle_event(event_id)

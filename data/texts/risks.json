@@ -5,11 +5,11 @@
   },
   "alienation": {
 	"name": "离心",
-	"description": "人心渐散、命令失约。若持续累积，最终会走向众散。"
+	"description": "人心渐散、命令失约。若持续累积，则不能成势。"
   },
   "miasma": {
 	"name": "疫气",
-	"description": "病气与营中秽气纠缠蔓延，不及时压制便会酿成疫溃。"
+	"description": "病气与营中秽气纠缠蔓延，不及时压制便会酿成大疫。"
   },
   "rumor": {
 	"name": "流言",

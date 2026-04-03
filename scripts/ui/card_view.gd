@@ -5,11 +5,13 @@ signal target_drop_requested(target_id: String, payload: Dictionary)
 signal card_clicked(card_id: String)
 signal quick_assign_requested(payload: Dictionary)
 signal remove_requested(payload: Dictionary)
+signal drag_slot_hovered(target_id: String, payload: Dictionary)
 
 const DEFAULT_CARD_WIDTH: float = 156.0
 const COMPACT_PORTRAIT_WIDTH: float = 120.0
 const COMPACT_PORTRAIT_HEIGHT: float = 160.0
 const COMPACT_PORTRAIT_ART_HEIGHT: float = 116.0
+const ACTIVE_DRAG_Z_INDEX: int = 2400
 
 var art_frame: PanelContainer
 var art_texture: TextureRect
@@ -34,6 +36,7 @@ var default_z_index: int = 0
 var pending_click: bool = false
 var press_position: Vector2 = Vector2.ZERO
 var drag_started: bool = false
+var drag_source_hidden: bool = false
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -70,7 +73,8 @@ func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
-			if not target_mode and not bool(card_payload.get("locked", false)):
+			var allow_source_interaction: bool = not target_mode or str(card_payload.get("card_type", "")) == "event"
+			if allow_source_interaction and not bool(card_payload.get("locked", false)):
 				if bool(card_payload.get("assigned", false)) and not str(card_payload.get("uid", "")).is_empty() and bool(card_payload.get("removable", true)):
 					emit_signal("remove_requested", card_payload.duplicate(true))
 					accept_event()
@@ -84,9 +88,12 @@ func _gui_input(event: InputEvent) -> void:
 			pending_click = true
 			drag_started = false
 			press_position = mouse_event.position
+			_raise_interaction_layer()
 		else:
 			var is_click: bool = pending_click and not drag_started and press_position.distance_to(mouse_event.position) <= 10.0
 			pending_click = false
+			if not drag_started and not drag_source_hidden:
+				_restore_interaction_layer()
 			if is_click:
 				emit_signal("card_clicked", str(card_payload.get("id", "")))
 
@@ -140,6 +147,8 @@ func _apply_payload() -> void:
 	expanded_height = float(card_payload.get("expanded_height", custom_minimum_size.y if custom_minimum_size.y > 0.0 else 252.0))
 	collapsed_height = float(card_payload.get("collapsed_height", expanded_height - 66.0))
 	title_label.text = str(card_payload.get("title", TextDB.get_text("ui.fallback.card")))
+	if card_payload.has("title_font_size"):
+		title_label.add_theme_font_size_override("font_size", int(card_payload.get("title_font_size", title_label.get_theme_font_size("font_size"))))
 	subtitle_label.text = str(card_payload.get("subtitle", ""))
 	body_label.text = str(card_payload.get("body", ""))
 	assigned_label.text = str(card_payload.get("assigned_text", ""))
@@ -202,11 +211,10 @@ func _refresh_compact_state() -> void:
 		return
 	var show_details: bool = not compact_mode
 	var show_title: bool = not bool(card_payload.get("hide_title", false))
-	var show_subtitle: bool = (show_details or bool(card_payload.get("show_subtitle_in_compact", false))) and not bool(card_payload.get("hide_subtitle", false))
 	var show_assigned: bool = (show_details or bool(card_payload.get("show_assigned_in_compact", false))) and not bool(card_payload.get("hide_assigned", false))
 	var show_body: bool = show_details and not bool(card_payload.get("hide_body", false))
 	title_label.visible = show_title and not title_label.text.strip_edges().is_empty()
-	subtitle_label.visible = show_subtitle and not subtitle_label.text.strip_edges().is_empty()
+	subtitle_label.visible = false
 	body_label.visible = show_body and not body_label.text.strip_edges().is_empty()
 	assigned_label.visible = show_assigned and not assigned_label.text.strip_edges().is_empty()
 	if art_frame != null and card_payload.has("art_height"):
@@ -215,13 +223,47 @@ func _refresh_compact_state() -> void:
 	custom_minimum_size = Vector2(base_card_width, target_height)
 	size = Vector2(size.x, target_height)
 
-func _get_drag_data(_at_position: Vector2) -> Variant:
-	if target_mode or bool(card_payload.get("locked", false)):
+func _raise_interaction_layer() -> void:
+	z_as_relative = false
+	z_index = ACTIVE_DRAG_Z_INDEX
+
+func _restore_interaction_layer() -> void:
+	var embedded: bool = bool(card_payload.get("embedded", false))
+	z_as_relative = embedded
+	if embedded:
+		z_index = 0
+	else:
+		z_index = hover_z_index if hovered else default_z_index
+
+func _set_drag_source_hidden(hidden: bool) -> void:
+	if drag_source_hidden == hidden:
+		return
+	drag_source_hidden = hidden
+	visible = not hidden
+	if hidden:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+	else:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		modulate = Color.WHITE
+		_restore_interaction_layer()
+
+func _restore_after_success_if_needed() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	if drag_source_hidden:
+		_set_drag_source_hidden(false)
+
+func _get_drag_data(at_position: Vector2) -> Variant:
+	var card_type: String = str(card_payload.get("card_type", ""))
+	if (target_mode and card_type != "event") or bool(card_payload.get("locked", false)):
 		return null
 	if bool(card_payload.get("assigned", false)) and not bool(card_payload.get("removable", true)):
 		return null
 	drag_started = true
-	set_drag_preview(_build_drag_preview())
+	_raise_interaction_layer()
+	set_drag_preview(_build_drag_preview(at_position))
+	_set_drag_source_hidden(true)
 	return _assignment_payload()
 
 func _assignment_payload() -> Dictionary:
@@ -261,46 +303,53 @@ func _apply_stack_badge() -> void:
 	badge_style.corner_radius_bottom_right = 10
 	stack_badge.add_theme_stylebox_override("panel", badge_style)
 
-func _build_drag_preview() -> Control:
-	var preview: PanelContainer = PanelContainer.new()
-	preview.custom_minimum_size = size if size != Vector2.ZERO else custom_minimum_size
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = card_payload.get("color", Color(0.23, 0.19, 0.14))
-	style.border_width_left = 3
-	style.border_width_top = 3
-	style.border_width_right = 3
-	style.border_width_bottom = 3
-	style.border_color = Color(0.72, 0.72, 0.74)
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	preview.add_theme_stylebox_override("panel", style)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 6)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_right", 6)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	preview.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 3)
-	margin.add_child(box)
-	var art: ColorRect = ColorRect.new()
-	art.custom_minimum_size = Vector2(0, float(card_payload.get("art_height", COMPACT_PORTRAIT_ART_HEIGHT)))
-	art.color = (card_payload.get("art_bg_color", card_payload.get("color", Color(0.23, 0.19, 0.14))) as Color).darkened(0.08)
-	box.add_child(art)
-	var title: Label = Label.new()
-	title.text = str(card_payload.get("title", TextDB.get_text("ui.fallback.card")))
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	box.add_child(title)
-	return preview
+func _build_drag_preview(drag_offset: Vector2 = Vector2.ZERO) -> Control:
+	var preview_size: Vector2 = size if size != Vector2.ZERO else custom_minimum_size
+	var preview_root: Control = Control.new()
+	preview_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_root.top_level = true
+	preview_root.z_as_relative = false
+	preview_root.z_index = ACTIVE_DRAG_Z_INDEX + 1000
+	preview_root.custom_minimum_size = preview_size
+	preview_root.size = preview_size
+	var preview_card := duplicate() as CardView
+	if preview_card == null:
+		return preview_root
+	preview_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview_card.z_as_relative = false
+	preview_card.z_index = ACTIVE_DRAG_Z_INDEX + 1201
+	preview_card.top_level = false
+	preview_card.visible = true
+	preview_card.modulate = Color.WHITE
+	preview_card.drag_started = false
+	preview_card.drag_source_hidden = false
+	preview_card.pending_click = false
+	preview_card.hovered = false
+	preview_card.position = -drag_offset
+	preview_card.custom_minimum_size = preview_size
+	preview_card.size = preview_size
+	preview_root.add_child(preview_card)
+	return preview_root
+
+func _effective_drop_cards() -> Array:
+	var current_cards: Array = (card_payload.get("current_cards", []) as Array).duplicate(true)
+	var replace_uid: String = str(card_payload.get("replace_uid", ""))
+	if replace_uid.is_empty():
+		return current_cards
+	for index in range(current_cards.size() - 1, -1, -1):
+		var current_card: Dictionary = current_cards[index] as Dictionary
+		if str(current_card.get("uid", "")) == replace_uid:
+			current_cards.remove_at(index)
+			break
+	return current_cards
 
 func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
-	if not target_mode:
+	var replacement_target: bool = bool(card_payload.get("replace_drop_enabled", false))
+	if not target_mode and not replacement_target:
 		return false
 	var payload: Dictionary = data as Dictionary
 	var slot_type: String = str(card_payload.get("drop_kind", ""))
-	var current_cards: Array = card_payload.get("current_cards", [])
+	var current_cards: Array = _effective_drop_cards()
 	var target_id: String = str(card_payload.get("target_id", ""))
 	if slot_type == "event_character":
 		accepted_drop = GameRules.can_drop_on_event_slot("character", payload, current_cards)
@@ -315,10 +364,16 @@ func _can_drop_data(_at_position: Vector2, data: Variant) -> bool:
 		if not accepted_drop and target_id == "governance" and str(payload.get("id", "")) == "cao_cao":
 			accepted_drop = _matches_drop_slot_filter(payload)
 	_update_style(_target_color())
+	if accepted_drop:
+		var payload_card_type: String = str(card_payload.get("card_type", ""))
+		if payload_card_type == "slot" and not bool(card_payload.get("drop_slot", false)):
+			emit_signal("drag_slot_hovered", target_id, payload.duplicate(true))
+		elif payload_card_type == "event":
+			emit_signal("drag_slot_hovered", str(card_payload.get("id", "")), payload.duplicate(true))
 	return accepted_drop
 
 func _matches_drop_slot_filter(payload: Dictionary) -> bool:
-	if not bool(card_payload.get("drop_slot", false)):
+	if not bool(card_payload.get("drop_slot", false)) and not bool(card_payload.get("replace_drop_enabled", false)):
 		return true
 	var payload_type: String = str(payload.get("card_type", ""))
 	var payload_id: String = str(payload.get("id", ""))
@@ -382,7 +437,7 @@ func _rest_slot_filter_allows(payload: Dictionary) -> bool:
 			return payload_id in ["silver_pack", "herbal_tonic"]
 		return payload_id in ["silver_pack", "herbal_tonic", "calming_incense"]
 	if payload_type == "risk":
-		return payload_id == "headwind" and current_resource_id == "calming_incense"
+		return payload_id == "headwind" and (current_resource_id.is_empty() or current_resource_id == "calming_incense")
 	if payload_type == "character":
 		if str(payload.get("id", "")) == "cao_cao":
 			return false
@@ -397,18 +452,26 @@ func _drop_data(_at_position: Vector2, data: Variant) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END:
-		var was_drag_source: bool = drag_started
+		var was_drag_source: bool = drag_started or drag_source_hidden
 		pending_click = false
 		drag_started = false
 		if not was_drag_source:
 			return
-		if not is_drag_successful() and not target_mode:
+		if is_drag_successful():
+			call_deferred("_restore_after_success_if_needed")
+			return
+		if not target_mode:
 			if bool(card_payload.get("assigned", false)) and bool(card_payload.get("removable", true)):
 				emit_signal("remove_requested", card_payload.duplicate(true))
-			else:
-				modulate = Color(1.0, 0.7, 0.7)
-				await get_tree().create_timer(0.18).timeout
+				return
+			_set_drag_source_hidden(false)
+			modulate = Color(1.0, 0.7, 0.7)
+			await get_tree().create_timer(0.18).timeout
+			if is_inside_tree() and not drag_source_hidden:
 				modulate = Color.WHITE
+		else:
+			_set_drag_source_hidden(false)
+		_restore_interaction_layer()
 
 func _update_style(color: Color) -> void:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
@@ -438,10 +501,14 @@ func _target_color() -> Color:
 
 func _on_mouse_entered() -> void:
 	hovered = true
-	z_index = hover_z_index
+	if pending_click or drag_started or drag_source_hidden:
+		return
+	_restore_interaction_layer()
 	_update_style(card_payload.get("color", Color(0.23, 0.19, 0.14)))
 
 func _on_mouse_exited() -> void:
 	hovered = false
-	z_index = default_z_index
+	if pending_click or drag_started or drag_source_hidden:
+		return
+	_restore_interaction_layer()
 	_update_style(card_payload.get("color", Color(0.23, 0.19, 0.14)))

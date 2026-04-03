@@ -7,6 +7,15 @@ const FLOATING_DETAIL_WINDOW_SCRIPT := preload("res://scripts/ui/floating_detail
 const TUTORIAL_MANAGER_SCRIPT := preload("res://scripts/managers/tutorial_manager.gd")
 const SAVE_MANAGER_SCRIPT := preload("res://scripts/managers/save_manager.gd")
 const FIRE_MARKER_TEXTURE := preload("res://assets/ui/fire_marker.svg")
+const GLOBAL_FONT_PATH := "res://ZhuqueFangsong-Regular.ttf"
+const TITLE_FONT_PATH := "res://Huiwen-mincho.ttf"
+const GLOBAL_FONT_SIZE := 20
+const GLOBAL_FONT_SIZE_DELTA := 2
+const GLOBAL_LINE_SPACING := 4
+const BODY_FONT_SIZE := 24
+const DESK_BACKGROUND_PATH := "res://assets/ui/backgrounds/main_menu_map.png"
+const DESK_BACKGROUND_SHADER := preload("res://assets/ui/shaders/desk_background_blur.gdshader")
+const DESK_BACKGROUND_PARALLAX := Vector2(0.032, 0.024)
 const POPUP_DETAIL_SIZE := Vector2(860.0, 560.0)
 const POPUP_SETTLEMENT_SIZE := Vector2(960.0, 620.0)
 const POPUP_CONFIRM_SIZE := Vector2(560.0, 320.0)
@@ -19,7 +28,12 @@ const LIST_CARD_ART_HEIGHT := 116.0
 const DETAIL_PANEL_WINDOW_SIZE := Vector2(640.0, 480.0)
 const CHARACTER_DETAIL_WINDOW_SIZE := Vector2(720.0, 540.0)
 const CHARACTER_DETAIL_ART_SIZE := Vector2(180.0, 240.0)
+const LETTER_POPUP_EFFECT_DURATION := 0.32
+const TURN_RESULT_CARD_WIDTH := LIST_CARD_WIDTH
+const TURN_RESULT_CARD_HEIGHT := LIST_CARD_HEIGHT
+const TURN_RESULT_CARD_ART_HEIGHT := LIST_CARD_ART_HEIGHT
 
+@onready var root_layer: ColorRect = $Root
 @onready var top_bar_panel: PanelContainer = $Root/Layout/TopBar
 @onready var top_info: HBoxContainer = %Info
 @onready var slot_column: GridContainer = %Slots
@@ -62,6 +76,13 @@ const CHARACTER_DETAIL_ART_SIZE := Vector2(180.0, 240.0)
 @onready var popup_body: RichTextLabel = %PopupBody
 @onready var popup_close: Button = %PopupClose
 var popup_cancel: Button
+var popup_effect_overlay: Control
+var popup_effect_top_cover: ColorRect
+var popup_effect_bottom_cover: ColorRect
+var popup_effect_seam: ColorRect
+var popup_effect_tween: Tween
+var popup_presentation_effect: String = ""
+var popup_presentation_token: int = 0
 
 @onready var detail_panel: PanelContainer = $Root/Layout/Desk/LeftSidebar/DetailPanel
 @onready var event_panel: PanelContainer = $Root/Layout/Desk/CenterColumn/EventPanel
@@ -122,6 +143,7 @@ var system_menu_panel: PanelContainer
 var system_menu_title: Label
 var system_menu_subtitle: Label
 var system_menu_primary_button: Button
+var system_menu_return_button: Button
 var system_menu_load_button: Button
 var system_menu_save_button: Button
 var system_menu_options_button: Button
@@ -137,15 +159,66 @@ var save_slot_close_button: Button
 var save_slot_mode: String = ""
 var save_slot_page: int = 0
 var save_slot_buttons: Array[Button] = []
+var audio_options_overlay: Control
+var desk_background: TextureRect
+var desk_background_material: ShaderMaterial
+var desk_background_texture: Texture2D
+var system_menu_cover: ColorRect
+var audio_options_panel: PanelContainer
+var audio_options_title: Label
+var audio_options_subtitle: Label
+var audio_options_reset_button: Button
+var audio_options_close_button: Button
+var audio_option_sliders: Dictionary = {}
+var audio_option_value_labels: Dictionary = {}
 var tutorial_toast_panel: PanelContainer
 var tutorial_toast_label: Label
 var tutorial_toast_token: int = 0
+var turn_result_overlay: Control
+var turn_result_panel: PanelContainer
+var turn_result_title: Label
+var turn_result_subtitle: Label
+var turn_result_body: RichTextLabel
+var turn_result_reward_title: Label
+var turn_result_card_scroll: ScrollContainer
+var turn_result_card_row: HBoxContainer
+var turn_result_animation_layer: Control
+var turn_result_collect_button: Button
+var turn_result_continue_button: Button
+var turn_result_queue: Array = []
+var turn_result_index: int = -1
+var turn_result_card_entries: Array = []
+var turn_result_active: bool = false
+var turn_result_collecting: bool = false
+var pending_turn_result_report_payload: Dictionary = {}
 var startup_cover_active: bool = true
+var loaded_font_resources: Dictionary = {}
 
 @onready var board_manager: BoardManager = $BoardManager
 @onready var event_manager: EventManager = $EventManager
 @onready var relation_manager: RelationManager = $RelationManager
 @onready var turn_manager: TurnManager = $TurnManager
+@onready var audio_manager = $AudioManager
+
+func _play_ui_sound(sound_id: String) -> void:
+	if audio_manager == null or sound_id.is_empty():
+		return
+	audio_manager.play_ui(sound_id)
+
+func _play_event_spawn_sound(event_id: String) -> void:
+	if audio_manager == null or event_id.is_empty():
+		return
+	audio_manager.play_event_spawn(event_id, events)
+
+func _play_event_open_sound(event_id: String) -> void:
+	if audio_manager == null or event_id.is_empty():
+		return
+	audio_manager.play_event_open(event_id, events)
+
+func _play_event_result_sound(event_id: String, outcome: String) -> void:
+	if audio_manager == null or event_id.is_empty():
+		return
+	audio_manager.play_event_result(event_id, events, outcome)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -160,6 +233,8 @@ func _input(event: InputEvent) -> void:
 				_on_popup_close_pressed()
 				get_viewport().set_input_as_handled()
 				return
+	if event is InputEventMouseMotion:
+		_update_desk_background_parallax((event as InputEventMouseMotion).position)
 	if dragging_detail_panel:
 		if event is InputEventMouseMotion:
 			detail_panel.position = _clamp_floating_panel_position(get_global_mouse_position() - detail_panel_drag_offset, detail_panel)
@@ -180,9 +255,17 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		if turn_result_active:
+			_on_turn_result_continue_pressed()
+			get_viewport().set_input_as_handled()
+			return
 		if tutorial_dialog_active:
 			return
 		if startup_cover_active:
+			return
+		if _audio_options_visible():
+			_close_audio_options_overlay()
+			get_viewport().set_input_as_handled()
 			return
 		if save_slot_overlay != null and save_slot_overlay.visible:
 			_close_save_slot_overlay()
@@ -194,8 +277,855 @@ func _unhandled_input(event: InputEvent) -> void:
 func _system_menu_visible() -> bool:
 	return system_menu_overlay != null and system_menu_overlay.visible
 
+func _audio_options_visible() -> bool:
+	return audio_options_overlay != null and audio_options_overlay.visible
+
+func _build_turn_result_ui() -> void:
+	if turn_result_overlay != null:
+		return
+	turn_result_overlay = Control.new()
+	turn_result_overlay.name = "TurnResultOverlay"
+	turn_result_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	turn_result_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	turn_result_overlay.z_as_relative = false
+	turn_result_overlay.z_index = 1010
+	turn_result_overlay.visible = false
+	add_child(turn_result_overlay)
+	var shade: ColorRect = ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.0, 0.0, 0.0, 0.76)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	turn_result_overlay.add_child(shade)
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	turn_result_overlay.add_child(center)
+	turn_result_animation_layer = Control.new()
+	turn_result_animation_layer.name = "TurnResultAnimationLayer"
+	turn_result_animation_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	turn_result_animation_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	turn_result_overlay.add_child(turn_result_animation_layer)
+	turn_result_panel = PanelContainer.new()
+	turn_result_panel.custom_minimum_size = Vector2(920.0, 640.0)
+	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.06, 0.06, 0.07, 0.985)
+	panel_style.border_color = Color(0.44, 0.44, 0.46, 0.96)
+	panel_style.border_width_left = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_bottom = 2
+	panel_style.corner_radius_top_left = 16
+	panel_style.corner_radius_top_right = 16
+	panel_style.corner_radius_bottom_left = 16
+	panel_style.corner_radius_bottom_right = 16
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	panel_style.shadow_size = 12
+	turn_result_panel.add_theme_stylebox_override("panel", panel_style)
+	center.add_child(turn_result_panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_bottom", 18)
+	turn_result_panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 12)
+	margin.add_child(box)
+	var header: HBoxContainer = HBoxContainer.new()
+	header.add_theme_constant_override("separation", 10)
+	box.add_child(header)
+	var title_box: VBoxContainer = VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_box.add_theme_constant_override("separation", 4)
+	header.add_child(title_box)
+	turn_result_title = Label.new()
+	turn_result_title.add_theme_font_size_override("font_size", 30)
+	title_box.add_child(turn_result_title)
+	turn_result_subtitle = Label.new()
+	turn_result_subtitle.modulate = Color(0.84, 0.82, 0.78, 0.92)
+	turn_result_subtitle.add_theme_font_size_override("font_size", 15)
+	title_box.add_child(turn_result_subtitle)
+	var body_panel: PanelContainer = PanelContainer.new()
+	body_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var body_style: StyleBoxFlat = StyleBoxFlat.new()
+	body_style.bg_color = Color(0.03, 0.04, 0.05, 0.94)
+	body_style.border_color = Color(0.16, 0.18, 0.21, 0.95)
+	body_style.border_width_left = 1
+	body_style.border_width_top = 1
+	body_style.border_width_right = 1
+	body_style.border_width_bottom = 1
+	body_style.corner_radius_top_left = 10
+	body_style.corner_radius_top_right = 10
+	body_style.corner_radius_bottom_left = 10
+	body_style.corner_radius_bottom_right = 10
+	body_panel.add_theme_stylebox_override("panel", body_style)
+	box.add_child(body_panel)
+	var body_margin: MarginContainer = MarginContainer.new()
+	body_margin.add_theme_constant_override("margin_left", 14)
+	body_margin.add_theme_constant_override("margin_top", 12)
+	body_margin.add_theme_constant_override("margin_right", 14)
+	body_margin.add_theme_constant_override("margin_bottom", 12)
+	body_panel.add_child(body_margin)
+	turn_result_body = RichTextLabel.new()
+	turn_result_body.bbcode_enabled = true
+	turn_result_body.fit_content = false
+	turn_result_body.scroll_active = true
+	turn_result_body.custom_minimum_size = Vector2(0.0, 220.0)
+	turn_result_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	turn_result_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	turn_result_body.mouse_filter = Control.MOUSE_FILTER_STOP
+	body_margin.add_child(turn_result_body)
+	turn_result_reward_title = Label.new()
+	turn_result_reward_title.add_theme_font_size_override("font_size", 18)
+	box.add_child(turn_result_reward_title)
+	turn_result_card_scroll = ScrollContainer.new()
+	turn_result_card_scroll.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_HEIGHT + 20.0)
+	turn_result_card_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	turn_result_card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	turn_result_card_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(turn_result_card_scroll)
+	turn_result_card_row = HBoxContainer.new()
+	turn_result_card_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	turn_result_card_row.add_theme_constant_override("separation", 12)
+	turn_result_card_scroll.add_child(turn_result_card_row)
+	var actions: HBoxContainer = HBoxContainer.new()
+	actions.add_theme_constant_override("separation", 10)
+	box.add_child(actions)
+	turn_result_collect_button = Button.new()
+	turn_result_collect_button.custom_minimum_size = Vector2(130.0, 42.0)
+	turn_result_collect_button.pressed.connect(_on_turn_result_collect_pressed)
+	actions.add_child(turn_result_collect_button)
+	var spacer: Control = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(spacer)
+	turn_result_continue_button = Button.new()
+	turn_result_continue_button.custom_minimum_size = Vector2(110.0, 42.0)
+	turn_result_continue_button.pressed.connect(_on_turn_result_continue_pressed)
+	actions.add_child(turn_result_continue_button)
+
+func _make_turn_result_reward_payload(reward: Dictionary) -> Dictionary:
+	var card_type: String = str(reward.get("card_type", ""))
+	var card_id: String = str(reward.get("id", ""))
+	var amount: int = maxi(1, int(reward.get("amount", 1)))
+	match card_type:
+		"character":
+			if not characters.has(card_id):
+				return {}
+			var character: CharacterData = characters[card_id] as CharacterData
+			var role_name: String = _role_type_text(character.role_type)
+			var subtitle: String = role_name
+			if run_state != null and run_state.relation_states.has(card_id):
+				subtitle = "%s / %s" % [role_name, relation_manager.describe_relation(run_state, card_id)]
+			return {
+				"uid": "result:character:%s" % card_id,
+				"id": card_id,
+				"card_type": "character",
+				"title": character.display_name,
+				"subtitle": subtitle,
+				"body": _character_body(card_id, false),
+				"tags": character.tags,
+				"locked": true,
+				"image_path": character.art_path,
+				"image_label": character.display_name,
+				"art_bg_color": Color(0.20, 0.20, 0.22),
+				"color": Color(0.12, 0.12, 0.13),
+				"compact_details": true,
+				"show_subtitle_in_compact": false,
+				"show_assigned_in_compact": false,
+				"embedded": true,
+				"card_width": TURN_RESULT_CARD_WIDTH,
+				"art_height": TURN_RESULT_CARD_ART_HEIGHT,
+				"collapsed_height": TURN_RESULT_CARD_HEIGHT,
+				"expanded_height": TURN_RESULT_CARD_HEIGHT,
+				"stack_count": amount
+			}
+		"resource":
+			if not resources.has(card_id):
+				return {}
+			var resource: ResourceCardData = resources[card_id] as ResourceCardData
+			return {
+				"uid": "result:resource:%s" % card_id,
+				"id": card_id,
+				"card_type": "resource",
+				"title": resource.display_name,
+				"subtitle": _resource_category_text(resource.category),
+				"body": resource.description,
+				"tags": resource.tags,
+				"locked": true,
+				"image_path": resource.art_path,
+				"image_label": resource.display_name,
+				"art_bg_color": Color(0.18, 0.18, 0.19),
+				"color": Color(0.11, 0.11, 0.12),
+				"compact_details": true,
+				"show_subtitle_in_compact": false,
+				"show_assigned_in_compact": false,
+				"embedded": true,
+				"card_width": TURN_RESULT_CARD_WIDTH,
+				"art_height": TURN_RESULT_CARD_ART_HEIGHT,
+				"collapsed_height": TURN_RESULT_CARD_HEIGHT,
+				"expanded_height": TURN_RESULT_CARD_HEIGHT,
+				"stack_count": amount
+			}
+	return {}
+
+func _make_turn_result_card_front(reward: Dictionary) -> Control:
+	var payload: Dictionary = _make_turn_result_reward_payload(reward)
+	if payload.is_empty():
+		return null
+	var card_size := Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT)
+	var panel: PanelContainer = PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.custom_minimum_size = card_size
+	panel.size = card_size
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
+	panel_style.bg_color = payload.get("color", Color(0.12, 0.12, 0.13)) as Color
+	panel_style.border_color = Color(0.50, 0.50, 0.52, 0.96)
+	panel_style.border_width_left = 3
+	panel_style.border_width_top = 3
+	panel_style.border_width_right = 3
+	panel_style.border_width_bottom = 3
+	panel_style.corner_radius_top_left = 10
+	panel_style.corner_radius_top_right = 10
+	panel_style.corner_radius_bottom_left = 10
+	panel_style.corner_radius_bottom_right = 10
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
+	panel_style.shadow_size = 6
+	panel.add_theme_stylebox_override("panel", panel_style)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 5)
+	margin.add_theme_constant_override("margin_top", 5)
+	margin.add_theme_constant_override("margin_right", 5)
+	margin.add_theme_constant_override("margin_bottom", 5)
+	panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 3)
+	margin.add_child(box)
+	var art_frame: PanelContainer = PanelContainer.new()
+	art_frame.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_ART_HEIGHT)
+	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var art_style: StyleBoxFlat = StyleBoxFlat.new()
+	art_style.bg_color = (payload.get("art_bg_color", payload.get("color", Color(0.23, 0.19, 0.14))) as Color).darkened(0.12)
+	art_style.corner_radius_top_left = 8
+	art_style.corner_radius_top_right = 8
+	art_style.corner_radius_bottom_left = 8
+	art_style.corner_radius_bottom_right = 8
+	art_style.border_width_left = 2
+	art_style.border_width_top = 2
+	art_style.border_width_right = 2
+	art_style.border_width_bottom = 2
+	art_style.border_color = Color(0.54, 0.54, 0.56, 0.88)
+	art_style.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
+	art_style.shadow_size = 4
+	art_frame.add_theme_stylebox_override("panel", art_style)
+	box.add_child(art_frame)
+	var art_margin: MarginContainer = MarginContainer.new()
+	art_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art_margin.add_theme_constant_override("margin_left", 1)
+	art_margin.add_theme_constant_override("margin_top", 1)
+	art_margin.add_theme_constant_override("margin_right", 1)
+	art_margin.add_theme_constant_override("margin_bottom", 1)
+	art_frame.add_child(art_margin)
+	var art_content: Control = Control.new()
+	art_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	art_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art_margin.add_child(art_content)
+	var art_texture: TextureRect = TextureRect.new()
+	art_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var image_path: String = str(payload.get("image_path", ""))
+	if not image_path.is_empty() and ResourceLoader.exists(image_path):
+		art_texture.texture = load(image_path) as Texture2D
+	art_content.add_child(art_texture)
+	if art_texture.texture == null:
+		var art_label: Label = Label.new()
+		art_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		art_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		art_label.text = str(payload.get("image_label", payload.get("title", TextDB.get_text("ui.fallback.card"))))
+		art_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art_content.add_child(art_label)
+	var title: Label = Label.new()
+	title.text = str(payload.get("title", TextDB.get_text("ui.fallback.card")))
+	title.custom_minimum_size = Vector2(0.0, 24.0)
+	title.clip_text = true
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_font_size_override("font_size", 13)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(title)
+	var amount: int = maxi(1, int(payload.get("stack_count", 1)))
+	if amount > 1:
+		var badge: PanelContainer = PanelContainer.new()
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.anchor_left = 1.0
+		badge.anchor_top = 0.0
+		badge.anchor_right = 1.0
+		badge.anchor_bottom = 0.0
+		badge.offset_left = -38.0
+		badge.offset_top = 6.0
+		badge.offset_right = -6.0
+		badge.offset_bottom = 30.0
+		var badge_style: StyleBoxFlat = StyleBoxFlat.new()
+		badge_style.bg_color = Color(0.10, 0.10, 0.11, 0.94)
+		badge_style.border_width_left = 1
+		badge_style.border_width_top = 1
+		badge_style.border_width_right = 1
+		badge_style.border_width_bottom = 1
+		badge_style.border_color = Color(0.70, 0.70, 0.72, 0.92)
+		badge_style.corner_radius_top_left = 10
+		badge_style.corner_radius_top_right = 10
+		badge_style.corner_radius_bottom_left = 10
+		badge_style.corner_radius_bottom_right = 10
+		badge.add_theme_stylebox_override("panel", badge_style)
+		var badge_label: Label = Label.new()
+		badge_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		badge_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		badge_label.text = str(amount) if amount < 100 else "99+"
+		badge_label.add_theme_font_size_override("font_size", 11)
+		badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.add_child(badge_label)
+		art_content.add_child(badge)
+	return panel
+
+func _make_turn_result_card_back(reward: Dictionary) -> PanelContainer:
+	var amount: int = maxi(1, int(reward.get("amount", 1)))
+	var back: PanelContainer = PanelContainer.new()
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.10, 0.10, 0.11, 0.96)
+	style.border_color = Color(0.66, 0.66, 0.68, 0.92)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
+	style.shadow_size = 8
+	back.add_theme_stylebox_override("panel", style)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	back.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+	var title: Label = Label.new()
+	title.text = TextDB.get_text("ui.turn_results.card_back")
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.add_theme_font_size_override("font_size", 18)
+	box.add_child(title)
+	var hint: Label = Label.new()
+	hint.text = TextDB.get_text("ui.turn_results.card_hint")
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.modulate = Color(1.0, 1.0, 1.0, 0.72)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.add_theme_font_size_override("font_size", 12)
+	box.add_child(hint)
+	if amount > 1:
+		var badge: Label = Label.new()
+		badge.text = "x%d" % amount
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		badge.anchor_left = 1.0
+		badge.anchor_top = 0.0
+		badge.anchor_right = 1.0
+		badge.anchor_bottom = 0.0
+		badge.offset_left = -46.0
+		badge.offset_top = 8.0
+		badge.offset_right = -12.0
+		badge.offset_bottom = 26.0
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		back.add_child(badge)
+	return back
+
+func _all_turn_result_cards_collected() -> bool:
+	for entry_variant in turn_result_card_entries:
+		var entry: Dictionary = entry_variant as Dictionary
+		if not bool(entry.get("collected", false)):
+			return false
+	return true
+
+func _clear_turn_result_cards() -> void:
+	turn_result_card_entries.clear()
+	turn_result_collecting = false
+	if turn_result_animation_layer != null:
+		for child in turn_result_animation_layer.get_children():
+			child.queue_free()
+	if turn_result_card_row == null:
+		return
+	for child in turn_result_card_row.get_children():
+		child.queue_free()
+
+func _render_turn_result_cards(rewards: Array) -> void:
+	_clear_turn_result_cards()
+	for reward_variant in rewards:
+		if reward_variant is not Dictionary:
+			continue
+		var reward: Dictionary = (reward_variant as Dictionary).duplicate(true)
+		var card_size := Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT)
+		var button: Control = Control.new()
+		button.custom_minimum_size = card_size
+		button.size = card_size
+		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		button.mouse_filter = Control.MOUSE_FILTER_STOP
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.gui_input.connect(_on_turn_result_card_gui_input.bind(button))
+		turn_result_card_row.add_child(button)
+		var front_card: Control = _make_turn_result_card_front(reward)
+		if front_card != null:
+			front_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			front_card.visible = false
+			front_card.position = Vector2.ZERO
+			front_card.anchor_left = 0.0
+			front_card.anchor_top = 0.0
+			front_card.anchor_right = 0.0
+			front_card.anchor_bottom = 0.0
+			front_card.offset_left = 0.0
+			front_card.offset_top = 0.0
+			front_card.offset_right = card_size.x
+			front_card.offset_bottom = card_size.y
+			front_card.custom_minimum_size = card_size
+			front_card.size = card_size
+			front_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			front_card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			button.add_child(front_card)
+		var back_card: PanelContainer = _make_turn_result_card_back(reward)
+		back_card.position = Vector2.ZERO
+		back_card.anchor_left = 0.0
+		back_card.anchor_top = 0.0
+		back_card.anchor_right = 0.0
+		back_card.anchor_bottom = 0.0
+		back_card.offset_left = 0.0
+		back_card.offset_top = 0.0
+		back_card.offset_right = card_size.x
+		back_card.offset_bottom = card_size.y
+		back_card.custom_minimum_size = card_size
+		back_card.size = card_size
+		back_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		back_card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		button.add_child(back_card)
+		turn_result_card_entries.append({
+			"button": button,
+			"holder": button,
+			"front": front_card,
+			"back": back_card,
+			"reward": reward,
+			"revealed": false,
+			"collected": false
+		})
+	_refresh_turn_result_collect_button()
+
+func _find_turn_result_card_index(button: Control) -> int:
+	for index in range(turn_result_card_entries.size()):
+		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+		if entry.get("button", null) == button:
+			return index
+	return -1
+
+func _set_turn_result_card_revealed(index: int, animated: bool = true, play_sound: bool = true) -> void:
+	if index < 0 or index >= turn_result_card_entries.size():
+		return
+	var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+	if bool(entry.get("revealed", false)):
+		return
+	entry["revealed"] = true
+	turn_result_card_entries[index] = entry
+	var button: Control = entry.get("button", null) as Control
+	var holder: Control = entry.get("holder", button) as Control
+	var front_card: Control = entry.get("front", null) as Control
+	var back_card: PanelContainer = entry.get("back", null) as PanelContainer
+	if holder == null or front_card == null or back_card == null:
+		_refresh_turn_result_collect_button()
+		return
+	var holder_size: Vector2 = holder.size if holder.size != Vector2.ZERO else holder.custom_minimum_size
+	holder.pivot_offset = holder_size * 0.5
+	holder.scale = Vector2.ONE
+	if not animated:
+		back_card.visible = false
+		front_card.visible = true
+		if play_sound:
+			_play_ui_sound("card_flip")
+		_refresh_turn_result_collect_button()
+		return
+	var tween: Tween = create_tween()
+	tween.tween_property(holder, "scale:x", 0.08, 0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	tween.tween_callback(_swap_turn_result_card_faces.bind(index))
+	if play_sound:
+		tween.tween_callback(_play_ui_sound.bind("card_flip"))
+	tween.tween_property(holder, "scale:x", 1.05, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(holder, "scale:x", 1.0, 0.05).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _swap_turn_result_card_faces(index: int) -> void:
+	if index < 0 or index >= turn_result_card_entries.size():
+		return
+	var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+	var front_card: Control = entry.get("front", null) as Control
+	var back_card: PanelContainer = entry.get("back", null) as PanelContainer
+	if front_card != null:
+		front_card.visible = true
+	if back_card != null:
+		back_card.visible = false
+	_refresh_turn_result_collect_button()
+
+func _collect_all_turn_result_cards(animated: bool = false) -> bool:
+	var had_hidden: bool = false
+	for index in range(turn_result_card_entries.size()):
+		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+		if not bool(entry.get("revealed", false)):
+			had_hidden = true
+		_set_turn_result_card_revealed(index, animated, false)
+	_refresh_turn_result_collect_button()
+	return had_hidden
+
+func _turn_result_target_rect_for_reward(reward: Dictionary) -> Rect2:
+	var card_type: String = str(reward.get("card_type", ""))
+	var card_id: String = str(reward.get("id", ""))
+	var row: Control = resource_row if card_type == "resource" else roster_row
+	if row != null:
+		for child in row.get_children():
+			var card: CardView = child as CardView
+			if card == null or not card.visible:
+				continue
+			if str(card.card_payload.get("card_type", "")) == card_type and str(card.card_payload.get("id", "")) == card_id:
+				return card.get_global_rect()
+	var fallback: Control = resource_scroll if card_type == "resource" else roster_scroll
+	if fallback != null and fallback.visible:
+		return fallback.get_global_rect()
+	if hands_panel != null and hands_panel.visible:
+		return hands_panel.get_global_rect()
+	return Rect2(get_viewport_rect().size * 0.5 - Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT) * 0.5, Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT))
+
+func _collect_turn_result_cards_to_targets(play_sound: bool = true) -> void:
+	if turn_result_collecting or _all_turn_result_cards_collected():
+		_refresh_turn_result_collect_button()
+		return
+	turn_result_collecting = true
+	_collect_all_turn_result_cards(false)
+	_refresh_turn_result_collect_button()
+	if play_sound:
+		_play_ui_sound("collect_all")
+	var source_rects: Array[Rect2] = []
+	for entry_variant in turn_result_card_entries:
+		var entry: Dictionary = entry_variant as Dictionary
+		var front_card: Control = entry.get("front", null) as Control
+		var button: Control = entry.get("button", null) as Control
+		var source_rect: Rect2 = front_card.get_global_rect() if front_card != null and front_card.visible else (button.get_global_rect() if button != null else Rect2())
+		source_rects.append(source_rect)
+	var longest: float = 0.0
+	for index in range(turn_result_card_entries.size()):
+		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+		if bool(entry.get("collected", false)):
+			continue
+		var reward: Dictionary = entry.get("reward", {}) as Dictionary
+		var button: Control = entry.get("button", null) as Control
+		var source_rect: Rect2 = source_rects[index] if index < source_rects.size() else Rect2()
+		var flyer: Control = _make_turn_result_card_front(reward)
+		if flyer != null:
+			flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			flyer.top_level = true
+			flyer.z_as_relative = false
+			flyer.z_index = 2600 + index
+			flyer.custom_minimum_size = source_rect.size
+			flyer.size = source_rect.size
+			flyer.position = source_rect.position
+			flyer.pivot_offset = source_rect.size * 0.5
+			if turn_result_animation_layer != null:
+				turn_result_animation_layer.add_child(flyer)
+			else:
+				turn_result_overlay.add_child(flyer)
+			var target_rect: Rect2 = _turn_result_target_rect_for_reward(reward)
+			var target_position: Vector2 = target_rect.position + (target_rect.size - source_rect.size) * 0.5
+			var delay: float = float(index) * 0.05
+			var duration: float = 0.34
+			longest = maxf(longest, delay + duration)
+			var tween: Tween = create_tween()
+			if delay > 0.0:
+				tween.tween_interval(delay)
+			tween.tween_property(flyer, "position", target_position, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			tween.parallel().tween_property(flyer, "scale", Vector2(0.76, 0.76), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+			tween.parallel().tween_property(flyer, "modulate:a", 0.12, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		entry["collected"] = true
+		turn_result_card_entries[index] = entry
+		if button != null:
+			button.modulate = Color(1.0, 1.0, 1.0, 0.0)
+			button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_refresh_turn_result_collect_button()
+	if longest > 0.0:
+		await get_tree().create_timer(longest + 0.04).timeout
+	if turn_result_animation_layer != null:
+		for child in turn_result_animation_layer.get_children():
+			child.queue_free()
+	turn_result_collecting = false
+	_refresh_turn_result_collect_button()
+
+func _refresh_turn_result_collect_button() -> void:
+	if turn_result_collect_button == null:
+		return
+	turn_result_collect_button.text = TextDB.get_text("ui.turn_results.collect_all")
+	var has_collectable: bool = false
+	for entry_variant in turn_result_card_entries:
+		var entry: Dictionary = entry_variant as Dictionary
+		if not bool(entry.get("collected", false)):
+			has_collectable = true
+			break
+	turn_result_collect_button.disabled = turn_result_collecting or not has_collectable
+	if turn_result_continue_button != null:
+		turn_result_continue_button.disabled = turn_result_collecting
+
+func _show_current_turn_result() -> void:
+	if not turn_result_active or turn_result_index < 0 or turn_result_index >= turn_result_queue.size():
+		_finish_turn_result_sequence()
+		return
+	if turn_result_overlay == null:
+		_build_turn_result_ui()
+	turn_result_collecting = false
+	var entry: Dictionary = turn_result_queue[turn_result_index] as Dictionary
+	var rewards: Array = entry.get("rewards", []) as Array
+	turn_result_title.text = str(entry.get("title", TextDB.get_text("ui.fallback.card")))
+	turn_result_subtitle.text = TextDB.format_text("ui.turn_results.page", [turn_result_index + 1, turn_result_queue.size()])
+	var body_text: String = str(entry.get("body", "")).strip_edges()
+	if body_text.is_empty():
+		body_text = TextDB.format_text("ui.turn_results.default_body", [turn_result_title.text])
+	turn_result_body.text = body_text
+	turn_result_body.scroll_to_line(0)
+	_set_rich_text_layout(turn_result_body, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP)
+	turn_result_reward_title.text = TextDB.get_text("ui.turn_results.reward_header")
+	turn_result_reward_title.visible = not rewards.is_empty()
+	if turn_result_card_scroll != null:
+		turn_result_card_scroll.visible = not rewards.is_empty()
+	if turn_result_collect_button != null:
+		turn_result_collect_button.visible = not rewards.is_empty()
+	_render_turn_result_cards(rewards)
+	turn_result_continue_button.text = TextDB.get_text("ui.buttons.next")
+	turn_result_overlay.visible = true
+	turn_result_continue_button.grab_focus()
+
+func _start_turn_result_sequence(results: Array, report_payload: Dictionary) -> bool:
+	if results.is_empty():
+		return false
+	if turn_result_overlay == null:
+		_build_turn_result_ui()
+	pending_turn_result_report_payload = report_payload.duplicate(true)
+	turn_result_queue = results.duplicate(true)
+	turn_result_index = 0
+	turn_result_active = true
+	turn_result_collecting = false
+	detail_overlay.visible = false
+	_configure_popup_for_detail()
+	_play_ui_sound("panel_open")
+	_show_current_turn_result()
+	return true
+
+func _finish_turn_result_sequence() -> void:
+	turn_result_active = false
+	turn_result_collecting = false
+	turn_result_index = -1
+	turn_result_queue.clear()
+	_clear_turn_result_cards()
+	if turn_result_overlay != null:
+		turn_result_overlay.visible = false
+	var payload: Dictionary = pending_turn_result_report_payload.duplicate(true)
+	pending_turn_result_report_payload.clear()
+	if payload.is_empty():
+		return
+	if bool(payload.get("show_report", false)):
+		_show_turn_report_dialog(
+			int(payload.get("turn_index", run_state.turn_index)),
+			payload.get("logs", []) as Array[String],
+			str(payload.get("title", "")),
+			str(payload.get("subtitle", "")),
+			str(payload.get("body", ""))
+		)
+	elif defer_settlement_popup and run_state != null and run_state.game_over:
+		defer_settlement_popup = false
+		settlement_page_index = -1
+		_refresh_settlement_sequence()
+
+func _on_turn_result_card_gui_input(event: InputEvent, button: Control) -> void:
+	if not turn_result_active or turn_result_collecting:
+		return
+	if event is InputEventMouseButton:
+		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			var index: int = _find_turn_result_card_index(button)
+			if index >= 0:
+				var entry: Dictionary = turn_result_card_entries[index] as Dictionary
+				if bool(entry.get("collected", false)):
+					return
+				_set_turn_result_card_revealed(index, true, true)
+				accept_event()
+
+func _on_turn_result_collect_pressed() -> void:
+	if not turn_result_active or turn_result_collecting:
+		return
+	await _collect_turn_result_cards_to_targets(true)
+
+func _on_turn_result_continue_pressed() -> void:
+	if not turn_result_active or turn_result_collecting:
+		return
+	var auto_collected: bool = false
+	if not _all_turn_result_cards_collected():
+		auto_collected = true
+		await _collect_turn_result_cards_to_targets(true)
+	turn_result_index += 1
+	if turn_result_index >= turn_result_queue.size():
+		_finish_turn_result_sequence()
+		return
+	if not auto_collected:
+		_play_ui_sound("button")
+	_show_current_turn_result()
+
+func _load_font_resource(font_path: String) -> FontFile:
+	if font_path.is_empty():
+		return null
+	var cached_font = loaded_font_resources.get(font_path, null)
+	if cached_font != null:
+		return cached_font as FontFile
+	var font_bytes: PackedByteArray = FileAccess.get_file_as_bytes(font_path)
+	if font_bytes.is_empty():
+		push_warning("Failed to load font: %s" % font_path)
+		return null
+	var font_resource := FontFile.new()
+	font_resource.data = font_bytes
+	loaded_font_resources[font_path] = font_resource
+	return font_resource
+
+func _apply_global_font() -> void:
+	var font_resource: FontFile = _load_font_resource(GLOBAL_FONT_PATH)
+	if font_resource == null:
+		return
+	ThemeDB.fallback_font = font_resource
+	ThemeDB.fallback_font_size = GLOBAL_FONT_SIZE
+	var global_theme := Theme.new()
+	global_theme.default_font = font_resource
+	global_theme.default_font_size = GLOBAL_FONT_SIZE
+	theme = global_theme
+
+func _apply_title_font_override(control: Control, font_resource: FontFile) -> void:
+	if control == null or font_resource == null:
+		return
+	control.add_theme_font_override("font", font_resource)
+
+func _apply_title_fonts() -> void:
+	var title_font: FontFile = _load_font_resource(TITLE_FONT_PATH)
+	if title_font == null:
+		return
+	for node in [system_menu_title, detail_title, popup_title, event_dialog_title]:
+		var control: Control = node as Control
+		_apply_title_font_override(control, title_font)
+
+func _apply_body_font_override(label: RichTextLabel) -> void:
+	if label == null:
+		return
+	label.add_theme_font_size_override("normal_font_size", BODY_FONT_SIZE)
+	label.set_meta("normal_font_size_tuned", true)
+	label.add_theme_constant_override("line_separation", GLOBAL_LINE_SPACING)
+	label.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_meta("line_spacing_tuned", true)
+
+func _apply_body_fonts() -> void:
+	for label in [detail_body, event_dialog_body, popup_body, turn_result_body]:
+		_apply_body_font_override(label as RichTextLabel)
+
+func _set_rich_text_layout(label: RichTextLabel, horizontal: HorizontalAlignment, vertical: VerticalAlignment) -> void:
+	if label == null:
+		return
+	label.horizontal_alignment = horizontal
+	label.vertical_alignment = vertical
+
+func _set_popup_body_document_layout() -> void:
+	_set_rich_text_layout(popup_body, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP)
+
+func _set_popup_body_center_layout() -> void:
+	_set_rich_text_layout(popup_body, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
+
+func _set_popup_body_prompt_layout() -> void:
+	_set_rich_text_layout(popup_body, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
+
+func _normalize_document_body(body: String, blank_lines_before: int = 2) -> String:
+	var normalized: String = body.replace("\r\n", "\n").replace("\r", "\n").strip_edges()
+	while normalized.find("\n\n\n") >= 0:
+		normalized = normalized.replace("\n\n\n", "\n\n")
+	if normalized.is_empty():
+		return "\n".repeat(blank_lines_before)
+	var paragraphs: Array[String] = []
+	for paragraph_variant in normalized.split("\n\n"):
+		var paragraph: String = str(paragraph_variant).strip_edges()
+		if paragraph.is_empty():
+			continue
+		if not paragraph.begins_with("　　"):
+			paragraph = "　　" + paragraph
+		paragraphs.append(paragraph)
+	return "\n".repeat(blank_lines_before) + "\n\n".join(paragraphs)
+
+func _set_popup_art_image(image_path: String) -> void:
+	popup_art.texture = null
+	popup_art_frame.visible = false
+	var normalized_path: String = image_path.strip_edges()
+	if normalized_path.is_empty():
+		return
+	var texture: Texture2D = null
+	texture = load(normalized_path) as Texture2D
+	if texture == null:
+		return
+	popup_art.texture = texture
+	popup_art_frame.visible = true
+
+func _apply_global_text_adjustments(node: Node) -> void:
+	if node is Control:
+		_adjust_control_text(node as Control)
+	for child in node.get_children():
+		_apply_global_text_adjustments(child)
+
+func _adjust_control_text(control: Control) -> void:
+	if control.has_theme_font_size_override("font_size") and not bool(control.get_meta("font_size_tuned", false)):
+		control.add_theme_font_size_override("font_size", control.get_theme_font_size("font_size") + GLOBAL_FONT_SIZE_DELTA)
+		control.set_meta("font_size_tuned", true)
+	if control.has_theme_font_size_override("normal_font_size") and not bool(control.get_meta("normal_font_size_tuned", false)):
+		control.add_theme_font_size_override("normal_font_size", control.get_theme_font_size("normal_font_size") + GLOBAL_FONT_SIZE_DELTA)
+		control.set_meta("normal_font_size_tuned", true)
+	if bool(control.get_meta("line_spacing_tuned", false)):
+		return
+	if control is RichTextLabel:
+		control.add_theme_constant_override("line_separation", GLOBAL_LINE_SPACING)
+		control.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
+	elif control is Label or control is Button:
+		control.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
+	control.set_meta("line_spacing_tuned", true)
+
 func _ready() -> void:
 	randomize()
+	_apply_global_font()
 	TextDB.reload_texts()
 	tutorial_manager = TUTORIAL_MANAGER_SCRIPT.new()
 	save_manager = SAVE_MANAGER_SCRIPT.new()
@@ -205,11 +1135,15 @@ func _ready() -> void:
 	events = GameData.create_events()
 	run_state = GameData.create_run_state()
 	event_manager.setup(events)
+	event_manager.event_spawned.connect(_on_event_spawned)
+	event_manager.event_resolved.connect(_on_event_resolved)
 	board_manager.board_changed.connect(_refresh_board)
 	end_turn_button.pressed.connect(_on_end_turn_pressed)
 	toggle_log_button.pressed.connect(_on_toggle_log_pressed)
 	popup_close.pressed.connect(_on_popup_close_pressed)
 	popup_panel.gui_input.connect(_on_popup_panel_gui_input)
+	popup_body.gui_input.connect(_on_popup_body_gui_input)
+	_build_popup_presentation_ui()
 	_ensure_popup_cancel_button()
 	detail_close.pressed.connect(_close_detail_panel)
 	event_dialog_close.pressed.connect(_on_event_dialog_close_pressed)
@@ -225,7 +1159,7 @@ func _ready() -> void:
 	popup_header.mouse_filter = Control.MOUSE_FILTER_PASS
 	popup_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	popup_body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_body.mouse_filter = Control.MOUSE_FILTER_STOP
 	popup_art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	popup_close.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -252,22 +1186,74 @@ func _ready() -> void:
 	event_ui_controller.quick_assign_requested.connect(_on_card_quick_assign_requested)
 	event_ui_controller.remove_requested.connect(_on_card_remove_requested)
 	event_ui_controller.dialog_focus_requested.connect(_focus_event_dialog)
+	event_ui_controller.event_dialog_toggled.connect(_on_event_dialog_toggled)
 	_build_top_bar_layout()
 	roster_row.add_theme_constant_override("separation", STACK_CARD_SEPARATION)
 	resource_row.add_theme_constant_override("separation", STACK_CARD_SEPARATION)
 	_apply_static_texts()
 	_apply_visual_styles()
+	_build_desk_background_ui()
 	_prepare_detail_panel_window()
 	_build_tutorial_dialog_ui()
 	_build_system_menu_ui()
 	_build_tutorial_toast_ui()
+	_build_turn_result_ui()
+	_apply_title_fonts()
+	_apply_body_fonts()
 	detail_panel.gui_input.connect(_on_detail_panel_gui_input)
 	detail_header.gui_input.connect(_on_detail_header_gui_input)
 	_configure_popup_for_detail()
 	board_manager.reset_turn_targets(run_state.active_event_ids)
 	_build_slots()
 	_refresh_board()
+	_update_desk_background_parallax(get_viewport_rect().size * 0.5)
 	_show_system_menu(true)
+
+func _build_desk_background_ui() -> void:
+	if root_layer == null or desk_background != null:
+		return
+	desk_background = TextureRect.new()
+	desk_background.name = "DeskBackground"
+	desk_background.set_anchors_preset(Control.PRESET_FULL_RECT)
+	desk_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	desk_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	desk_background.texture = _load_desk_background_texture()
+	desk_background.material = _make_desk_background_material()
+	desk_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root_layer.add_child(desk_background)
+	root_layer.move_child(desk_background, 0)
+	var shade: ColorRect = ColorRect.new()
+	shade.name = "DeskBackgroundShade"
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.03, 0.025, 0.02, 0.42)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root_layer.add_child(shade)
+	root_layer.move_child(shade, 1)
+
+func _make_desk_background_material() -> ShaderMaterial:
+	desk_background_material = ShaderMaterial.new()
+	desk_background_material.shader = DESK_BACKGROUND_SHADER
+	desk_background_material.set_shader_parameter("blur_strength", 0.0)
+	desk_background_material.set_shader_parameter("uv_offset", Vector2.ZERO)
+	return desk_background_material
+
+func _load_desk_background_texture() -> Texture2D:
+	if desk_background_texture != null:
+		return desk_background_texture
+	desk_background_texture = load(DESK_BACKGROUND_PATH) as Texture2D
+	return desk_background_texture
+
+func _update_desk_background_parallax(mouse_position: Vector2) -> void:
+	if desk_background_material == null:
+		return
+	var viewport_size: Vector2 = get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var normalized: Vector2 = Vector2(
+		clampf(mouse_position.x / viewport_size.x, 0.0, 1.0),
+		clampf(mouse_position.y / viewport_size.y, 0.0, 1.0)
+	) - Vector2(0.5, 0.5)
+	desk_background_material.set_shader_parameter("uv_offset", normalized * DESK_BACKGROUND_PARALLAX)
 
 func _build_system_menu_ui() -> void:
 	if system_menu_overlay != null:
@@ -280,19 +1266,20 @@ func _build_system_menu_ui() -> void:
 	system_menu_overlay.z_index = 900
 	system_menu_overlay.visible = false
 	add_child(system_menu_overlay)
-	var cover: ColorRect = ColorRect.new()
-	cover.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cover.color = Color(0.02, 0.02, 0.03, 0.92)
-	system_menu_overlay.add_child(cover)
+	system_menu_cover = ColorRect.new()
+	system_menu_cover.set_anchors_preset(Control.PRESET_FULL_RECT)
+	system_menu_cover.color = Color(0.0, 0.0, 0.0, 1.0)
+	system_menu_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	system_menu_overlay.add_child(system_menu_cover)
 	system_menu_panel = PanelContainer.new()
 	system_menu_panel.anchor_left = 0.5
 	system_menu_panel.anchor_top = 0.5
 	system_menu_panel.anchor_right = 0.5
 	system_menu_panel.anchor_bottom = 0.5
 	system_menu_panel.offset_left = -240
-	system_menu_panel.offset_top = -210
+	system_menu_panel.offset_top = -230
 	system_menu_panel.offset_right = 240
-	system_menu_panel.offset_bottom = 210
+	system_menu_panel.offset_bottom = 230
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.07, 0.07, 0.08, 0.98)
 	style.border_color = Color(0.45, 0.45, 0.47, 0.95)
@@ -315,6 +1302,9 @@ func _build_system_menu_ui() -> void:
 	margin.add_theme_constant_override("margin_bottom", 24)
 	system_menu_panel.add_child(margin)
 	var box: VBoxContainer = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 12)
 	margin.add_child(box)
 	system_menu_title = Label.new()
@@ -325,10 +1315,14 @@ func _build_system_menu_ui() -> void:
 	system_menu_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	system_menu_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	system_menu_subtitle.modulate = Color(1,1,1,0.78)
+	system_menu_subtitle.visible = false
 	box.add_child(system_menu_subtitle)
 	system_menu_primary_button = _make_system_menu_button()
 	system_menu_primary_button.pressed.connect(_on_system_menu_primary_pressed)
 	box.add_child(system_menu_primary_button)
+	system_menu_return_button = _make_system_menu_button()
+	system_menu_return_button.pressed.connect(_on_system_menu_return_pressed)
+	box.add_child(system_menu_return_button)
 	system_menu_load_button = _make_system_menu_button()
 	system_menu_load_button.pressed.connect(_on_system_menu_load_pressed)
 	box.add_child(system_menu_load_button)
@@ -342,6 +1336,7 @@ func _build_system_menu_ui() -> void:
 	system_menu_help_button.pressed.connect(_on_system_menu_help_pressed)
 	box.add_child(system_menu_help_button)
 	_build_save_slot_overlay()
+	_build_audio_options_overlay()
 
 func _build_tutorial_toast_ui() -> void:
 	if tutorial_toast_panel != null:
@@ -407,6 +1402,7 @@ func _hide_tutorial_toast_later(token: int, duration: float) -> void:
 	if tutorial_toast_panel != null:
 		tutorial_toast_panel.visible = false
 
+
 func _make_system_menu_button() -> Button:
 	var button: Button = Button.new()
 	button.custom_minimum_size = Vector2(0, 44)
@@ -416,32 +1412,71 @@ func _make_system_menu_button() -> Button:
 func _show_system_menu(visible: bool) -> void:
 	if system_menu_overlay == null:
 		return
+	var was_visible: bool = system_menu_overlay.visible
+	var child_overlay_was_visible: bool = (save_slot_overlay != null and save_slot_overlay.visible) or _audio_options_visible()
+	if visible and not was_visible and not startup_cover_active:
+		_play_ui_sound("panel_open")
+	if visible and system_menu_cover != null:
+		system_menu_cover.color = Color(0.0, 0.0, 0.0, 1.0) if startup_cover_active else Color(0.02, 0.02, 0.03, 0.84)
 	system_menu_overlay.visible = visible
 	if not visible:
 		_close_save_slot_overlay()
+		_close_audio_options_overlay(false)
+		if was_visible and not child_overlay_was_visible:
+			_play_ui_sound("panel_close")
 		return
+	var title_font_size: int = 88 if startup_cover_active else 36
+	system_menu_title.add_theme_font_size_override("font_size", title_font_size)
+	system_menu_title.custom_minimum_size = Vector2(0.0, 116.0) if startup_cover_active else Vector2.ZERO
+	system_menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	system_menu_title.text = TextDB.get_text("ui.system_menu.title")
 	system_menu_subtitle.text = TextDB.get_text("ui.system_menu.startup_subtitle") if startup_cover_active else TextDB.get_text("ui.system_menu.ingame_subtitle")
+	system_menu_subtitle.visible = false
 	system_menu_primary_button.text = TextDB.get_text("ui.system_menu.new_game") if startup_cover_active else TextDB.get_text("ui.system_menu.resume")
+	system_menu_return_button.text = TextDB.get_text("ui.system_menu.return_to_cover")
 	system_menu_load_button.text = TextDB.get_text("ui.system_menu.load")
 	system_menu_save_button.text = TextDB.get_text("ui.system_menu.save")
 	system_menu_options_button.text = TextDB.get_text("ui.system_menu.options")
 	system_menu_help_button.text = TextDB.get_text("ui.system_menu.help")
-	var tutorial_locked: bool = tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state)
-	system_menu_load_button.disabled = tutorial_locked or save_manager == null or not save_manager.has_any_save()
-	system_menu_save_button.disabled = tutorial_locked
+	var tutorial_locked: bool = not startup_cover_active and tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state)
+	var has_save: bool = save_manager != null and save_manager.has_any_save()
+	system_menu_return_button.visible = not startup_cover_active
+	system_menu_load_button.disabled = tutorial_locked or not has_save
+	system_menu_save_button.visible = not startup_cover_active
+	system_menu_save_button.disabled = startup_cover_active or tutorial_locked
 	system_menu_primary_button.grab_focus()
 
 func _on_system_menu_primary_pressed() -> void:
 	if startup_cover_active:
-		startup_cover_active = false
-		_show_system_menu(false)
-		_show_tutorial_prompt_if_needed()
+		_start_new_game()
 	else:
 		_show_system_menu(false)
 
+func _on_system_menu_return_pressed() -> void:
+	_save_system_game()
+	_close_all_detail_views()
+	startup_cover_active = true
+	_show_system_menu(true)
+
+func _start_new_game() -> void:
+	_close_all_detail_views()
+	defer_settlement_popup = false
+	turn_result_active = false
+	turn_result_index = -1
+	turn_result_queue.clear()
+	pending_turn_result_report_payload.clear()
+	if turn_result_overlay != null:
+		turn_result_overlay.visible = false
+	_clear_turn_result_cards()
+	run_state = GameData.create_run_state()
+	board_manager.reset_turn_targets(run_state.active_event_ids)
+	startup_cover_active = false
+	_show_system_menu(false)
+	_refresh_board()
+	_show_tutorial_prompt_if_needed()
+
 func _on_system_menu_load_pressed() -> void:
-	if tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state):
+	if not startup_cover_active and tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state):
 		_show_message_popup(TextDB.get_text("ui.system_menu.load"), "", TextDB.get_text("ui.system_menu.tutorial_locked_load"))
 		return
 	if save_manager == null or not save_manager.has_any_save():
@@ -450,16 +1485,193 @@ func _on_system_menu_load_pressed() -> void:
 	_open_save_slot_overlay("load")
 
 func _on_system_menu_save_pressed() -> void:
+	if startup_cover_active:
+		return
 	if tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state):
 		_show_message_popup(TextDB.get_text("ui.system_menu.save"), "", TextDB.get_text("ui.system_menu.tutorial_locked_save"))
 		return
 	_open_save_slot_overlay("save")
 
 func _on_system_menu_options_pressed() -> void:
-	_show_message_popup(TextDB.get_text("ui.detail_slots.menu_option.title"), "", TextDB.get_text("ui.detail_slots.menu_option.body"))
+	_open_audio_options_overlay()
 
 func _on_system_menu_help_pressed() -> void:
 	_show_message_popup(TextDB.get_text("ui.detail_slots.menu_help.title"), "", TextDB.get_text("ui.detail_slots.menu_help.body"))
+
+func _build_audio_options_overlay() -> void:
+	if audio_options_overlay != null or system_menu_overlay == null:
+		return
+	audio_options_overlay = Control.new()
+	audio_options_overlay.name = "AudioOptionsOverlay"
+	audio_options_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	audio_options_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	audio_options_overlay.visible = false
+	system_menu_overlay.add_child(audio_options_overlay)
+	var shade: ColorRect = ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.0, 0.0, 0.0, 0.30)
+	audio_options_overlay.add_child(shade)
+	audio_options_panel = PanelContainer.new()
+	audio_options_panel.anchor_left = 0.5
+	audio_options_panel.anchor_top = 0.5
+	audio_options_panel.anchor_right = 0.5
+	audio_options_panel.anchor_bottom = 0.5
+	audio_options_panel.offset_left = -280
+	audio_options_panel.offset_top = -190
+	audio_options_panel.offset_right = 280
+	audio_options_panel.offset_bottom = 190
+	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
+	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
+	panel_style.border_width_left = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_bottom = 2
+	panel_style.corner_radius_top_left = 16
+	panel_style.corner_radius_top_right = 16
+	panel_style.corner_radius_bottom_left = 16
+	panel_style.corner_radius_bottom_right = 16
+	audio_options_panel.add_theme_stylebox_override("panel", panel_style)
+	audio_options_overlay.add_child(audio_options_panel)
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	audio_options_panel.add_child(margin)
+	var box: VBoxContainer = VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 12)
+	margin.add_child(box)
+	audio_options_title = Label.new()
+	audio_options_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	audio_options_title.add_theme_font_size_override("font_size", 28)
+	box.add_child(audio_options_title)
+	audio_options_subtitle = Label.new()
+	audio_options_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	audio_options_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	audio_options_subtitle.modulate = Color(1, 1, 1, 0.78)
+	audio_options_subtitle.visible = false
+	box.add_child(audio_options_subtitle)
+	var slider_box: VBoxContainer = VBoxContainer.new()
+	slider_box.add_theme_constant_override("separation", 12)
+	slider_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(slider_box)
+	_build_audio_slider_row(slider_box, "master", TextDB.get_text("ui.audio_options.master"))
+	_build_audio_slider_row(slider_box, "music", TextDB.get_text("ui.audio_options.music"))
+	_build_audio_slider_row(slider_box, "sfx", TextDB.get_text("ui.audio_options.sfx"))
+	var footer: HBoxContainer = HBoxContainer.new()
+	footer.add_theme_constant_override("separation", 10)
+	box.add_child(footer)
+	audio_options_reset_button = Button.new()
+	audio_options_reset_button.custom_minimum_size = Vector2(130.0, 42.0)
+	audio_options_reset_button.pressed.connect(_on_audio_options_reset_pressed)
+	footer.add_child(audio_options_reset_button)
+	var spacer: Control = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	footer.add_child(spacer)
+	audio_options_close_button = Button.new()
+	audio_options_close_button.custom_minimum_size = Vector2(110.0, 42.0)
+	audio_options_close_button.pressed.connect(_close_audio_options_overlay)
+	footer.add_child(audio_options_close_button)
+
+func _build_audio_slider_row(parent: VBoxContainer, channel_id: String, label_text: String) -> void:
+	var row: VBoxContainer = VBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	var header: HBoxContainer = HBoxContainer.new()
+	row.add_child(header)
+	var name_label: Label = Label.new()
+	name_label.text = label_text
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(name_label)
+	var value_label: Label = Label.new()
+	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.custom_minimum_size = Vector2(60.0, 0.0)
+	header.add_child(value_label)
+	var slider: HSlider = HSlider.new()
+	slider.min_value = 0.0
+	slider.max_value = 100.0
+	slider.step = 1.0
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slider.value_changed.connect(_on_audio_slider_value_changed.bind(channel_id))
+	slider.drag_ended.connect(_on_audio_slider_drag_ended.bind(channel_id))
+	row.add_child(slider)
+	audio_option_sliders[channel_id] = slider
+	audio_option_value_labels[channel_id] = value_label
+
+func _open_audio_options_overlay() -> void:
+	_build_audio_options_overlay()
+	if audio_options_overlay == null:
+		return
+	var was_visible: bool = audio_options_overlay.visible
+	if not was_visible:
+		_play_ui_sound("panel_open")
+	_refresh_audio_options_overlay()
+	audio_options_overlay.visible = true
+
+func _close_audio_options_overlay(play_sound: bool = true) -> void:
+	if audio_options_overlay == null:
+		return
+	var was_visible: bool = audio_options_overlay.visible
+	audio_options_overlay.visible = false
+	if was_visible and play_sound:
+		_play_ui_sound("panel_close")
+
+func _refresh_audio_options_overlay() -> void:
+	if audio_options_overlay == null or audio_manager == null:
+		return
+	audio_options_title.text = TextDB.get_text("ui.audio_options.title")
+	audio_options_subtitle.text = TextDB.get_text("ui.audio_options.subtitle")
+	audio_options_subtitle.visible = false
+	audio_options_reset_button.text = TextDB.get_text("ui.audio_options.reset")
+	audio_options_close_button.text = TextDB.get_text("ui.audio_options.close", TextDB.get_text("ui.buttons.close"))
+	for channel_id in ["master", "music", "sfx"]:
+		var slider: HSlider = audio_option_sliders.get(channel_id, null) as HSlider
+		if slider == null:
+			continue
+		slider.set_block_signals(true)
+		slider.value = round(audio_manager.get_volume_level(channel_id) * 100.0)
+		slider.set_block_signals(false)
+		_update_audio_option_value_label(channel_id)
+
+func _update_audio_option_value_label(channel_id: String) -> void:
+	var value_label: Label = audio_option_value_labels.get(channel_id, null) as Label
+	if value_label == null or audio_manager == null:
+		return
+	value_label.text = TextDB.format_text("ui.audio_options.value", [int(round(audio_manager.get_volume_level(channel_id) * 100.0))], {}, "%d%%")
+
+func _on_audio_slider_value_changed(value: float, channel_id: String) -> void:
+	if audio_manager == null:
+		return
+	audio_manager.set_volume_level(channel_id, value / 100.0)
+	_update_audio_option_value_label(channel_id)
+
+func _on_audio_slider_drag_ended(changed: bool, channel_id: String) -> void:
+	if changed and channel_id in ["master", "sfx"]:
+		_play_ui_sound("button")
+
+func _on_audio_options_reset_pressed() -> void:
+	if audio_manager == null:
+		return
+	audio_manager.reset_volume_levels()
+	_refresh_audio_options_overlay()
+	_play_ui_sound("button")
+
+func _on_event_dialog_toggled(event_id: String, expanded: bool) -> void:
+	if expanded:
+		_play_event_open_sound(event_id)
+	else:
+		_play_ui_sound("panel_close")
+
+func _on_event_spawned(event_id: String) -> void:
+	if not startup_cover_active:
+		_play_event_spawn_sound(event_id)
+
+func _on_event_resolved(event_id: String, outcome: String) -> void:
+	_play_event_result_sound(event_id, outcome)
 
 func _save_system_game() -> bool:
 	if save_manager == null or run_state == null:
@@ -520,6 +1732,7 @@ func _build_save_slot_overlay() -> void:
 	save_slot_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	save_slot_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	save_slot_subtitle.modulate = Color(1, 1, 1, 0.78)
+	save_slot_subtitle.visible = false
 	box.add_child(save_slot_subtitle)
 	var slot_list: VBoxContainer = VBoxContainer.new()
 	slot_list.add_theme_constant_override("separation", 8)
@@ -562,6 +1775,11 @@ func _open_save_slot_overlay(mode: String) -> void:
 	if save_manager == null:
 		return
 	_build_save_slot_overlay()
+	if save_slot_overlay == null:
+		return
+	var was_visible: bool = save_slot_overlay.visible
+	if not was_visible:
+		_play_ui_sound("panel_open")
 	save_slot_mode = mode
 	save_slot_page = 0
 	save_slot_overlay.visible = true
@@ -570,8 +1788,11 @@ func _open_save_slot_overlay(mode: String) -> void:
 func _close_save_slot_overlay() -> void:
 	if save_slot_overlay == null:
 		return
+	var was_visible: bool = save_slot_overlay.visible
 	save_slot_overlay.visible = false
 	save_slot_mode = ""
+	if was_visible:
+		_play_ui_sound("panel_close")
 
 func _refresh_save_slot_overlay() -> void:
 	if save_slot_overlay == null or not save_slot_overlay.visible or save_manager == null:
@@ -581,6 +1802,7 @@ func _refresh_save_slot_overlay() -> void:
 	var is_load_mode: bool = save_slot_mode == "load"
 	save_slot_title.text = TextDB.get_text("ui.save_slots.load_title", "Load Save") if is_load_mode else TextDB.get_text("ui.save_slots.save_title", "Choose Slot")
 	save_slot_subtitle.text = TextDB.get_text("ui.save_slots.load_subtitle", "Choose a slot to load.") if is_load_mode else TextDB.get_text("ui.save_slots.save_subtitle", "System slot autosaves each turn; other slots are manual.")
+	save_slot_subtitle.visible = false
 	save_slot_page_label.text = TextDB.format_text("ui.save_slots.page", [save_slot_page + 1, page_total], {}, "Page %d / %d")
 	save_slot_prev_button.disabled = save_slot_page <= 0
 	save_slot_next_button.disabled = save_slot_page >= page_total - 1
@@ -627,11 +1849,11 @@ func _on_save_slot_button_pressed(local_index: int) -> void:
 		return
 	var label: String = save_manager.slot_display_name(slot_index)
 	if slot_index == save_manager.SYSTEM_SLOT_INDEX:
-		label = TextDB.get_text("ui.save_slots.system_label", "????")
+		label = TextDB.get_text("ui.save_slots.system_label", "系统存档")
 	var ok: bool = save_manager.save_to_slot(slot_index, run_state, board_manager, label, slot_index == save_manager.SYSTEM_SLOT_INDEX)
 	if ok:
 		_refresh_save_slot_overlay()
-		_show_message_popup(TextDB.get_text("ui.system_menu.save", "??"), "", TextDB.get_text("ui.system_menu.save_done"))
+		_show_message_popup(TextDB.get_text("ui.system_menu.save", "存档"), "", TextDB.get_text("ui.system_menu.save_done"))
 
 func _on_save_slot_prev_pressed() -> void:
 	save_slot_page -= 1
@@ -644,6 +1866,8 @@ func _on_save_slot_next_pressed() -> void:
 func _apply_loaded_snapshot(snapshot: Dictionary) -> void:
 	_close_all_detail_views()
 	run_state = snapshot.get("run_state", GameData.create_run_state()) as RunState
+	if tutorial_manager != null and run_state != null:
+		tutorial_manager.repair_loaded_state(run_state)
 	board_manager.restore_state(run_state.active_event_ids, snapshot.get("board", {}) as Dictionary)
 	startup_cover_active = false
 	_refresh_board()
@@ -981,12 +2205,12 @@ func _get_unlocked_slot_ids() -> Array[String]:
 	if tutorial_manager != null and tutorial_manager.is_active(run_state):
 		return tutorial_manager.unlocked_slot_ids(run_state)
 	var ids: Array[String] = ["governance"]
-	if bool(run_state.flags.get("unlocked_research", false)):
-		ids.append("research")
 	if bool(run_state.flags.get("unlocked_recruit", false)):
 		ids.append("recruit")
 	if bool(run_state.flags.get("unlocked_audience", false)):
 		ids.append("audience")
+	if bool(run_state.flags.get("unlocked_research", false)):
+		ids.append("research")
 	if bool(run_state.flags.get("unlocked_rest", false)):
 		ids.append("rest")
 	return ids
@@ -998,6 +2222,7 @@ func _build_slots() -> void:
 		var slot: SlotView = SLOT_SCENE.instantiate()
 		slot.setup(_make_action_slot_payload(slot_id), true)
 		slot.target_drop_requested.connect(_on_target_drop_requested)
+		slot.drag_slot_hovered.connect(_on_slot_drag_hovered)
 		slot.card_clicked.connect(_on_slot_card_clicked)
 		slot_column.add_child(slot)
 
@@ -1032,6 +2257,9 @@ func _apply_unlocks() -> void:
 		rebuild_needed = true
 	if bool(run_state.flags.get("first_headwind_seen", false)) and not bool(run_state.flags.get("unlocked_rest", false)):
 		run_state.flags["unlocked_rest"] = true
+		rebuild_needed = true
+	var desired_ids: Array[String] = _get_unlocked_slot_ids()
+	if _current_slot_ids() != desired_ids:
 		rebuild_needed = true
 	if rebuild_needed:
 		_build_slots()
@@ -1077,6 +2305,7 @@ func _refresh_board() -> void:
 	_refresh_leads()
 	_refresh_log()
 	_refresh_detail()
+	_apply_global_text_adjustments(self)
 	if run_state.game_over:
 		end_turn_button.disabled = true
 		detail_panel.visible = true
@@ -1181,9 +2410,10 @@ func _show_settlement_page(pages: Array = []) -> void:
 	var page: Dictionary = active_pages[settlement_page_index] as Dictionary
 	popup_title.text = str(page.get("title", TextDB.get_text("ui.finale.report_title")))
 	popup_subtitle.text = str(page.get("subtitle", TextDB.format_text("ui.finale.step_counter", [settlement_page_index + 1, active_pages.size()])))
-	popup_subtitle.visible = not popup_subtitle.text.strip_edges().is_empty()
+	popup_subtitle.visible = false
 	popup_body.text = str(page.get("body", ""))
-	popup_art.texture = null
+	_set_popup_body_document_layout()
+	_set_popup_art_image("")
 	popup_close.text = TextDB.get_text("ui.buttons.finish") if settlement_page_index >= active_pages.size() - 1 else TextDB.get_text("ui.buttons.next")
 	detail_overlay.visible = true
 
@@ -1210,18 +2440,31 @@ func _configure_popup_for_message() -> void:
 	popup_close.text = TextDB.get_text("turn_report.buttons.close")
 	_set_popup_cancel_state(false)
 
-func _show_message_popup(title: String, subtitle: String, body: String) -> void:
+func _show_message_popup(title: String, subtitle: String, body: String, presentation: String = "", image_path: String = "") -> void:
 	settlement_dialog_active = false
 	end_turn_confirm_active = false
 	turn_report_dialog_active = false
+	popup_presentation_token += 1
+	popup_presentation_effect = presentation
+	_reset_popup_presentation_visuals()
+	_play_ui_sound("panel_open")
 	_configure_popup_for_message()
 	popup_title.text = title
 	popup_subtitle.text = subtitle
-	popup_subtitle.visible = not subtitle.strip_edges().is_empty()
-	popup_body.text = body
+	popup_subtitle.visible = false
+	var display_body: String = body
+	if popup_presentation_effect == "letter_unfold":
+		display_body = _normalize_document_body(body)
+	popup_body.text = display_body
 	popup_body.scroll_to_line(0)
-	popup_art.texture = null
+	if popup_presentation_effect == "letter_unfold":
+		_set_popup_body_document_layout()
+	else:
+		_set_popup_body_center_layout()
+	_set_popup_art_image(image_path)
 	detail_overlay.visible = true
+	if popup_presentation_effect == "letter_unfold":
+		call_deferred("_play_popup_presentation", popup_presentation_token, popup_presentation_effect)
 
 func _show_tutorial_prompt_if_needed(force: bool = false) -> bool:
 	if tutorial_manager == null or run_state == null:
@@ -1232,6 +2475,7 @@ func _show_tutorial_prompt_if_needed(force: bool = false) -> bool:
 	if prompt.is_empty():
 		return false
 	_show_message_popup(str(prompt.get("title", "")), str(prompt.get("subtitle", "")), str(prompt.get("body", "")))
+	_set_popup_body_prompt_layout()
 	return true
 
 func _build_tutorial_dialog_ui() -> void:
@@ -1329,7 +2573,13 @@ func _show_tutorial_followup_if_needed() -> bool:
 	var popup: Dictionary = tutorial_manager.consume_followup_popup(run_state)
 	if popup.is_empty():
 		return false
-	_show_message_popup(str(popup.get("title", "")), str(popup.get("subtitle", "")), str(popup.get("body", "")))
+	_show_message_popup(
+		str(popup.get("title", "")),
+		str(popup.get("subtitle", "")),
+		str(popup.get("body", "")),
+		str(popup.get("presentation", "")),
+		str(popup.get("image_path", ""))
+	)
 	tutorial_prompt_after_popup = bool(popup.get("chain_to_prompt", false))
 	return true
 
@@ -1440,11 +2690,100 @@ func _on_tutorial_dialog_gui_input(event: InputEvent) -> void:
 			_advance_tutorial_dialog()
 			accept_event()
 
+func _build_popup_presentation_ui() -> void:
+	if popup_panel == null or popup_effect_overlay != null:
+		return
+	popup_effect_overlay = Control.new()
+	popup_effect_overlay.name = "PopupEffectOverlay"
+	popup_effect_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	popup_effect_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_effect_overlay.clip_contents = true
+	popup_effect_overlay.visible = false
+	popup_panel.add_child(popup_effect_overlay)
+	popup_panel.move_child(popup_effect_overlay, popup_panel.get_child_count() - 1)
+	popup_effect_top_cover = ColorRect.new()
+	popup_effect_top_cover.color = Color(0.17, 0.14, 0.12, 0.98)
+	popup_effect_top_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_effect_overlay.add_child(popup_effect_top_cover)
+	popup_effect_bottom_cover = ColorRect.new()
+	popup_effect_bottom_cover.color = Color(0.17, 0.14, 0.12, 0.98)
+	popup_effect_bottom_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_effect_overlay.add_child(popup_effect_bottom_cover)
+	popup_effect_seam = ColorRect.new()
+	popup_effect_seam.color = Color(0.82, 0.72, 0.52, 0.92)
+	popup_effect_seam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	popup_effect_overlay.add_child(popup_effect_seam)
+	popup_panel.resized.connect(_layout_popup_letter_overlay)
+	_layout_popup_letter_overlay()
+
+func _layout_popup_letter_overlay() -> void:
+	if popup_effect_overlay == null or popup_effect_top_cover == null or popup_effect_bottom_cover == null or popup_effect_seam == null:
+		return
+	var panel_size: Vector2 = popup_panel.size if popup_panel.size != Vector2.ZERO else popup_panel.custom_minimum_size
+	if panel_size.x <= 0.0 or panel_size.y <= 0.0:
+		return
+	var seam_height: float = 8.0
+	var half_height: float = panel_size.y * 0.5 + seam_height
+	popup_effect_top_cover.position = Vector2.ZERO
+	popup_effect_top_cover.size = Vector2(panel_size.x, half_height)
+	popup_effect_bottom_cover.position = Vector2(0.0, panel_size.y - half_height)
+	popup_effect_bottom_cover.size = Vector2(panel_size.x, half_height)
+	popup_effect_seam.position = Vector2(0.0, panel_size.y * 0.5 - seam_height * 0.5)
+	popup_effect_seam.size = Vector2(panel_size.x, seam_height)
+
+func _reset_popup_presentation_visuals() -> void:
+	if popup_effect_tween != null:
+		popup_effect_tween.kill()
+		popup_effect_tween = null
+	if popup_panel != null:
+		popup_panel.scale = Vector2.ONE
+		popup_panel.modulate = Color.WHITE
+		popup_panel.pivot_offset = popup_panel.size * 0.5
+	if popup_effect_overlay != null:
+		_layout_popup_letter_overlay()
+		popup_effect_overlay.visible = false
+	if popup_effect_seam != null:
+		popup_effect_seam.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+func _play_popup_presentation(token: int, presentation: String) -> void:
+	await get_tree().process_frame
+	if token != popup_presentation_token or presentation != popup_presentation_effect or not detail_overlay.visible:
+		return
+	if presentation != "letter_unfold":
+		return
+	_build_popup_presentation_ui()
+	_layout_popup_letter_overlay()
+	if popup_effect_overlay == null or popup_effect_top_cover == null or popup_effect_bottom_cover == null or popup_effect_seam == null:
+		return
+	popup_panel.pivot_offset = popup_panel.size * 0.5
+	popup_panel.scale = Vector2(0.985, 0.94)
+	popup_panel.modulate = Color(1.0, 1.0, 1.0, 0.82)
+	popup_effect_overlay.visible = true
+	popup_effect_top_cover.position.y = 0.0
+	popup_effect_bottom_cover.position.y = popup_panel.size.y - popup_effect_bottom_cover.size.y
+	popup_effect_seam.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	popup_effect_tween = create_tween().set_parallel(true)
+	popup_effect_tween.tween_property(popup_panel, "scale", Vector2.ONE, LETTER_POPUP_EFFECT_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	popup_effect_tween.tween_property(popup_panel, "modulate", Color.WHITE, LETTER_POPUP_EFFECT_DURATION * 0.85).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	popup_effect_tween.tween_property(popup_effect_top_cover, "position:y", -popup_effect_top_cover.size.y - 10.0, LETTER_POPUP_EFFECT_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	popup_effect_tween.tween_property(popup_effect_bottom_cover, "position:y", popup_panel.size.y + 10.0, LETTER_POPUP_EFFECT_DURATION).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	popup_effect_tween.tween_property(popup_effect_seam, "modulate:a", 0.0, LETTER_POPUP_EFFECT_DURATION * 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	popup_effect_tween.finished.connect(_on_popup_presentation_finished.bind(token))
+
+func _on_popup_presentation_finished(token: int) -> void:
+	if token != popup_presentation_token:
+		return
+	if popup_effect_overlay != null:
+		popup_effect_overlay.visible = false
+	popup_effect_tween = null
+
 func _configure_popup_for_detail() -> void:
+	_reset_popup_presentation_visuals()
 	popup_panel.custom_minimum_size = POPUP_DETAIL_SIZE
 	popup_art_frame.visible = true
 	popup_close.text = TextDB.get_text("ui.buttons.close")
 	_set_popup_cancel_state(false)
+	_set_popup_body_center_layout()
 
 func _on_popup_close_pressed() -> void:
 	if settlement_dialog_active:
@@ -1478,6 +2817,26 @@ func _on_popup_panel_gui_input(event: InputEvent) -> void:
 	if popup_close != null and popup_close.visible and popup_close.get_global_rect().has_point(mouse_pos):
 		_on_popup_close_pressed()
 		accept_event()
+
+func _on_popup_body_gui_input(event: InputEvent) -> void:
+	if popup_body == null or not detail_overlay.visible:
+		return
+	if event is not InputEventMouseButton:
+		return
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+	var direction: float = 0.0
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		direction = -1.0
+	elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		direction = 1.0
+	else:
+		return
+	var scroll_bar: VScrollBar = popup_body.get_v_scroll_bar()
+	if scroll_bar == null or is_zero_approx(scroll_bar.max_value - scroll_bar.min_value):
+		return
+	var step: float = 72.0 * maxf(mouse_event.factor, 1.0)
+	scroll_bar.value = clampf(scroll_bar.value + direction * step, scroll_bar.min_value, scroll_bar.max_value)
+	accept_event()
 
 func _advance_settlement_dialog() -> void:
 	var pages: Array = _settlement_pages()
@@ -1562,7 +2921,20 @@ func _refresh_events() -> void:
 func _build_committed_preview(card: Dictionary) -> CardView:
 	return _build_committed_preview_with_size(card, LIST_CARD_WIDTH, LIST_CARD_HEIGHT, LIST_CARD_ART_HEIGHT)
 
-func _build_committed_preview_with_size(card: Dictionary, card_width: float, card_height: float, art_height: float) -> CardView:
+func _replace_target_base_id(target_id: String) -> String:
+	var base_target_id: String = target_id.strip_edges()
+	if base_target_id.contains("@replace="):
+		base_target_id = base_target_id.get_slice("@replace=", 0)
+	if base_target_id.contains("#"):
+		base_target_id = base_target_id.get_slice("#", 0)
+	return base_target_id
+
+func _make_replace_assign_target(target_id: String, replace_uid: String) -> String:
+	if target_id.is_empty() or replace_uid.is_empty():
+		return target_id
+	return "%s@replace=%s" % [target_id, replace_uid]
+
+func _build_committed_preview_with_size(card: Dictionary, card_width: float, card_height: float, art_height: float, replace_target_id: String = "", current_cards: Array = [], spec: Dictionary = {}) -> CardView:
 	var preview: CardView = CARD_SCENE.instantiate()
 	var payload: Dictionary = card.duplicate(true)
 	payload["subtitle"] = ""
@@ -1577,10 +2949,23 @@ func _build_committed_preview_with_size(card: Dictionary, card_width: float, car
 	payload["assigned"] = true
 	payload["removable"] = true
 	payload["embedded"] = true
+	if not replace_target_id.is_empty():
+		payload["assign_target_id"] = replace_target_id
+		payload["target_id"] = _replace_target_base_id(replace_target_id)
+		payload["replace_drop_enabled"] = true
+		payload["replace_uid"] = str(card.get("uid", ""))
+		payload["current_cards"] = current_cards.duplicate(true)
+		payload["slot_key"] = str(spec.get("key", ""))
+		payload["allowed_card_types"] = spec.get("allowed_card_types", [])
+		payload["allowed_card_ids"] = spec.get("allowed_card_ids", [])
+		payload["blocked_card_ids"] = spec.get("blocked_card_ids", [])
+		payload["required_tags"] = spec.get("required_tags", [])
 	preview.setup(payload)
 	preview.custom_minimum_size = Vector2(card_width, card_height)
 	preview.card_clicked.connect(_on_detail_card_clicked)
 	preview.remove_requested.connect(_on_card_remove_requested)
+	if not replace_target_id.is_empty():
+		preview.target_drop_requested.connect(_on_target_drop_requested)
 	return preview
 
 func _refresh_roster() -> void:
@@ -1619,6 +3004,7 @@ func _refresh_roster() -> void:
 			"art_bg_color": Color(0.20, 0.20, 0.22),
 			"color": Color(0.12, 0.12, 0.13),
 			"compact_details": true,
+			"title_font_size": 16,
 			"card_width": LIST_CARD_WIDTH,
 			"art_height": LIST_CARD_ART_HEIGHT,
 			"collapsed_height": LIST_CARD_HEIGHT,
@@ -1663,6 +3049,7 @@ func _refresh_resources() -> void:
 			"art_bg_color": Color(0.18, 0.18, 0.19),
 			"color": Color(0.11, 0.11, 0.12),
 			"compact_details": true,
+			"title_font_size": 16,
 			"show_subtitle_in_compact": false,
 			"show_assigned_in_compact": false,
 			"card_width": LIST_CARD_WIDTH,
@@ -1840,6 +3227,7 @@ func _show_card_detail(card_id: String) -> void:
 
 
 func _on_detail_card_clicked(card_id: String) -> void:
+	_play_ui_sound("card_focus")
 	_open_detail_popup(card_id)
 
 func _detail_window_key(card_id: String) -> String:
@@ -1869,6 +3257,8 @@ func _open_detail_popup(card_id: String) -> void:
 	var window = FLOATING_DETAIL_WINDOW_SCRIPT.new()
 	window.set_meta("detail_key", window_key)
 	window.setup(payload)
+	window.apply_title_font(_load_font_resource(TITLE_FONT_PATH))
+	window.apply_body_font_size(BODY_FONT_SIZE)
 	detail_window_layer.add_child(window)
 	active_detail_windows.append(window)
 	detail_window_by_key[window_key] = window
@@ -1984,11 +3374,16 @@ func _on_floating_detail_window_drag_requested(window, mouse_global_position: Ve
 	detail_window_drag_offset = mouse_global_position - window.global_position
 
 func _close_detail_popup() -> void:
+	var was_visible: bool = detail_overlay.visible
+	popup_presentation_token += 1
+	popup_presentation_effect = ""
 	settlement_dialog_active = false
 	end_turn_confirm_active = false
 	turn_report_dialog_active = false
 	_configure_popup_for_detail()
 	detail_overlay.visible = false
+	if was_visible:
+		_play_ui_sound("panel_close")
 	if tutorial_prompt_after_popup:
 		tutorial_prompt_after_popup = false
 		_show_tutorial_prompt_if_needed()
@@ -2010,10 +3405,22 @@ func _close_all_detail_views() -> void:
 	if detail_overlay.visible and not settlement_dialog_active:
 		_close_detail_popup()
 
+func _on_slot_drag_hovered(slot_id: String, payload: Dictionary) -> void:
+	if slot_id.is_empty() or payload == null:
+		return
+	if slot_id.contains(":") or events.has(slot_id):
+		return
+	if not _tutorial_allows_assignment(slot_id, payload):
+		return
+	if detail_panel_open and selected_slot_id == slot_id:
+		return
+	_show_slot_detail(slot_id, false, true)
+
 func _on_slot_card_clicked(slot_id: String) -> void:
+	_play_ui_sound("card_focus")
 	_show_slot_detail(slot_id, true)
 
-func _show_slot_detail(slot_id: String, focus_window: bool = false) -> void:
+func _show_slot_detail(slot_id: String, focus_window: bool = false, suppress_focus: bool = false) -> void:
 	selected_slot_id = slot_id
 	detail_panel_open = true
 	var body: String = TextDB.get_text("system.slot_details.%s" % slot_id)
@@ -2025,21 +3432,23 @@ func _show_slot_detail(slot_id: String, focus_window: bool = false) -> void:
 		_slot_art_path(slot_id),
 		assigned_cards,
 		TextDB.get_text("ui.detail_panel.slot_hint"),
-		focus_window
+		focus_window,
+		suppress_focus
 	)
 
-func _detail_setup(title: String, subtitle: String, body: String, icon_path: String, assigned_cards: Array, footnote: String, focus_window: bool = false) -> void:
+func _detail_setup(title: String, subtitle: String, body: String, icon_path: String, assigned_cards: Array, footnote: String, focus_window: bool = false, suppress_focus: bool = false) -> void:
 	var detail_panel_was_visible: bool = detail_panel.visible
 	detail_panel_open = true
 	detail_panel.visible = true
 	_apply_detail_panel_window_size()
 	_ensure_detail_panel_position()
-	if focus_window or not detail_panel_was_visible:
+	if not suppress_focus and (focus_window or not detail_panel_was_visible):
 		_focus_detail_panel()
 	detail_title.text = title
 	detail_subtitle.text = subtitle
-	detail_subtitle.visible = not subtitle.strip_edges().is_empty()
+	detail_subtitle.visible = false
 	detail_body.text = body
+	_set_rich_text_layout(detail_body, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP)
 	detail_assignment_title.text = TextDB.get_text("ui.detail_panel.assignment_title")
 	detail_assignment_title.visible = true
 	detail_assignment_row.visible = true
@@ -2096,7 +3505,8 @@ func _refresh_detail_assignment_row(slot_id: String, assigned_cards: Array) -> v
 	if specs.is_empty():
 		for card_variant in display_cards:
 			var loose_card: Dictionary = card_variant as Dictionary
-			var loose_preview: CardView = _build_committed_preview_with_size(loose_card, card_width, card_height, art_height)
+			var replace_target_id: String = _make_replace_assign_target(slot_id, str(loose_card.get("uid", "")))
+			var loose_preview: CardView = _build_committed_preview_with_size(loose_card, card_width, card_height, art_height, replace_target_id, assigned_cards)
 			loose_preview.custom_minimum_size = Vector2(card_width, card_height)
 			loose_preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			loose_preview.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -2108,8 +3518,11 @@ func _refresh_detail_assignment_row(slot_id: String, assigned_cards: Array) -> v
 	var placements: Array = _place_cards_into_detail_specs(specs, display_cards)
 	for index in range(specs.size()):
 		var placed_card: Dictionary = placements[index] as Dictionary
+		var spec: Dictionary = specs[index] as Dictionary
 		if not placed_card.is_empty():
-			var preview: CardView = _build_committed_preview_with_size(placed_card, card_width, card_height, art_height)
+			var replace_base_target_id: String = slot_id if str(spec.get("key", "")).is_empty() else "%s#%s" % [slot_id, str(spec.get("key", ""))]
+			var replace_target_id: String = _make_replace_assign_target(replace_base_target_id, str(placed_card.get("uid", "")))
+			var preview: CardView = _build_committed_preview_with_size(placed_card, card_width, card_height, art_height, replace_target_id, assigned_cards, spec)
 			preview.custom_minimum_size = Vector2(card_width, card_height)
 			preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			preview.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -2359,6 +3772,7 @@ func _on_card_quick_assign_requested(payload: Dictionary) -> void:
 	var target: Dictionary = _find_quick_assign_target(payload)
 	if target.is_empty():
 		run_state.log_entries.append(TextDB.get_text("logs.board.quick_assign_failed"))
+		_play_ui_sound("assign_fail")
 		_refresh_board()
 		return
 	var ok: bool = false
@@ -2370,8 +3784,10 @@ func _on_card_quick_assign_requested(payload: Dictionary) -> void:
 			selected_slot_id = str(target.get("slot_id", ""))
 	if ok:
 		run_state.log_entries.append(TextDB.format_text("logs.board.quick_assign_success", [str(payload.get("title", "")), str(target.get("label", ""))]))
+		_play_ui_sound("assign_ok")
 	else:
 		run_state.log_entries.append(TextDB.get_text("logs.board.invalid_drop"))
+		_play_ui_sound("assign_fail")
 	_refresh_board()
 
 func _on_card_remove_requested(payload: Dictionary) -> void:
@@ -2379,6 +3795,7 @@ func _on_card_remove_requested(payload: Dictionary) -> void:
 	if uid.is_empty():
 		return
 	if board_manager.unassign_card(uid):
+		_play_ui_sound("remove")
 		_refresh_board()
 
 func _find_quick_assign_target(payload: Dictionary) -> Dictionary:
@@ -2504,26 +3921,45 @@ func _character_body(character_id: String, locked: bool) -> String:
 		lines.append(TextDB.get_text("system.character_templates.locked_hint"))
 	return "\n".join(lines)
 
+func _parse_drop_request_target(target_id: String) -> Dictionary:
+	var tutorial_target_id: String = target_id.strip_edges()
+	var replace_uid: String = ""
+	if tutorial_target_id.contains("@replace="):
+		replace_uid = tutorial_target_id.get_slice("@replace=", 1)
+		tutorial_target_id = tutorial_target_id.get_slice("@replace=", 0)
+	var resolved_target_id: String = tutorial_target_id.get_slice("#", 0) if tutorial_target_id.contains("#") else tutorial_target_id
+	return {
+		"tutorial_target_id": tutorial_target_id,
+		"resolved_target_id": resolved_target_id,
+		"replace_uid": replace_uid
+	}
+
 func _on_target_drop_requested(target_id: String, payload: Dictionary) -> void:
 	if payload == null:
 		return
-	if not _tutorial_allows_assignment(target_id, payload):
+	var target_info: Dictionary = _parse_drop_request_target(target_id)
+	var tutorial_target_id: String = str(target_info.get("tutorial_target_id", ""))
+	var resolved_target_id: String = str(target_info.get("resolved_target_id", ""))
+	var replace_uid: String = str(target_info.get("replace_uid", ""))
+	if not _tutorial_allows_assignment(tutorial_target_id, payload):
 		run_state.log_entries.append(TextDB.get_text("logs.board.invalid_drop"))
+		_play_ui_sound("assign_fail")
 		_refresh_board()
 		return
-	var resolved_target_id: String = target_id.get_slice("#", 0) if target_id.contains("#") else target_id
 	var ok: bool = false
 	if resolved_target_id.contains(":character"):
-		ok = board_manager.assign_to_event(resolved_target_id.get_slice(":", 0), payload, "character")
+		ok = board_manager.assign_to_event(resolved_target_id.get_slice(":", 0), payload, "character", replace_uid)
 	elif resolved_target_id.contains(":resource"):
-		ok = board_manager.assign_to_event(resolved_target_id.get_slice(":", 0), payload, "resource")
+		ok = board_manager.assign_to_event(resolved_target_id.get_slice(":", 0), payload, "resource", replace_uid)
 	elif events.has(resolved_target_id):
-		ok = board_manager.assign_to_event(resolved_target_id, payload)
+		ok = board_manager.assign_to_event(resolved_target_id, payload, "", replace_uid)
 	else:
-		ok = board_manager.assign_to_slot(resolved_target_id, payload)
+		ok = board_manager.assign_to_slot(resolved_target_id, payload, replace_uid)
 	if not ok:
 		run_state.log_entries.append(TextDB.get_text("logs.board.invalid_drop"))
+		_play_ui_sound("assign_fail")
 	else:
+		_play_ui_sound("assign_ok")
 		if not resolved_target_id.contains(":") and not events.has(resolved_target_id):
 			selected_slot_id = resolved_target_id
 			detail_panel_open = true
@@ -2573,19 +4009,21 @@ func _show_end_turn_confirm_dialog() -> void:
 	end_turn_confirm_active = true
 	turn_report_dialog_active = false
 	settlement_dialog_active = false
+	_play_ui_sound("panel_open")
 	_configure_popup_for_confirm()
 	popup_title.text = TextDB.get_text("turn_report.confirm.title")
 	popup_subtitle.text = TextDB.get_text("turn_report.confirm.subtitle")
-	popup_subtitle.visible = not popup_subtitle.text.strip_edges().is_empty()
+	popup_subtitle.visible = false
 	popup_body.text = TextDB.get_text("turn_report.confirm.body")
 	popup_body.scroll_to_line(0)
-	popup_art.texture = null
+	_set_popup_body_center_layout()
+	_set_popup_art_image("")
 	detail_overlay.visible = true
 
 func _build_turn_report_body(turn_index: int, logs: Array[String], body_override: String = "") -> String:
 	if _has_meaningful_story_text(body_override):
-		return body_override.strip_edges()
-	return _build_turn_story_body(turn_index, logs)
+		return _normalize_document_body(body_override)
+	return _normalize_document_body(_build_turn_story_body(turn_index, logs))
 
 func _build_turn_story_body(turn_index: int, logs: Array[String]) -> String:
 	var term_name: String = GameRules.current_term_name(turn_index)
@@ -2624,9 +4062,7 @@ func _build_turn_story_body(turn_index: int, logs: Array[String]) -> String:
 		story_lines.append(narrative_tail)
 	else:
 		story_lines.append(TextDB.get_text("turn_report.report.story_closing", "Night deepened, and the turn quietly came to a close."))
-	return "
-
-".join(story_lines)
+	return "\n\n".join(story_lines)
 
 func _build_story_sentence(raw_line: String, connector: String = "") -> String:
 	var content: String = raw_line.strip_edges()
@@ -2660,18 +4096,21 @@ func _show_turn_report_dialog(turn_index: int, logs: Array[String], title_overri
 	turn_report_dialog_active = true
 	end_turn_confirm_active = false
 	settlement_dialog_active = false
+	_play_ui_sound("panel_open")
 	_configure_popup_for_turn_report()
 	popup_title.text = title_override if not title_override.is_empty() else GameRules.current_term_name(turn_index)
 	popup_subtitle.text = subtitle_override if not subtitle_override.is_empty() else ""
-	popup_subtitle.visible = not popup_subtitle.text.strip_edges().is_empty()
+	popup_subtitle.visible = false
 	popup_body.text = _build_turn_report_body(turn_index, logs, body_override)
 	popup_body.scroll_to_line(0)
-	popup_art.texture = null
+	_set_popup_body_document_layout()
+	_set_popup_art_image("")
 	detail_overlay.visible = true
 
 func _close_turn_report_dialog() -> void:
 	turn_report_dialog_active = false
 	detail_overlay.visible = false
+	_play_ui_sound("panel_close")
 	_configure_popup_for_detail()
 	if tutorial_manager != null and run_state != null:
 		tutorial_manager.clear_report_context(run_state)
@@ -2690,6 +4129,7 @@ func _close_turn_report_dialog() -> void:
 
 func _confirm_end_turn() -> void:
 	end_turn_confirm_active = false
+	_play_ui_sound("confirm")
 	_close_all_detail_views()
 	var resolved_turn_index: int = run_state.turn_index
 	var logs: Array[String] = turn_manager.resolve_turn(run_state, board_manager, event_manager, relation_manager, characters, resources, tutorial_manager)
@@ -2708,12 +4148,24 @@ func _confirm_end_turn() -> void:
 	var report_subtitle_override: String = ""
 	var report_body_override: String = ""
 	var should_show_report: bool = true
+	var tutorial_active: bool = tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state)
 	if tutorial_manager != null:
 		report_turn_index = tutorial_manager.report_index(run_state, resolved_turn_index)
 		report_title_override = tutorial_manager.report_title(run_state)
 		report_subtitle_override = tutorial_manager.report_subtitle(run_state, resolved_turn_index)
 		report_body_override = tutorial_manager.report_body_override(run_state)
 		should_show_report = tutorial_manager.should_show_report(run_state)
+	if not tutorial_active:
+		var result_presentations: Array = turn_manager.consume_result_presentations()
+		if _start_turn_result_sequence(result_presentations, {
+			"turn_index": report_turn_index,
+			"logs": report_logs.duplicate(true),
+			"title": report_title_override,
+			"subtitle": report_subtitle_override,
+			"body": report_body_override,
+			"show_report": should_show_report
+		}):
+			return
 	if should_show_report:
 		if _try_show_tutorial_pre_report_dialog(report_turn_index, report_logs, report_title_override, report_subtitle_override, report_body_override):
 			return
@@ -2726,7 +4178,7 @@ func _confirm_end_turn() -> void:
 			_show_tutorial_prompt_if_needed(true)
 
 func _on_end_turn_pressed() -> void:
-	if startup_cover_active or _system_menu_visible() or run_state.game_over or detail_overlay.visible or tutorial_dialog_active:
+	if startup_cover_active or _system_menu_visible() or run_state.game_over or detail_overlay.visible or tutorial_dialog_active or turn_result_active:
 		return
 	if tutorial_manager != null:
 		var tutorial_status: Dictionary = tutorial_manager.end_turn_status(run_state, board_manager)
@@ -2738,6 +4190,7 @@ func _on_end_turn_pressed() -> void:
 func _on_toggle_log_pressed() -> void:
 	log_panel.visible = not log_panel.visible
 	toggle_log_button.text = TextDB.get_text("ui.buttons.hide_log") if log_panel.visible else TextDB.get_text("ui.buttons.show_log")
+	_play_ui_sound("button")
 
 func _slot_art_path(slot_id: String) -> String:
 	match slot_id:

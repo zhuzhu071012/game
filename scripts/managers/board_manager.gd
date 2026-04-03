@@ -21,7 +21,7 @@ func reset_turn_targets(event_ids: Array[String]) -> void:
 	committed_cards.clear()
 	emit_signal("board_changed")
 
-func assign_to_slot(slot_id: String, payload: Dictionary) -> bool:
+func assign_to_slot(slot_id: String, payload: Dictionary, replace_uid: String = "") -> bool:
 	if payload.is_empty():
 		return false
 	var card_uid: String = str(payload.get("uid", ""))
@@ -29,25 +29,34 @@ func assign_to_slot(slot_id: String, payload: Dictionary) -> bool:
 		return false
 	if not slot_assignments.has(slot_id):
 		slot_assignments[slot_id] = []
-	var current_cards: Array = slot_assignments[slot_id]
 	var existing_location: String = str(committed_cards.get(card_uid, ""))
-	if existing_location == slot_id:
+	if existing_location == slot_id and (replace_uid.is_empty() or replace_uid == card_uid):
 		return false
+	var current_cards: Array = (slot_assignments.get(slot_id, []) as Array).duplicate(true)
+	if not replace_uid.is_empty() and replace_uid != card_uid:
+		if not _remove_uid_from_cards(current_cards, replace_uid):
+			return false
 	if not GameRules.can_drop_on_slot(slot_id, payload, current_cards):
 		return false
-	if not existing_location.is_empty():
-		if not _unassign_without_signal(card_uid):
+	var snapshot: Dictionary = snapshot_state()
+	if not existing_location.is_empty() and not _unassign_without_signal(card_uid):
+		_restore_snapshot(snapshot)
+		return false
+	if not replace_uid.is_empty() and replace_uid != card_uid and committed_cards.has(replace_uid):
+		if not _unassign_without_signal(replace_uid):
+			_restore_snapshot(snapshot)
 			return false
-		current_cards = slot_assignments.get(slot_id, [])
-		if not GameRules.can_drop_on_slot(slot_id, payload, current_cards):
-			return false
+	current_cards = slot_assignments.get(slot_id, [])
+	if not GameRules.can_drop_on_slot(slot_id, payload, current_cards):
+		_restore_snapshot(snapshot)
+		return false
 	current_cards.append(payload)
 	slot_assignments[slot_id] = current_cards
 	committed_cards[card_uid] = slot_id
 	emit_signal("board_changed")
 	return true
 
-func assign_to_event(event_id: String, payload: Dictionary, slot_type: String = "") -> bool:
+func assign_to_event(event_id: String, payload: Dictionary, slot_type: String = "", replace_uid: String = "") -> bool:
 	if payload.is_empty():
 		return false
 	var card_uid: String = str(payload.get("uid", ""))
@@ -60,21 +69,31 @@ func assign_to_event(event_id: String, payload: Dictionary, slot_type: String = 
 		target_slot = str(payload.get("card_type", ""))
 	if not event_assignments[event_id].has(target_slot):
 		return false
-	var current_cards: Array = event_assignments[event_id][target_slot]
+	var location_key: String = "%s:%s" % [event_id, target_slot]
 	var existing_location: String = str(committed_cards.get(card_uid, ""))
-	if existing_location == "%s:%s" % [event_id, target_slot]:
+	if existing_location == location_key and (replace_uid.is_empty() or replace_uid == card_uid):
 		return false
+	var current_cards: Array = (event_assignments[event_id][target_slot] as Array).duplicate(true)
+	if not replace_uid.is_empty() and replace_uid != card_uid:
+		if not _remove_uid_from_cards(current_cards, replace_uid):
+			return false
 	if not GameRules.can_drop_on_event_slot(target_slot, payload, current_cards):
 		return false
-	if not existing_location.is_empty():
-		if not _unassign_without_signal(card_uid):
+	var snapshot: Dictionary = snapshot_state()
+	if not existing_location.is_empty() and not _unassign_without_signal(card_uid):
+		_restore_snapshot(snapshot)
+		return false
+	if not replace_uid.is_empty() and replace_uid != card_uid and committed_cards.has(replace_uid):
+		if not _unassign_without_signal(replace_uid):
+			_restore_snapshot(snapshot)
 			return false
-		current_cards = event_assignments[event_id].get(target_slot, [])
-		if not GameRules.can_drop_on_event_slot(target_slot, payload, current_cards):
-			return false
+	current_cards = event_assignments[event_id].get(target_slot, [])
+	if not GameRules.can_drop_on_event_slot(target_slot, payload, current_cards):
+		_restore_snapshot(snapshot)
+		return false
 	current_cards.append(payload)
 	event_assignments[event_id][target_slot] = current_cards
-	committed_cards[card_uid] = "%s:%s" % [event_id, target_slot]
+	committed_cards[card_uid] = location_key
 	emit_signal("board_changed")
 	return true
 
@@ -129,7 +148,6 @@ func get_event_slot_cards(event_id: String, slot_type: String) -> Array:
 		return []
 	return event_assignments[event_id].get(slot_type, [])
 
-
 func unassign_card(card_uid: String) -> bool:
 	if card_uid.is_empty() or not committed_cards.has(card_uid):
 		return false
@@ -138,6 +156,11 @@ func unassign_card(card_uid: String) -> bool:
 		return false
 	emit_signal("board_changed")
 	return true
+
+func _restore_snapshot(snapshot: Dictionary) -> void:
+	slot_assignments = (snapshot.get("slot_assignments", {}) as Dictionary).duplicate(true)
+	event_assignments = (snapshot.get("event_assignments", {}) as Dictionary).duplicate(true)
+	committed_cards = (snapshot.get("committed_cards", {}) as Dictionary).duplicate(true)
 
 func _unassign_without_signal(card_uid: String) -> bool:
 	if card_uid.is_empty() or not committed_cards.has(card_uid):

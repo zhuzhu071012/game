@@ -7,6 +7,7 @@ signal detail_requested(card_id: String)
 signal quick_assign_requested(payload: Dictionary)
 signal remove_requested(payload: Dictionary)
 signal dialog_focus_requested
+signal event_dialog_toggled(event_id: String, expanded: bool)
 
 const CARD_SCENE := preload("res://scenes/CardView.tscn")
 const SLOT_SCENE := preload("res://scenes/SlotView.tscn")
@@ -77,14 +78,19 @@ func toggle_event(event_id: String) -> void:
 			event_dialog.visible = false
 			event_dialog.size = Vector2.ZERO
 		emit_signal("dialog_focus_requested")
+		emit_signal("event_dialog_toggled", event_id, true)
 	emit_signal("refresh_requested")
 
 func close_dialog(emit_refresh: bool = true) -> void:
+	var closed_event_id: String = _expanded_event_id
+	var was_open: bool = not closed_event_id.is_empty() and event_dialog != null and event_dialog.visible
 	_expanded_event_id = ""
 	_dragging = false
 	_needs_center = false
 	if event_dialog != null:
 		event_dialog.visible = false
+	if was_open:
+		emit_signal("event_dialog_toggled", closed_event_id, false)
 	if emit_refresh:
 		emit_signal("refresh_requested")
 
@@ -136,8 +142,9 @@ func _refresh_event_list(run_state: RunState, event_defs: Dictionary, board_mana
 		var assigned_cards: Array = board_manager.get_event_cards(event_id)
 		var event_card: CardView = CARD_SCENE.instantiate()
 		var turns_left: int = int(state.get("turns_left", 0))
-		event_card.setup(_make_event_icon_payload(event, turns_left, assigned_cards, _expanded_event_id == event_id))
+		event_card.setup(_make_event_icon_payload(event, turns_left, assigned_cards, _expanded_event_id == event_id), true)
 		event_card.card_clicked.connect(_on_event_card_clicked)
+		event_card.drag_slot_hovered.connect(_on_event_card_drag_hovered)
 		event_card.quick_assign_requested.connect(_on_event_quick_assign_requested)
 		event_column.add_child(event_card)
 	if run_state.active_event_ids.is_empty():
@@ -160,6 +167,7 @@ func _refresh_event_dialog(run_state: RunState, event_defs: Dictionary, board_ma
 	event_dialog.visible = true
 	event_dialog_title.text = event.title
 	event_dialog_subtitle.text = TextDB.format_text("ui.event_subtitle.expanded", [int(state.get("turns_left", 0))])
+	event_dialog_subtitle.visible = false
 	event_dialog_body.text = _event_body(event)
 	_populate_event_dialog_slots(board_manager, _expanded_event_id)
 	event_dialog_assigned_title.visible = false
@@ -234,14 +242,14 @@ func _populate_event_dialog_slots(board_manager: BoardManager, event_id: String)
 			event_dialog_slot_row.add_child(placeholder)
 		else:
 			var card: Dictionary = slot_cards[0] as Dictionary
-			var preview: CardView = _build_event_dialog_preview(card)
+			var preview: CardView = _build_event_dialog_preview(card, event_id, slot_type, slot_cards)
 			preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
 			preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			preview.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 			event_dialog_slot_row.add_child(preview)
 	event_dialog_slot_row.queue_sort()
 
-func _build_event_dialog_preview(card: Dictionary) -> CardView:
+func _build_event_dialog_preview(card: Dictionary, event_id: String, slot_type: String, current_cards: Array) -> CardView:
 	var preview: CardView = CARD_SCENE.instantiate()
 	preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
 	var payload: Dictionary = card.duplicate(true)
@@ -257,12 +265,19 @@ func _build_event_dialog_preview(card: Dictionary) -> CardView:
 	payload["assigned"] = true
 	payload["removable"] = true
 	payload["embedded"] = true
+	payload["target_id"] = "%s:%s" % [event_id, slot_type]
+	payload["assign_target_id"] = "%s:%s@replace=%s" % [event_id, slot_type, str(card.get("uid", ""))]
+	payload["drop_kind"] = "event_%s" % slot_type
+	payload["replace_drop_enabled"] = true
+	payload["replace_uid"] = str(card.get("uid", ""))
+	payload["current_cards"] = current_cards.duplicate(true)
 	preview.setup(payload)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	preview.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	preview.z_index = 0
 	preview.card_clicked.connect(_on_detail_card_clicked)
 	preview.remove_requested.connect(_on_card_remove_requested)
+	preview.target_drop_requested.connect(_on_target_drop_requested)
 	return preview
 
 func _build_event_slot_well(slot_type: String, content: Control) -> PanelContainer:
@@ -439,6 +454,18 @@ func _on_event_quick_assign_requested(payload: Dictionary) -> void:
 
 func _on_event_card_clicked(event_id: String) -> void:
 	toggle_event(event_id)
+
+func _on_event_card_drag_hovered(event_id: String, _payload: Dictionary) -> void:
+	if event_id.is_empty() or _expanded_event_id == event_id:
+		return
+	_expanded_event_id = event_id
+	_needs_center = true
+	if event_dialog != null:
+		event_dialog.visible = false
+		event_dialog.size = Vector2.ZERO
+	emit_signal("dialog_focus_requested")
+	emit_signal("event_dialog_toggled", event_id, true)
+	emit_signal("refresh_requested")
 
 func _on_target_drop_requested(target_id: String, payload: Dictionary) -> void:
 	emit_signal("target_drop_requested", target_id, payload)

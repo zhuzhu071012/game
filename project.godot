@@ -21,6 +21,7 @@ config/features=PackedStringArray("4.6")
 [audio]
 
 buses/default_bus_layout="uid://btrennenbti84"
+driver/output_latency=30
 
 [display]
 

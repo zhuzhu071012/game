@@ -88,7 +88,7 @@
   },
   "event_rules": {
 	"summary": "最低要求 %d / 成功阈值 %d / 检定 DC %d / 时限 %d 回合",
-	"rule_line": "达到成功阈值则必定成功；达到最低要求但未达阈值时，进行 D20 检定。",
+	"rule_line": "达到成功阈值则必定成功；达到最低要求但未达阈值时，进行 2d6 检定。",
 	"pressure": "当前火势使检定压力 +%d",
 	"attributes": "本事件调用属性：%s",
 	"specialties": "推荐专长：%s",
@@ -97,7 +97,7 @@
   },
   "finale": {
 	"preparation_line": "战前整备：粮草 %d / 人心 %d，胜利值 %s",
-	"roll_line": "%s：%s（d20=%d，总值=%d，对抗=%d）",
+	"roll_line": "%s：%s（2d6=%d，总值=%d，对抗=%d）",
 	"fire_penalty": "火攻受创：兵力 -%d",
 	"battle_bonus": "识破机谋：正面决战额外 +%d",
 	"camp_line": "粮草 %d / 兵力 %d / 人心 %d / 军略 %d",
@@ -179,7 +179,7 @@
 	},
 	"menu_option": {
 	  "title": "选项",
-	  "body": "当前版本先预留选项入口，后续可在这里加入音量、显示比例与操作偏好等设置。"
+	  "body": "这里可以调整主音量、背景音乐与事件音效的大小；设置会自动保存，重新进入游戏后仍会生效。"
 	}
   },
   "system_menu": {
@@ -195,8 +195,9 @@
 	"no_save": "当前没有系统存档。",
 	"save_done": "已写入系统存档。",
 	"load_done": "已读取系统存档。",
-	"tutorial_locked_load": "???????????",
-	"tutorial_locked_save": "???????????"
+	"tutorial_locked_load": "教学进行中，暂时不能读档。请先完成前五步教学。",
+	"tutorial_locked_save": "教学进行中，暂时不能手动存档。请先完成前五步教学。",
+	"return_to_cover": "返回封面"
   },
   "save_slots": {
 	"system_label": "系统存档",
@@ -211,5 +212,23 @@
 	"next": "下一页",
 	"empty": "%s\n空档位",
 	"filled": "%s｜%s\n%s｜第 %d 回合｜%s"
+  },
+  "turn_results": {
+	"page": "结果 %d / %d",
+	"reward_header": "获得结果",
+	"collect_all": "收集全部",
+	"card_back": "待收取",
+	"card_hint": "点击翻开",
+	"default_body": "%s的结算已经落定，案上留下了新的收获。"
+  },
+  "audio_options": {
+	"title": "音量设置",
+	"subtitle": "调整主音量、背景音乐与事件音效；设置会自动保存。",
+	"master": "主音量",
+	"music": "背景音乐",
+	"sfx": "事件音效",
+	"reset": "恢复默认",
+	"close": "关闭",
+	"value": "%d%%"
   }
 }

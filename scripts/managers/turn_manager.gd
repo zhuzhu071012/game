@@ -7,15 +7,73 @@ class_name TurnManager
 const GOVERNANCE_WRIT_CHANCE_XUN_YU: float = 0.80
 const GOVERNANCE_WRIT_CHANCE_DEFAULT: float = 0.20
 const GOVERNANCE_FIRST_WRIT_BONUS: int = 1
-const RESEARCH_STRONG_THRESHOLD: int = 18
-const RESEARCH_BASIC_THRESHOLD: int = 12
-const RECRUIT_CHARACTER_THRESHOLD: int = 12
+const RESEARCH_STRONG_THRESHOLD: int = 16
+const RESEARCH_BASIC_THRESHOLD: int = 13
+const RECRUIT_CHARACTER_THRESHOLD: int = 13
 const RECRUIT_RESOURCE_THRESHOLD: int = 9
 
 signal turn_finished
 
+var _result_presentations: Array = []
+
+func consume_result_presentations() -> Array:
+	var payloads: Array = _result_presentations.duplicate(true)
+	_result_presentations.clear()
+	return payloads
+
+func _clear_result_presentations() -> void:
+	_result_presentations.clear()
+
+func _snapshot_reward_state(run_state: RunState) -> Dictionary:
+	return {
+		"resources": run_state.resource_states.duplicate(true),
+		"roster": run_state.roster_ids.duplicate(true)
+	}
+
+func _collect_result_rewards(before_state: Dictionary, run_state: RunState) -> Array:
+	var rewards: Array = []
+	var before_roster: Array = before_state.get("roster", []) as Array
+	for character_id_variant in run_state.roster_ids:
+		var character_id: String = str(character_id_variant)
+		if not before_roster.has(character_id):
+			rewards.append({
+				"card_type": "character",
+				"id": character_id,
+				"amount": 1
+			})
+	var before_resources: Dictionary = before_state.get("resources", {}) as Dictionary
+	for resource_id_variant in run_state.resource_states.keys():
+		var resource_id: String = str(resource_id_variant)
+		var delta: int = int(run_state.resource_states.get(resource_id, 0)) - int(before_resources.get(resource_id, 0))
+		if delta > 0:
+			rewards.append({
+				"card_type": "resource",
+				"id": resource_id,
+				"amount": delta
+			})
+	return rewards
+
+func _append_result_presentation_from_state(before_state: Dictionary, run_state: RunState, source_kind: String, source_id: String, title: String, logs: Array) -> void:
+	var rewards: Array = _collect_result_rewards(before_state, run_state)
+	var lines: Array[String] = []
+	for log_variant in logs:
+		var line: String = str(log_variant).strip_edges()
+		if not line.is_empty():
+			lines.append(line)
+	if rewards.is_empty() and lines.is_empty():
+		return
+	_result_presentations.append({
+		"source_kind": source_kind,
+		"source_id": source_id,
+		"title": title,
+		"body": "\n\n".join(lines),
+		"rewards": rewards
+	})
+
 func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manager: EventManager, relation_manager: RelationManager, characters: Dictionary, resources: Dictionary, tutorial_manager = null) -> Array[String]:
+	_clear_result_presentations()
 	if tutorial_manager != null and tutorial_manager.is_active(run_state):
+		_clear_result_presentations()
 		var tutorial_logs: Array[String] = tutorial_manager.resolve_turn(run_state, board_manager, event_manager, relation_manager, characters, resources)
 		board_manager.reset_turn_targets(run_state.active_event_ids)
 		run_state.log_entries.append_array(tutorial_logs)
@@ -30,8 +88,14 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 		return _finish_run(run_state, board_manager, logs)
 	for event_id_variant in run_state.active_event_ids.duplicate():
 		var event_id: String = str(event_id_variant)
-		_mark_guojia_overwork_from_cards(run_state, board_manager.get_event_cards(event_id))
-		logs.append_array(event_manager.resolve_event(run_state, event_id, board_manager.get_event_cards(event_id), relation_manager, characters, resources))
+		var event_cards: Array = board_manager.get_event_cards(event_id)
+		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
+		_mark_guojia_overwork_from_cards(run_state, event_cards)
+		var event_logs: Array[String] = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
+		logs.append_array(event_logs)
+		var event: EventData = event_manager.event_defs.get(event_id) as EventData
+		var event_title: String = event.title if event != null else event_id
+		_append_result_presentation_from_state(reward_snapshot, run_state, "event", event_id, event_title, event_logs)
 		logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
 		if run_state.game_over:
 			return _finish_run(run_state, board_manager, logs)
@@ -86,17 +150,21 @@ func _resolve_slots(run_state: RunState, board_manager: BoardManager, relation_m
 	var logs: Array[String] = []
 	for slot_id in GameRules.SLOT_RESOLUTION_ORDER:
 		var cards: Array = board_manager.get_slot_cards(slot_id)
+		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
+		var slot_logs: Array[String] = []
 		match slot_id:
 			"governance":
-				logs.append_array(_resolve_governance(run_state, cards, relation_manager, characters))
+				slot_logs = _resolve_governance(run_state, cards, relation_manager, characters)
 			"audience":
-				logs.append_array(_resolve_audience(run_state, cards, relation_manager, characters))
+				slot_logs = _resolve_audience(run_state, cards, relation_manager, characters)
 			"research":
-				logs.append_array(_resolve_research(run_state, cards, relation_manager, characters))
+				slot_logs = _resolve_research(run_state, cards, relation_manager, characters)
 			"recruit":
-				logs.append_array(_resolve_recruit(run_state, cards, relation_manager, characters))
+				slot_logs = _resolve_recruit(run_state, cards, relation_manager, characters)
 			"rest":
-				logs.append_array(_resolve_rest(run_state, cards, relation_manager, characters))
+				slot_logs = _resolve_rest(run_state, cards, relation_manager, characters)
+		logs.append_array(slot_logs)
+		_append_result_presentation_from_state(reward_snapshot, run_state, "slot", slot_id, TextDB.get_text("system.slots.%s.title" % slot_id, slot_id), slot_logs)
 	return logs
 
 func _resolve_governance(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
@@ -107,7 +175,7 @@ func _resolve_governance(run_state: RunState, cards: Array, relation_manager: Re
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	_mark_guojia_overwork_from_ids(run_state, character_ids)
-	var roll_value: int = randi_range(1, 20)
+	var roll_value: int = GameRules.roll_2d6()
 	var total_score: float = _pair_slot_total(run_state, primary_id, support_id, "governance", characters) + float(roll_value)
 	var silver_gain: int = maxi(0, int(floor(total_score / 7.0)))
 	var treasury_gain: int = silver_gain * 3
@@ -169,7 +237,7 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 		var risk_id: String = risk_ids[0]
 		if risk_id not in ["rumor", "alienation"]:
 			return logs
-		var risk_roll: int = randi_range(1, 20)
+		var risk_roll: int = GameRules.roll_2d6()
 		var risk_total: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "audience", characters))) + risk_roll
 		if risk_total > 15:
 			run_state.risk_states[risk_id] = maxi(0, int(run_state.risk_states.get(risk_id, 0)) - 1)
@@ -187,7 +255,7 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 				break
 		if partner_id.is_empty():
 			return logs
-		var roll_value: int = randi_range(1, 20)
+		var roll_value: int = GameRules.roll_2d6()
 		var total_score: int = int(floor(_pair_slot_total(run_state, "cao_cao", partner_id, "audience", characters))) + roll_value + silver_count + gift_count * 3 + letter_count * 2
 		if total_score > 11:
 			var favor_gain: int = 1 + int(total_score >= 18) + int(gift_count > 0)
@@ -214,7 +282,7 @@ func _resolve_research(run_state: RunState, cards: Array, relation_manager: Rela
 	_mark_guojia_overwork_from_ids(run_state, character_ids)
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
-	var roll_value: int = randi_range(1, 20)
+	var roll_value: int = GameRules.roll_2d6()
 	var total_score: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "research", characters))) + roll_value + _research_resource_bonus(cards) + _research_event_bonus(cards)
 	if total_score >= RESEARCH_STRONG_THRESHOLD:
 		var reward_id: String = _pick_research_reward(cards, character_ids, characters, true)
@@ -249,7 +317,7 @@ func _resolve_recruit(run_state: RunState, cards: Array, relation_manager: Relat
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var writ_count: int = _resource_count(cards, "recruit_writ")
-	var roll_value: int = randi_range(1, 20)
+	var roll_value: int = GameRules.roll_2d6()
 	var total_score: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "recruit", characters))) + roll_value + silver_count * 2 + writ_count * 3 + _recruit_resource_bonus(cards)
 	var has_search: bool = _has_any_specialty(character_ids, ["search"], characters)
 	var has_negotiation: bool = _has_any_specialty(character_ids, ["negotiation"], characters)

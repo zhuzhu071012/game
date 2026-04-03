@@ -5,6 +5,8 @@ class_name EventManager
 # 临时事件卡的玩法规则优先集中在这里，避免写进 UI。
 
 signal events_changed
+signal event_spawned(event_id: String)
+signal event_resolved(event_id: String, outcome: String)
 
 var event_defs: Dictionary = {}
 
@@ -13,18 +15,25 @@ func setup(definitions: Dictionary) -> void:
 
 func spawn_events_for_turn(run_state: RunState) -> Array[String]:
 	var spawned: Array[String] = []
+	var max_weight: int = _max_event_spawn_weight()
 	for event_id_variant in event_defs.keys():
 		var event_id: String = str(event_id_variant)
 		var event: EventData = event_defs[event_id] as EventData
+		var spawn_flag: String = "%s_spawned" % event_id
 		if run_state.active_event_states.has(event_id):
 			continue
-		if _can_activate(event, run_state):
-			var timeout_turns: int = _event_timeout(event)
-			run_state.active_event_ids.append(event_id)
-			run_state.active_event_states[event_id] = {"turns_left": timeout_turns, "timeout_total": timeout_turns}
-			spawned.append(event_id)
-			if event.trigger_type == "condition":
-				run_state.flags["%s_spawned" % event_id] = true
+		if bool(run_state.flags.get(spawn_flag, false)):
+			continue
+		if not _can_activate(event, run_state):
+			continue
+		if not _passes_spawn_weight(event, max_weight):
+			continue
+		var timeout_turns: int = _event_timeout(event)
+		run_state.active_event_ids.append(event_id)
+		run_state.active_event_states[event_id] = {"turns_left": timeout_turns, "timeout_total": timeout_turns}
+		spawned.append(event_id)
+		run_state.flags[spawn_flag] = true
+		emit_signal("event_spawned", event_id)
 	emit_signal("events_changed")
 	return spawned
 
@@ -44,7 +53,7 @@ func resolve_event(run_state: RunState, event_id: String, assigned_cards: Array,
 		_clear_event(run_state, event_id)
 		return logs
 	if qualified and has_character and effective_total >= event.minimum_requirement:
-		var roll_value: int = randi_range(1, 20)
+		var roll_value: int = GameRules.roll_2d6()
 		var adjusted_dc: int = _effective_dc(event, run_state)
 		var final_total: int = roll_value + effective_total
 		if final_total >= adjusted_dc:
@@ -116,7 +125,7 @@ func _can_activate(event: EventData, run_state: RunState) -> bool:
 			return false
 	match event.trigger_type:
 		"time":
-			return event.trigger_turn == run_state.turn_index
+			return event.trigger_turn > 0 and run_state.turn_index >= event.trigger_turn
 		"condition":
 			return _check_condition_trigger(event, run_state)
 	return false
@@ -142,6 +151,22 @@ func _check_condition_trigger(event: EventData, run_state: RunState) -> bool:
 			return false
 	return false
 
+func _max_event_spawn_weight() -> int:
+	var max_weight: int = 1
+	for event_variant in event_defs.values():
+		var event: EventData = event_variant as EventData
+		if event != null:
+			max_weight = maxi(max_weight, int(event.weight))
+	return max_weight
+
+func _passes_spawn_weight(event: EventData, max_weight: int) -> bool:
+	var weight: int = maxi(0, int(event.weight))
+	if weight <= 0:
+		return false
+	if weight >= max_weight:
+		return true
+	return randi_range(1, max_weight) <= weight
+
 func _event_timeout(event: EventData) -> int:
 	if event.timeout_turns > 0:
 		return event.timeout_turns
@@ -154,7 +179,7 @@ func _event_timeout(event: EventData) -> int:
 			return 3
 
 func _effective_dc(event: EventData, run_state: RunState) -> int:
-	return event.difficulty_class + GameRules.fire_pressure_modifier(run_state.fire_progress)
+	return maxi(8, event.difficulty_class + GameRules.fire_pressure_modifier(run_state.fire_progress) - 1)
 
 func _evaluate_assignment(run_state: RunState, event: EventData, assigned_cards: Array, character_defs: Dictionary, resource_defs: Dictionary) -> Dictionary:
 	var attribute_total_float: float = 0.0

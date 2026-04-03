@@ -4,5 +4,6 @@
 resource_name = "Amplify"
 
 [resource]
+bus/0/volume_db = 4.8312283
 bus/0/effect/0/effect = SubResource("AudioEffectAmplify_j3pel")
 bus/0/effect/0/enabled = true

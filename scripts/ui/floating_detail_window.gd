@@ -35,6 +35,24 @@ func setup(payload: Dictionary) -> void:
 	_apply_payload()
 	call_deferred("_apply_fixed_window_size")
 
+func apply_title_font(font_resource: Font) -> void:
+	if font_resource == null:
+		return
+	_ensure_ui()
+	if title_label != null:
+		title_label.add_theme_font_override("font", font_resource)
+
+func apply_body_font_size(font_size: int) -> void:
+	if font_size <= 0:
+		return
+	_ensure_ui()
+	if body_label != null:
+		body_label.add_theme_font_size_override("normal_font_size", font_size)
+		body_label.add_theme_constant_override("line_separation", 4)
+		body_label.add_theme_constant_override("line_spacing", 4)
+		body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
 func _ensure_ui() -> void:
 	if header_panel != null:
 		return
@@ -229,7 +247,7 @@ func _apply_payload() -> void:
 		art_container.custom_minimum_size = Vector2(maxf(0.0, art_size.x - 8.0), maxf(0.0, art_size.y - 8.0))
 	title_label.text = str(window_payload.get("title", ""))
 	subtitle_label.text = str(window_payload.get("subtitle", ""))
-	subtitle_label.visible = not subtitle_label.text.strip_edges().is_empty()
+	subtitle_label.visible = false
 	body_label.text = str(window_payload.get("body", ""))
 	var image_path: String = str(window_payload.get("image_path", ""))
 	var texture: Texture2D = null

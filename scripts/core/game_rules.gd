@@ -166,6 +166,9 @@ static func event_recommended_specialties(event: EventData) -> Array[String]:
 			unique_result.append(specialty)
 	return unique_result
 
+static func roll_2d6() -> int:
+	return randi_range(1, 6) + randi_range(1, 6)
+
 static func playable_turns() -> int:
 	return PLAYABLE_TURNS
 
@@ -260,7 +263,7 @@ static func conclude_run_by_time(run_state: RunState, character_defs: Dictionary
 	})
 
 	var fire_lines: Array[String] = []
-	var fire_dc: int = 15
+	var fire_dc: int = 13
 	var iron_chain_active: bool = bool(run_state.flags.get("iron_chain_event_established", false)) or int(run_state.risk_states.get("seasick", 0)) >= 1
 	var east_wind_active: bool = bool(run_state.flags.get("east_wind_event_established", false)) or (run_state.fire_progress >= 7 and not bool(run_state.flags.get("dream_seen_once", false)))
 	if iron_chain_active:
@@ -289,7 +292,7 @@ static func conclude_run_by_time(run_state: RunState, character_defs: Dictionary
 	})
 
 	var ruse_lines: Array[String] = []
-	var ruse_dc: int = 15
+	var ruse_dc: int = 13
 	var ruse_bonus: int = camp_attribute_modifier(int(working_camp.get("strategy", 0)))
 	ruse_bonus += _weighted_resource_bonus(run_state, {"spy_report": 2, "sealed_letter": 2, "naval_chart": 1}, 5)
 	ruse_bonus += mini(3, int(camp.get("strategist_units", 0)))
@@ -313,7 +316,7 @@ static func conclude_run_by_time(run_state: RunState, character_defs: Dictionary
 	})
 
 	var battle_lines: Array[String] = []
-	var battle_dc: int = 19
+	var battle_dc: int = 16
 	var battle_bonus: int = camp_attribute_modifier(int(working_camp.get("supplies", 0)))
 	battle_bonus += camp_attribute_modifier(int(working_camp.get("forces", 0)))
 	battle_bonus += camp_attribute_modifier(int(working_camp.get("cohesion", 0)))
@@ -484,7 +487,7 @@ static func _weighted_resource_bonus(run_state: RunState, weights: Dictionary, m
 	return mini(total, max_bonus)
 
 static func _finale_roll(bonus: int, dc: int) -> Dictionary:
-	var roll_value: int = randi_range(1, 20)
+	var roll_value: int = roll_2d6()
 	var total: int = roll_value + bonus
 	var tier_score: int = -1
 	if total >= dc + 5:
@@ -493,11 +496,11 @@ static func _finale_roll(bonus: int, dc: int) -> Dictionary:
 		tier_score = 1
 	elif total <= dc - 5:
 		tier_score = -2
-	if roll_value == 20:
+	if roll_value == 12:
 		tier_score = mini(2, tier_score + 1)
 		if tier_score < 2:
 			tier_score = 2
-	elif roll_value == 1:
+	elif roll_value == 2:
 		tier_score = maxi(-2, tier_score - 1)
 		if tier_score > -2:
 			tier_score = -2
@@ -640,7 +643,7 @@ static func _can_drop_on_rest_slot(payload: Dictionary, current_cards: Array = [
 			return false
 		if has_headwind or caregiver_present:
 			return false
-		return support_resource_id == "calming_incense"
+		return support_resource_id.is_empty() or support_resource_id == "calming_incense"
 	return false
 
 static func can_drop_on_event(payload: Dictionary) -> bool:

@@ -19,8 +19,8 @@
 	"fail": "事件处理失败：%s",
 	"expired": "事件时限归零，记为未解：%s",
 	"auto_success": "事件稳稳压住：%s（%d/%d）",
-	"roll_success": "事件检定成功：%s（D20=%d，总值=%d，DC=%d）",
-	"roll_fail": "事件检定失败：%s（D20=%d，总值=%d，DC=%d）",
+	"roll_success": "事件检定成功：%s（2d6=%d，总值=%d，DC=%d）",
+	"roll_fail": "事件检定失败：%s（2d6=%d，总值=%d，DC=%d）",
 	"pending": "事件尚未达标：%s（当前 %d / 最低 %d）"
   },
   "risk": {

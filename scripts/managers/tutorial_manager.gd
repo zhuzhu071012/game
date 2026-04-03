@@ -1,4 +1,4 @@
-﻿extends RefCounted
+extends RefCounted
 class_name TutorialManager
 
 const TUTORIAL_EVENT_ID: String = "tutorial_patrol_gap"
@@ -28,7 +28,7 @@ func unlocked_slot_ids(run_state: RunState) -> Array[String]:
 		4, 5:
 			return ["governance", "recruit", "audience", "research", "rest"]
 		_:
-			return ["governance", "research", "recruit", "audience", "rest"]
+			return ["governance", "recruit", "audience", "research", "rest"]
 
 func is_minimal_mode(run_state: RunState) -> bool:
 	return current_step(run_state) == 1 and is_active(run_state)
@@ -52,6 +52,53 @@ func sync_unlock_flags(run_state: RunState) -> bool:
 			run_state.flags[flag_id] = flag_value
 			changed = true
 	return changed
+
+func repair_loaded_state(run_state: RunState) -> bool:
+	if run_state == null:
+		return false
+	var flags: Dictionary = run_state.flags
+	var changed: bool = false
+	if bool(flags.get("tutorial_completed", false)):
+		if int(flags.get("tutorial_step", 0)) != 0:
+			flags["tutorial_step"] = 0
+			changed = true
+		for flag_id in ["first_governance_done", "first_recruit_done", "first_headwind_seen", "unlocked_recruit", "unlocked_audience", "unlocked_research", "unlocked_rest"]:
+			if not bool(flags.get(flag_id, false)):
+				flags[flag_id] = true
+				changed = true
+		run_state.flags = flags
+		return sync_unlock_flags(run_state) or changed
+	var inferred_step: int = clampi(int(flags.get("tutorial_step", 1)), 1, 5)
+	if (bool(flags.get("first_governance_done", false)) or str(flags.get("tutorial_pending_popup", "")) == STEP_ONE_POPUP_ID or int(run_state.resource_states.get(TUTORIAL_GIFT_ID, 0)) > 0) and inferred_step < 2:
+		inferred_step = 2
+	if (bool(flags.get("first_recruit_done", false)) or run_state.roster_ids.has("yu_jin")) and inferred_step < 3:
+		inferred_step = 3
+	if (bool(flags.get("first_headwind_seen", false)) or run_state.active_event_ids.has(TUTORIAL_EVENT_ID) or int(run_state.resource_states.get(TUTORIAL_CLUE_ID, 0)) > 0) and inferred_step < 4:
+		inferred_step = 4
+	if (run_state.active_event_ids.has(TUTORIAL_STRATEGIST_EVENT_ID) or int(run_state.resource_states.get(TUTORIAL_CLUE_ID, 0)) > 0) and inferred_step < 5:
+		inferred_step = 5
+	if run_state.roster_ids.has("guo_jia") or int(run_state.resource_states.get(TUTORIAL_ARMY_ID, 0)) > 0:
+		flags["tutorial_completed"] = true
+		flags["tutorial_step"] = 0
+		for flag_id in ["first_governance_done", "first_recruit_done", "first_headwind_seen"]:
+			flags[flag_id] = true
+		changed = true
+		run_state.flags = flags
+		return sync_unlock_flags(run_state) or changed
+	if int(flags.get("tutorial_step", 1)) != inferred_step:
+		flags["tutorial_step"] = inferred_step
+		changed = true
+	if inferred_step >= 2 and not bool(flags.get("first_governance_done", false)):
+		flags["first_governance_done"] = true
+		changed = true
+	if inferred_step >= 3 and not bool(flags.get("first_recruit_done", false)):
+		flags["first_recruit_done"] = true
+		changed = true
+	if inferred_step >= 4 and not bool(flags.get("first_headwind_seen", false)):
+		flags["first_headwind_seen"] = true
+		changed = true
+	run_state.flags = flags
+	return sync_unlock_flags(run_state) or changed
 
 func total_capacity_override(run_state: RunState, slot_id: String) -> int:
 	if is_active(run_state) and current_step(run_state) == 1 and slot_id == "governance":
@@ -162,12 +209,16 @@ func consume_followup_popup(run_state: RunState) -> Dictionary:
 	if popup_id.is_empty():
 		return {}
 	run_state.flags["tutorial_pending_popup"] = ""
-	return {
+	var payload: Dictionary = {
 		"title": TextDB.get_text("tutorial.followups.%s.title" % popup_id),
 		"subtitle": TextDB.get_text("tutorial.followups.%s.subtitle" % popup_id),
 		"body": TextDB.get_text("tutorial.followups.%s.body" % popup_id),
+		"image_path": TextDB.get_text("tutorial.followups.%s.image_path" % popup_id),
 		"chain_to_prompt": true
 	}
+	if popup_id == STEP_ONE_POPUP_ID:
+		payload["presentation"] = "letter_unfold"
+	return payload
 
 func pre_report_dialogue(run_state: RunState) -> Dictionary:
 	var step: int = int(run_state.flags.get("tutorial_last_report_step", 0))
@@ -307,7 +358,7 @@ func clear_report_context(run_state: RunState) -> void:
 	run_state.flags["tutorial_last_report_step"] = 0
 
 func _resolve_step_one(run_state: RunState) -> Array[String]:
-	_gain_resource(run_state, "silver_pack", 2)
+	_gain_resource(run_state, "silver_pack", 3)
 	_gain_resource(run_state, "recruit_writ", 1)
 	_gain_resource(run_state, "herbal_tonic", 1)
 	_gain_resource(run_state, TUTORIAL_GIFT_ID, 1)

@@ -3,12 +3,12 @@
 importer="font_data_dynamic"
 type="FontFile"
 uid="uid://c6t7rranryssy"
-path="res://.godot/imported/ZhuqueFangsong-Regular.ttf-4c661a15280fc881b99a3a4d703b850a.fontdata"
+path="res://.godot/imported/ZhuqueFangsong-Regular.ttf-e8f001cc78aa4c44cf4cf7ba7bf4ad20.fontdata"
 
 [deps]
 
-source_file="res://ZhuqueFangsong-Regular.ttf"
-dest_files=["res://.godot/imported/ZhuqueFangsong-Regular.ttf-4c661a15280fc881b99a3a4d703b850a.fontdata"]
+source_file="res://assets/fonts/ZhuqueFangsong-Regular.ttf"
+dest_files=["res://.godot/imported/ZhuqueFangsong-Regular.ttf-e8f001cc78aa4c44cf4cf7ba7bf4ad20.fontdata"]
 
 [params]
 

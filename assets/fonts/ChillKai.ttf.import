@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://b0etr11gjsm33"
-path="res://.godot/imported/SiyinSong-Regular.ttf-4b115feeede7162b56a2aa776578f3b5.fontdata"
+uid="uid://di4gowav3bheq"
+path="res://.godot/imported/ChillKai.ttf-26d03a58e33e4098abcef11c471484c0.fontdata"
 
 [deps]
 
-source_file="res://SiyinSong-Regular.ttf"
-dest_files=["res://.godot/imported/SiyinSong-Regular.ttf-4b115feeede7162b56a2aa776578f3b5.fontdata"]
+source_file="res://assets/fonts/ChillKai.ttf"
+dest_files=["res://.godot/imported/ChillKai.ttf-26d03a58e33e4098abcef11c471484c0.fontdata"]
 
 [params]
 

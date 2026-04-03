@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://dwrprnodgxcr1"
-path="res://.godot/imported/Huiwen-mincho.ttf-70de54428216e9cd25b1e3017c42a8fe.fontdata"
+uid="uid://b0etr11gjsm33"
+path="res://.godot/imported/SiyinSong-Regular.ttf-99e3908d82078d0abca5955b841c9a0a.fontdata"
 
 [deps]
 
-source_file="res://Huiwen-mincho.ttf"
-dest_files=["res://.godot/imported/Huiwen-mincho.ttf-70de54428216e9cd25b1e3017c42a8fe.fontdata"]
+source_file="res://assets/fonts/SiyinSong-Regular.ttf"
+dest_files=["res://.godot/imported/SiyinSong-Regular.ttf-99e3908d82078d0abca5955b841c9a0a.fontdata"]
 
 [params]
 

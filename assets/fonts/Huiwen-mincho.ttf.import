@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://di4gowav3bheq"
-path="res://.godot/imported/ChillKai.ttf-ac5aa7df179765f7dc81412f1370708f.fontdata"
+uid="uid://dwrprnodgxcr1"
+path="res://.godot/imported/Huiwen-mincho.ttf-69362c90f929d2e49e91fb6e06cf11d2.fontdata"
 
 [deps]
 
-source_file="res://ChillKai.ttf"
-dest_files=["res://.godot/imported/ChillKai.ttf-ac5aa7df179765f7dc81412f1370708f.fontdata"]
+source_file="res://assets/fonts/Huiwen-mincho.ttf"
+dest_files=["res://.godot/imported/Huiwen-mincho.ttf-69362c90f929d2e49e91fb6e06cf11d2.fontdata"]
 
 [params]
 

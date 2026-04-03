@@ -1,17 +1,1 @@
 res://default_bus_layout.tres
-res://scenes/Main.tscn
-res://scripts/main.gd
-res://data/texts/tutorial.json
-res://scripts/managers/tutorial_manager.gd
-res://data/texts/ui.json
-res://scripts/managers/turn_manager.gd
-res://scripts/managers/audio_manager.gd
-res://_codex_dump_save.gd
-res://data/texts/events.json
-res://scripts/managers/event_manager.gd
-res://data/texts/logs.json
-res://scripts/core/game_rules.gd
-res://scripts/ui/floating_detail_window.gd
-res://scripts/ui/card_view.gd
-res://scripts/managers/board_manager.gd
-res://scripts/ui/event_ui_controller.gd

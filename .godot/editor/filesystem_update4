@@ -1,1 +1,9 @@
 res://default_bus_layout.tres
+res://data/texts/ui.json
+res://scripts/main.gd
+res://scripts/core/game_data.gd
+res://scripts/core/game_rules.gd
+res://scripts/managers/event_manager.gd
+res://scripts/managers/turn_manager.gd
+res://scripts/managers/tutorial_manager.gd
+res://scenes/Main.tscn

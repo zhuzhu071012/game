@@ -90,7 +90,6 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 		var event_id: String = str(event_id_variant)
 		var event_cards: Array = board_manager.get_event_cards(event_id)
 		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
-		_mark_guojia_overwork_from_cards(run_state, event_cards)
 		var event_logs: Array[String] = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
 		logs.append_array(event_logs)
 		var event: EventData = event_manager.event_defs.get(event_id) as EventData
@@ -101,10 +100,6 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 			return _finish_run(run_state, board_manager, logs)
 	logs.append_array(_consume_committed_resources(run_state, board_manager, resources))
 	logs.append_array(event_manager.advance_unresolved_events(run_state, relation_manager))
-	logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
-	if run_state.game_over:
-		return _finish_run(run_state, board_manager, logs)
-	logs.append_array(_advance_guojia_condition(run_state))
 	logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
 	if run_state.game_over:
 		return _finish_run(run_state, board_manager, logs)
@@ -174,7 +169,6 @@ func _resolve_governance(run_state: RunState, cards: Array, relation_manager: Re
 		return logs
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
-	_mark_guojia_overwork_from_ids(run_state, character_ids)
 	var roll_value: int = GameRules.roll_2d6()
 	var total_score: float = _pair_slot_total(run_state, primary_id, support_id, "governance", characters) + float(roll_value)
 	var silver_gain: int = maxi(0, int(floor(total_score / 7.0)))
@@ -226,7 +220,6 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
 		return logs
-	_mark_guojia_overwork_from_ids(run_state, character_ids)
 	var risk_ids: Array[String] = _risk_ids_from_cards(cards)
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var gift_count: int = _resource_count_any(cards, ["gift", "sanjian_dao"])
@@ -279,7 +272,6 @@ func _resolve_research(run_state: RunState, cards: Array, relation_manager: Rela
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
 		return logs
-	_mark_guojia_overwork_from_ids(run_state, character_ids)
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	var roll_value: int = GameRules.roll_2d6()
@@ -366,16 +358,6 @@ func _resolve_rest(run_state: RunState, cards: Array, relation_manager: Relation
 	_restore_character(run_state, target_id, health_restore, mental_restore)
 	if target_id == "cao_cao" and run_state.turn_index >= 3 and not bool(run_state.flags.get("dream_seen_once", false)):
 		run_state.flags["ember_dream_ready"] = true
-	if target_id == "guo_jia":
-		var current_stage: int = int(run_state.active_character_states["guo_jia"].get("sick_stage", 1))
-		var stage_reduction: int = 1 if herb_count > 0 or medical_support else 0
-		if herb_count > 0 and medical_support:
-			stage_reduction += 1
-		if stage_reduction > 0:
-			_set_guojia_stage(run_state, maxi(1, current_stage - stage_reduction))
-		_apply_favor_progression(run_state, relation_manager, "guo_jia", int(stage_reduction > 0))
-		if medical_support:
-			run_state.active_character_states["guo_jia"]["guarded"] = true
 	if xiaoyao_count > 0 and target_id == "cao_cao" and risk_ids.has("headwind"):
 		run_state.risk_states["headwind"] = maxi(0, int(run_state.risk_states.get("headwind", 0)) - 1)
 	if herb_count > 0 or medical_support:
@@ -650,52 +632,6 @@ func _consume_if_needed(run_state: RunState, card: Dictionary, resources: Dictio
 		return []
 	run_state.resource_states[resource_id] = maxi(0, int(run_state.resource_states.get(resource_id, 0)) - 1)
 	return [TextDB.format_text("logs.resources.consumed", [resource.display_name])]
-
-func _advance_guojia_condition(run_state: RunState) -> Array[String]:
-	var logs: Array[String] = []
-	if not run_state.roster_ids.has("guo_jia"):
-		run_state.flags["guojia_overworked_this_turn"] = false
-		return logs
-	var state: Dictionary = run_state.active_character_states["guo_jia"]
-	var overworked: bool = bool(run_state.flags.get("guojia_overworked_this_turn", false))
-	if bool(state.get("guarded", false)):
-		state["guarded"] = false
-		run_state.active_character_states["guo_jia"] = state
-		run_state.flags["guojia_overworked_this_turn"] = false
-		return logs
-	var stage_step: int = 2 if overworked else 1
-	if overworked:
-		logs.append(TextDB.get_text("logs.guojia.overwork"))
-	var next_stage: int = clampi(int(state.get("sick_stage", 1)) + stage_step, 1, 3)
-	state["sick_stage"] = next_stage
-	run_state.active_character_states["guo_jia"] = state
-	_set_guojia_stage(run_state, next_stage)
-	if next_stage >= 2:
-		logs.append(TextDB.format_text("logs.guojia.stage_up", [next_stage]))
-	if next_stage == 3:
-		run_state.risk_states["miasma"] = int(run_state.risk_states.get("miasma", 0)) + 1
-		logs.append(TextDB.get_text("logs.guojia.miasma"))
-	run_state.flags["guojia_overworked_this_turn"] = false
-	return logs
-
-func _mark_guojia_overwork_from_ids(run_state: RunState, character_ids: Array[String]) -> void:
-	for character_id in character_ids:
-		if character_id == "guo_jia":
-			run_state.flags["guojia_overworked_this_turn"] = true
-			return
-
-func _mark_guojia_overwork_from_cards(run_state: RunState, cards: Array) -> void:
-	for card_variant in cards:
-		var card: Dictionary = card_variant as Dictionary
-		if str(card.get("card_type", "")) == "character" and str(card.get("id", "")) == "guo_jia":
-			run_state.flags["guojia_overworked_this_turn"] = true
-			return
-
-func _set_guojia_stage(run_state: RunState, stage: int) -> void:
-	run_state.active_character_states["guo_jia"]["sick_stage"] = stage
-	run_state.flags["guojia_sick_stage_1"] = stage == 1
-	run_state.flags["guojia_sick_stage_2"] = stage == 2
-	run_state.flags["guojia_sick_stage_3"] = stage == 3
 
 func _sync_pressure_flags(run_state: RunState) -> void:
 	var rumor_pressure: bool = run_state.jingzhou_stability <= 4 or int(run_state.risk_states.get("rumor", 0)) >= 1 or run_state.fire_progress >= 6

@@ -22,16 +22,12 @@ static func create_run_state() -> RunState:
 	run_state.roster_ids = ["cao_cao"]
 	run_state.locked_character_ids = ["xun_yu", "guo_jia", "zhang_liao", "yu_jin", "cao_pi", "cao_zhi", "hua_tuo"]
 	run_state.flags = {
-		"guojia_sick_stage_1": true,
-		"guojia_sick_stage_2": false,
-		"guojia_sick_stage_3": false,
 		"romance_suheng_started": false,
 		"jingzhou_rumor_active": false,
 		"alliance_forming": true,
 		"guojia_meet_scene": false,
 		"dream_seen_once": false,
 		"ember_dream_ready": false,
-		"guojia_overworked_this_turn": false,
 		"first_governance_done": false,
 		"first_recruit_done": false,
 		"first_headwind_seen": false,
@@ -86,10 +82,7 @@ static func create_run_state() -> RunState:
 			"mental_state": character.mental_state,
 			"fatigue": character.fatigue,
 			"busy": false,
-			"sick_stage": 0,
-			"guarded": false
 		}
-	run_state.active_character_states["guo_jia"]["sick_stage"] = 1
 	for risk_id_variant in create_risks().keys():
 		var risk_id: String = str(risk_id_variant)
 		run_state.risk_states[risk_id] = 0
@@ -138,12 +131,12 @@ static func create_relations() -> Array[RelationData]:
 	var list: Array[RelationData] = []
 	var relation_specs: Dictionary = {
 		"xun_yu": {"relation_type": "minister", "rumor_risk": 1, "special_event_ids": ["xun_yu_letters"]},
-		"guo_jia": {"relation_type": "minister", "rumor_risk": 0, "special_event_ids": ["guojia_relapse"]},
+		"guo_jia": {"relation_type": "minister", "rumor_risk": 0, "special_event_ids": []},
 		"zhang_liao": {"relation_type": "general", "rumor_risk": 0, "special_event_ids": []},
 		"yu_jin": {"relation_type": "general", "rumor_risk": 0, "special_event_ids": []},
 		"cao_pi": {"relation_type": "family", "rumor_risk": 1, "special_event_ids": []},
 		"cao_zhi": {"relation_type": "family", "rumor_risk": 1, "special_event_ids": []},
-		"hua_tuo": {"relation_type": "guest", "rumor_risk": 0, "special_event_ids": ["guojia_relapse"]}
+		"hua_tuo": {"relation_type": "guest", "rumor_risk": 0, "special_event_ids": []}
 	}
 	for character_id_variant in relation_specs.keys():
 		var character_id: String = str(character_id_variant)
@@ -402,30 +395,6 @@ static func create_events() -> Dictionary:
 		"next_event_ids": ["ember_dream"],
 		"trigger_type": "time",
 		"trigger_turn": 4,
-		"art_path": "res://assets/cards/event_placeholder.svg"
-	})
-	map["guojia_relapse"] = _make_event({
-		"id": "guojia_relapse",
-		"title": TextDB.get_text("events.guojia_relapse.title"),
-		"description": TextDB.get_text("events.guojia_relapse.description"),
-		"category": "character",
-		"tags": ["rest", "medicine", "relation", "influence"],
-		"stage_min": 1,
-		"stage_max": 3,
-		"weight": 2,
-		"timeout_turns": 2,
-		"minimum_requirement": 6,
-		"success_threshold": 13,
-		"difficulty_class": 15,
-		"required_flags": ["guojia_sick_stage_2"],
-		"recommended_tags": ["rest", "medicine", "relation"],
-		"recommended_resource_ids": ["herbal_tonic", "calming_incense", "silver_pack"],
-		"success_effect_id": "heal_guojia",
-		"fail_effect_id": "miasma_risk",
-		"expire_effect_id": "miasma_risk",
-		"trigger_type": "condition",
-		"trigger_condition_id": "guojia_relapse",
-		"trigger_turn": -1,
 		"art_path": "res://assets/cards/event_placeholder.svg"
 	})
 	map["jingzhou_whispers"] = _make_event({

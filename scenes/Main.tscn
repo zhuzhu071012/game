@@ -475,7 +475,7 @@ size_flags_vertical = 3
 expand_mode = 1
 stretch_mode = 6
 
-[node name="PopupBodyMargin" type="MarginContainer" parent="DetailOverlay/DetailCenter/PopupPanel/PopupMargin/PopupVBox/PopupContent"]
+[node name="PopupBodyMargin" type="MarginContainer" parent="DetailOverlay/DetailCenter/PopupPanel/PopupMargin/PopupVBox/PopupContent" unique_id=1278170487]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

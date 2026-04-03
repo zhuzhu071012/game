@@ -3174,8 +3174,6 @@ func _show_overview_detail() -> void:
 		var count: int = int(run_state.risk_states[risk_id])
 		var risk_data: RiskCardData = risks[risk_id] as RiskCardData
 		risk_lines.append(TextDB.format_text("system.risk_detail.line", [risk_data.display_name, count]))
-	var guo_state: Dictionary = run_state.active_character_states.get("guo_jia", {})
-	var guo_stage: int = int(guo_state.get("sick_stage", 0))
 	var camp: Dictionary = GameRules.current_camp_attributes(run_state, characters)
 	var camp_line: String = TextDB.format_text(
 		"ui.finale.camp_line",
@@ -3192,7 +3190,6 @@ func _show_overview_detail() -> void:
 			run_state.jingzhou_stability,
 			run_state.naval_readiness,
 			run_state.alliance_strength,
-			guo_stage,
 			camp_line,
 			"\n".join(risk_lines)
 		]
@@ -3915,8 +3912,6 @@ func _character_body(character_id: String, locked: bool) -> String:
 		]
 	)
 	lines.append(TextDB.get_text("system.character_templates.current_note"))
-	if character_id == "guo_jia":
-		lines.append(TextDB.format_text("system.character_templates.guojia_stage", [int(run_state.active_character_states["guo_jia"]["sick_stage"])]))
 	if locked:
 		lines.append(TextDB.get_text("system.character_templates.locked_hint"))
 	return "\n".join(lines)

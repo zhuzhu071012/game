@@ -57,7 +57,7 @@
 	  "mental_state": 8,
 	  "fatigue": 0,
 	  "passive_id": "fragile_genius",
-	  "unique_event_ids": ["guojia_relapse"],
+	  "unique_event_ids": [],
 	  "art_path": "res://assets/cards/characters/guo_jia.png"
 	},
 	"zhang_liao": {
@@ -157,7 +157,7 @@
 	  "mental_state": 8,
 	  "fatigue": 0,
 	  "passive_id": "ward_care",
-	  "unique_event_ids": ["guojia_relapse", "camp_fever"],
+	  "unique_event_ids": ["camp_fever"],
 	  "art_path": "res://assets/cards/characters/hua_tuo.svg"
 	}
   }

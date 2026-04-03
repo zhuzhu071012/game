@@ -94,13 +94,6 @@ static func current_character_attributes(character: CharacterData, character_sta
 	if mental_value <= 3:
 		attrs["intelligence"] = int(attrs["intelligence"]) - 1
 		attrs["charisma"] = int(attrs["charisma"]) - 1
-	var sick_stage: int = int(character_state.get("sick_stage", 0))
-	if sick_stage >= 2:
-		attrs["constitution"] = int(attrs["constitution"]) - 1
-		attrs["intelligence"] = int(attrs["intelligence"]) - 1
-	if sick_stage >= 3:
-		attrs["constitution"] = int(attrs["constitution"]) - 1
-		attrs["perception"] = int(attrs["perception"]) - 1
 	for bonus_key_variant in ["strength", "agility", "constitution", "intelligence", "perception", "charisma"]:
 		var bonus_key: String = str(bonus_key_variant)
 		attrs[bonus_key] = int(attrs.get(bonus_key, 0)) + int(character_state.get("bonus_%s" % bonus_key, 0))
@@ -420,12 +413,7 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 				supplies_bonus += 1
 				cohesion_bonus += 1
 			"guo_jia":
-				var guo_state: Dictionary = run_state.active_character_states.get("guo_jia", {})
-				var guo_stage: int = int(guo_state.get("sick_stage", 1))
-				if guo_stage <= 1:
-					strategy_bonus += 2
-				elif guo_stage == 2:
-					strategy_bonus += 1
+				strategy_bonus += 2
 			"zhang_liao", "yu_jin":
 				forces_bonus += 1
 	military_units += int(run_state.resource_states.get("northern_corps", 0))
@@ -546,15 +534,7 @@ static func _build_personal_epilogues(run_state: RunState, character_defs: Dicti
 		if int(character_state.get("health_state", 1)) <= 0 or int(character_state.get("mental_state", 1)) <= 0:
 			lines.append(TextDB.format_text("ui.messages.personal_lost", [display_name]))
 			continue
-		if character_id == "guo_jia":
-			var sick_stage: int = int(character_state.get("sick_stage", 0))
-			if sick_stage >= 3:
-				lines.append(TextDB.format_text("ui.messages.personal_sick", [display_name]))
-			elif favor >= 4:
-				lines.append(TextDB.format_text("ui.messages.personal_trusted", [display_name]))
-			else:
-				lines.append(TextDB.format_text("ui.messages.personal_joined", [display_name]))
-		elif favor >= 4:
+		if favor >= 4:
 			lines.append(TextDB.format_text("ui.messages.personal_trusted", [display_name]))
 		elif favor < 0 or rumor_risk >= 2:
 			lines.append(TextDB.format_text("ui.messages.personal_strained", [display_name]))

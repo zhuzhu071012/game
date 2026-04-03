@@ -442,8 +442,6 @@ func _resolve_step_five(run_state: RunState, relation_manager: RelationManager, 
 		run_state.locked_character_ids.erase("guo_jia")
 	if not run_state.roster_ids.has("guo_jia"):
 		run_state.roster_ids.append("guo_jia")
-	if run_state.active_character_states.has("guo_jia"):
-		run_state.active_character_states["guo_jia"]["sick_stage"] = 1
 	relation_manager.apply_favor(run_state, "guo_jia", 1)
 	if characters.has("guo_jia"):
 		var guo_jia: CharacterData = characters["guo_jia"] as CharacterData

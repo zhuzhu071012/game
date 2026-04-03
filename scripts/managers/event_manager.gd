@@ -136,8 +136,6 @@ func _check_condition_trigger(event: EventData, run_state: RunState) -> bool:
 		return false
 	var condition_id: String = event.trigger_condition_id if not event.trigger_condition_id.is_empty() else event.id
 	match condition_id:
-		"guojia_relapse":
-			return false
 		"jingzhou_whispers":
 			return bool(run_state.flags.get("jingzhou_rumor_active", false))
 		"ember_dream":
@@ -445,8 +443,6 @@ func _apply_effect(run_state: RunState, effect_id: String, relation_manager: Rel
 			run_state.risk_states["miasma"] = maxi(0, int(run_state.risk_states.get("miasma", 0)) - 1)
 			run_state.resource_states["herbal_tonic"] = int(run_state.resource_states.get("herbal_tonic", 0)) + 1
 			run_state.morale += 1
-			if run_state.roster_ids.has("guo_jia"):
-				relation_manager.apply_favor(run_state, "guo_jia", 1)
 		"fire_and_risk":
 			run_state.fire_progress += 2
 			run_state.risk_states["alienation"] = int(run_state.risk_states.get("alienation", 0)) + 1
@@ -459,14 +455,6 @@ func _apply_effect(run_state: RunState, effect_id: String, relation_manager: Rel
 			run_state.risk_states["seasick"] = int(run_state.risk_states.get("seasick", 0)) + 1
 			run_state.fire_progress += 1
 			run_state.flags["iron_chain_event_established"] = true
-		"heal_guojia":
-			if run_state.active_character_states.has("guo_jia"):
-				var guo_stage: int = maxi(1, int(run_state.active_character_states["guo_jia"].get("sick_stage", 1)) - 1)
-				run_state.active_character_states["guo_jia"]["sick_stage"] = guo_stage
-				run_state.flags["guojia_sick_stage_1"] = guo_stage == 1
-				run_state.flags["guojia_sick_stage_2"] = guo_stage == 2
-				run_state.flags["guojia_sick_stage_3"] = guo_stage == 3
-				relation_manager.apply_favor(run_state, "guo_jia", 1)
 		"miasma_risk":
 			run_state.risk_states["miasma"] = int(run_state.risk_states.get("miasma", 0)) + 1
 			run_state.fire_progress += 1

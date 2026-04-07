@@ -80,7 +80,7 @@
 	},
 	"detail_panel": {
 		"overview_title": "局势总览",
-		"overview_subtitle": "赤壁前夜",
+		"overview_subtitle": "曹操模拟器 赤壁前夕",
 		"slot_subtitle": "本回合操作",
 		"assignment_title": "投入位",
 		"slot_hint": "将合适卡牌拖入操作按钮后的抽屉面板，会在回合结束时统一结算。右键卡牌可快速投入。",
@@ -183,7 +183,7 @@
 		}
 	},
 	"system_menu": {
-		"title": "赤壁前夜",
+		"title": "曹操模拟器 赤壁前夕",
 		"startup_subtitle": "在风火到来之前，处理军政、招揽人物、研读情报，并设法避免局势坠入赤壁之火。",
 		"ingame_subtitle": "系统菜单",
 		"new_game": "开始新局",
@@ -197,7 +197,8 @@
 		"load_done": "已读取系统存档。",
 		"tutorial_locked_load": "教学进行中，暂时不能读档。请先完成前五步教学。",
 		"tutorial_locked_save": "教学进行中，暂时不能手动存档。请先完成前五步教学。",
-		"return_to_cover": "返回封面"
+		"return_to_cover": "返回封面",
+		"cover_title": "曹操模拟器\n赤壁前夕"
 	},
 	"save_slots": {
 		"system_label": "系统存档",

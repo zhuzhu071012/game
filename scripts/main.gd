@@ -9,6 +9,8 @@ const SAVE_MANAGER_SCRIPT := preload("res://scripts/managers/save_manager.gd")
 const FIRE_MARKER_TEXTURE := preload("res://assets/ui/fire_marker.svg")
 const GLOBAL_FONT_PATH := "res://assets/fonts/ZhuqueFangsong-Regular.ttf"
 const TITLE_FONT_PATH := "res://assets/fonts/Huiwen-mincho.ttf"
+const GLOBAL_FONT_RESOURCE := preload("res://assets/fonts/ZhuqueFangsong-Regular.ttf")
+const TITLE_FONT_RESOURCE := preload("res://assets/fonts/Huiwen-mincho.ttf")
 const GLOBAL_FONT_SIZE := 20
 const GLOBAL_FONT_SIZE_DELTA := 2
 const GLOBAL_LINE_SPACING := 4
@@ -1009,6 +1011,10 @@ func _load_font_resource(font_path: String) -> FontFile:
 	var cached_font = loaded_font_resources.get(font_path, null)
 	if cached_font != null:
 		return cached_font as FontFile
+	var loaded_font: FontFile = load(font_path) as FontFile
+	if loaded_font != null:
+		loaded_font_resources[font_path] = loaded_font
+		return loaded_font
 	var font_bytes: PackedByteArray = FileAccess.get_file_as_bytes(font_path)
 	if font_bytes.is_empty():
 		push_warning("Failed to load font: %s" % font_path)
@@ -1019,7 +1025,9 @@ func _load_font_resource(font_path: String) -> FontFile:
 	return font_resource
 
 func _apply_global_font() -> void:
-	var font_resource: FontFile = _load_font_resource(GLOBAL_FONT_PATH)
+	var font_resource: FontFile = GLOBAL_FONT_RESOURCE
+	if font_resource == null:
+		font_resource = _load_font_resource(GLOBAL_FONT_PATH)
 	if font_resource == null:
 		return
 	ThemeDB.fallback_font = font_resource
@@ -1035,7 +1043,9 @@ func _apply_title_font_override(control: Control, font_resource: FontFile) -> vo
 	control.add_theme_font_override("font", font_resource)
 
 func _apply_title_fonts() -> void:
-	var title_font: FontFile = _load_font_resource(TITLE_FONT_PATH)
+	var title_font: FontFile = TITLE_FONT_RESOURCE
+	if title_font == null:
+		title_font = _load_font_resource(TITLE_FONT_PATH)
 	if title_font == null:
 		return
 	for node in [system_menu_title, detail_title, popup_title, event_dialog_title]:
@@ -1308,11 +1318,16 @@ func _build_system_menu_ui() -> void:
 	box.add_theme_constant_override("separation", 12)
 	margin.add_child(box)
 	system_menu_title = Label.new()
+	system_menu_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	system_menu_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	system_menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	system_menu_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	system_menu_title.add_theme_font_size_override("font_size", 36)
 	box.add_child(system_menu_title)
 	system_menu_subtitle = Label.new()
+	system_menu_subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	system_menu_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	system_menu_subtitle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	system_menu_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	system_menu_subtitle.modulate = Color(1,1,1,0.78)
 	system_menu_subtitle.visible = false
@@ -1425,11 +1440,13 @@ func _show_system_menu(visible: bool) -> void:
 		if was_visible and not child_overlay_was_visible:
 			_play_ui_sound("panel_close")
 		return
-	var title_font_size: int = 88 if startup_cover_active else 36
+	var title_font_size: int = 76 if startup_cover_active else 36
+	system_menu_panel.offset_left = -320 if startup_cover_active else -240
+	system_menu_panel.offset_right = 320 if startup_cover_active else 240
 	system_menu_title.add_theme_font_size_override("font_size", title_font_size)
 	system_menu_title.custom_minimum_size = Vector2(0.0, 116.0) if startup_cover_active else Vector2.ZERO
 	system_menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	system_menu_title.text = TextDB.get_text("ui.system_menu.title")
+	system_menu_title.text = TextDB.get_text("ui.system_menu.cover_title") if startup_cover_active else TextDB.get_text("ui.system_menu.title")
 	system_menu_subtitle.text = TextDB.get_text("ui.system_menu.startup_subtitle") if startup_cover_active else TextDB.get_text("ui.system_menu.ingame_subtitle")
 	system_menu_subtitle.visible = false
 	system_menu_primary_button.text = TextDB.get_text("ui.system_menu.new_game") if startup_cover_active else TextDB.get_text("ui.system_menu.resume")

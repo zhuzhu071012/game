@@ -1,6 +1,4 @@
 ﻿.godot/
-android/build/
-android/.build_version
 export_credentials.cfg
 *.log
 _codex_*

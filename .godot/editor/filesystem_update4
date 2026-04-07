@@ -1,1 +1,5 @@
 res://default_bus_layout.tres
+res://scripts/core/game_rules.gd
+res://scripts/main.gd
+res://scenes/Main.tscn
+res://data/texts/tutorial.json

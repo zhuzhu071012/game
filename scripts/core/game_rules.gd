@@ -388,12 +388,6 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 	var military_units: int = 0
 	var strategist_units: int = 0
 	var command_units: int = 0
-	var positive_favor: int = 0
-	var rumor_drag: int = 0
-	var supplies_bonus: int = 0
-	var cohesion_bonus: int = 0
-	var strategy_bonus: int = 0
-	var forces_bonus: int = 0
 	for character_id_variant in run_state.roster_ids:
 		var character_id: String = str(character_id_variant)
 		if not character_defs.has(character_id):
@@ -405,44 +399,11 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 			strategist_units += 1
 		if character.specialty_tags.has("command"):
 			command_units += 1
-		var relation_state: Dictionary = run_state.relation_states.get(character_id, {})
-		positive_favor += maxi(0, int(relation_state.get("favor", 0)))
-		rumor_drag += int(relation_state.get("rumor_risk", 0))
-		match character_id:
-			"xun_yu":
-				supplies_bonus += 1
-				cohesion_bonus += 1
-			"guo_jia":
-				strategy_bonus += 2
-			"zhang_liao", "yu_jin":
-				forces_bonus += 1
 	military_units += int(run_state.resource_states.get("northern_corps", 0))
-	var supplies: int = int(run_state.flags.get("camp_supplies_base", 1)) + int(floor(float(run_state.money) / 6.0)) + int(floor(float(run_state.jingzhou_stability) / 3.0))
-	supplies += mini(2, int(run_state.resource_states.get("silver_pack", 0)))
-	supplies += mini(1, int(run_state.resource_states.get("sealed_letter", 0)))
-	supplies += supplies_bonus
-	supplies -= int(floor(float(run_state.fire_progress) / 5.0))
-
-	var forces: int = int(run_state.flags.get("camp_forces_base", 1)) + military_units * 2 + int(floor(float(run_state.money) / 10.0))
-	forces += mini(2, int(run_state.resource_states.get("recruit_writ", 0)))
-	forces += mini(1, int(run_state.resource_states.get("naval_chart", 0)))
-	forces += forces_bonus
-	forces -= int(floor(float(run_state.fire_progress) / 4.0))
-
-	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 1)) + int(floor(float(run_state.morale) / 2.0)) + int(floor(float(run_state.jingzhou_stability) / 4.0))
-	cohesion += mini(3, int(floor(float(positive_favor) / 3.0)))
-	cohesion += cohesion_bonus
-	cohesion -= int(run_state.risk_states.get("alienation", 0))
-	cohesion -= int(run_state.risk_states.get("rumor", 0))
-	cohesion -= int(floor(float(rumor_drag) / 3.0))
-
-	var strategy: int = int(run_state.flags.get("camp_strategy_base", 1)) + run_state.naval_readiness + strategist_units * 2
-	strategy += int(run_state.resource_states.get("spy_report", 0)) * 2
-	strategy += int(run_state.resource_states.get("sealed_letter", 0))
-	strategy += int(run_state.resource_states.get("naval_chart", 0)) * 2
-	strategy += strategy_bonus
-	strategy += int(bool(run_state.flags.get("dream_seen_once", false)))
-	strategy -= int(run_state.risk_states.get("seasick", 0))
+	var supplies: int = int(run_state.flags.get("camp_supplies_base", 3))
+	var forces: int = int(run_state.flags.get("camp_forces_base", 1))
+	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 1))
+	var strategy: int = int(run_state.flags.get("camp_strategy_base", 1))
 
 	return {
 		"supplies": clampi(supplies, 0, 12),

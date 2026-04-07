@@ -11,10 +11,15 @@ const GLOBAL_FONT_PATH := "res://assets/fonts/ZhuqueFangsong-Regular.ttf"
 const TITLE_FONT_PATH := "res://assets/fonts/Huiwen-mincho.ttf"
 const GLOBAL_FONT_RESOURCE := preload("res://assets/fonts/ZhuqueFangsong-Regular.ttf")
 const TITLE_FONT_RESOURCE := preload("res://assets/fonts/Huiwen-mincho.ttf")
-const GLOBAL_FONT_SIZE := 20
-const GLOBAL_FONT_SIZE_DELTA := 2
-const GLOBAL_LINE_SPACING := 4
-const BODY_FONT_SIZE := 24
+const GLOBAL_FONT_SIZE := 22
+const GLOBAL_FONT_SIZE_DELTA := 3
+const GLOBAL_LINE_SPACING := 5
+const BODY_FONT_SIZE := 26
+const UI_SETTINGS_PATH := "user://ui_settings.cfg"
+const UI_FONT_SCALE_MIN := 0.85
+const UI_FONT_SCALE_MAX := 1.50
+const UI_FONT_SCALE_STEP := 0.05
+const UI_FONT_SCALE_DEFAULT := 1.30
 const DESK_BACKGROUND_PATH := "res://assets/ui/backgrounds/main_menu_map.png"
 const DESK_BACKGROUND_SHADER := preload("res://assets/ui/shaders/desk_background_blur.gdshader")
 const DESK_BACKGROUND_PARALLAX := Vector2(0.032, 0.024)
@@ -173,6 +178,9 @@ var audio_options_reset_button: Button
 var audio_options_close_button: Button
 var audio_option_sliders: Dictionary = {}
 var audio_option_value_labels: Dictionary = {}
+var ui_font_scale: float = UI_FONT_SCALE_DEFAULT
+var ui_font_size_slider: HSlider
+var ui_font_size_value_label: Label
 var tutorial_toast_panel: PanelContainer
 var tutorial_toast_label: Label
 var tutorial_toast_token: int = 0
@@ -1031,11 +1039,35 @@ func _apply_global_font() -> void:
 	if font_resource == null:
 		return
 	ThemeDB.fallback_font = font_resource
-	ThemeDB.fallback_font_size = GLOBAL_FONT_SIZE
+	ThemeDB.fallback_font_size = _scaled_base_size(GLOBAL_FONT_SIZE)
 	var global_theme := Theme.new()
 	global_theme.default_font = font_resource
-	global_theme.default_font_size = GLOBAL_FONT_SIZE
+	global_theme.default_font_size = _scaled_base_size(GLOBAL_FONT_SIZE)
 	theme = global_theme
+
+func _load_ui_settings() -> void:
+	ui_font_scale = UI_FONT_SCALE_DEFAULT
+	var config := ConfigFile.new()
+	if config.load(UI_SETTINGS_PATH) != OK:
+		return
+	ui_font_scale = clampf(float(config.get_value("ui", "font_scale", UI_FONT_SCALE_DEFAULT)), UI_FONT_SCALE_MIN, UI_FONT_SCALE_MAX)
+
+func _save_ui_settings() -> void:
+	var config := ConfigFile.new()
+	config.set_value("ui", "font_scale", ui_font_scale)
+	config.save(UI_SETTINGS_PATH)
+
+func _scaled_base_size(base: int) -> int:
+	return maxi(1, int(round(float(base) * ui_font_scale)))
+
+func _scaled_adjusted_size(base: int) -> int:
+	return maxi(1, int(round(float(base + GLOBAL_FONT_SIZE_DELTA) * ui_font_scale)))
+
+func _scaled_line_spacing() -> int:
+	return maxi(1, int(round(float(GLOBAL_LINE_SPACING) * ui_font_scale)))
+
+func _current_body_font_size() -> int:
+	return maxi(1, int(round(float(BODY_FONT_SIZE) * ui_font_scale)))
 
 func _apply_title_font_override(control: Control, font_resource: FontFile) -> void:
 	if control == null or font_resource == null:
@@ -1055,17 +1087,33 @@ func _apply_title_fonts() -> void:
 func _apply_body_font_override(label: RichTextLabel) -> void:
 	if label == null:
 		return
-	label.add_theme_font_size_override("normal_font_size", BODY_FONT_SIZE)
-	label.set_meta("normal_font_size_tuned", true)
-	label.add_theme_constant_override("line_separation", GLOBAL_LINE_SPACING)
-	label.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
+	var body_font_size: int = _current_body_font_size()
+	var line_spacing: int = _scaled_line_spacing()
+	label.add_theme_font_size_override("normal_font_size", body_font_size)
+	label.set_meta("body_font_managed", true)
+	label.set_meta("normal_font_size_base", BODY_FONT_SIZE)
+	label.set_meta("normal_font_size_last_applied", body_font_size)
+	label.add_theme_constant_override("line_separation", line_spacing)
+	label.add_theme_constant_override("line_spacing", line_spacing)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.set_meta("line_spacing_tuned", true)
 
 func _apply_body_fonts() -> void:
 	for label in [detail_body, event_dialog_body, popup_body, turn_result_body]:
 		_apply_body_font_override(label as RichTextLabel)
+
+func _apply_font_preferences() -> void:
+	_apply_global_font()
+	_apply_title_fonts()
+	_apply_body_fonts()
+	for window_variant in active_detail_windows.duplicate():
+		if not is_instance_valid(window_variant):
+			continue
+		window_variant.apply_title_font(_load_font_resource(TITLE_FONT_PATH))
+		window_variant.apply_body_font_size(_current_body_font_size(), _scaled_line_spacing())
+	_apply_global_text_adjustments(self)
+	if audio_options_overlay != null and audio_options_overlay.visible:
+		_refresh_audio_options_overlay()
 
 func _set_rich_text_layout(label: RichTextLabel, horizontal: HorizontalAlignment, vertical: VerticalAlignment) -> void:
 	if label == null:
@@ -1118,23 +1166,42 @@ func _apply_global_text_adjustments(node: Node) -> void:
 		_apply_global_text_adjustments(child)
 
 func _adjust_control_text(control: Control) -> void:
-	if control.has_theme_font_size_override("font_size") and not bool(control.get_meta("font_size_tuned", false)):
-		control.add_theme_font_size_override("font_size", control.get_theme_font_size("font_size") + GLOBAL_FONT_SIZE_DELTA)
-		control.set_meta("font_size_tuned", true)
-	if control.has_theme_font_size_override("normal_font_size") and not bool(control.get_meta("normal_font_size_tuned", false)):
-		control.add_theme_font_size_override("normal_font_size", control.get_theme_font_size("normal_font_size") + GLOBAL_FONT_SIZE_DELTA)
-		control.set_meta("normal_font_size_tuned", true)
-	if bool(control.get_meta("line_spacing_tuned", false)):
-		return
+	if control.has_theme_font_size_override("font_size"):
+		var current_font_size: int = control.get_theme_font_size("font_size")
+		var last_font_size: int = int(control.get_meta("font_size_last_applied", -1))
+		var base_font_size: int = int(control.get_meta("font_size_base", current_font_size))
+		if base_font_size <= 0 or (last_font_size != -1 and current_font_size != last_font_size):
+			base_font_size = current_font_size
+			control.set_meta("font_size_base", base_font_size)
+		elif not control.has_meta("font_size_base"):
+			control.set_meta("font_size_base", base_font_size)
+		var scaled_font_size: int = _scaled_adjusted_size(base_font_size)
+		if current_font_size != scaled_font_size:
+			control.add_theme_font_size_override("font_size", scaled_font_size)
+		control.set_meta("font_size_last_applied", scaled_font_size)
+	if control.has_theme_font_size_override("normal_font_size") and not bool(control.get_meta("body_font_managed", false)):
+		var current_normal_font_size: int = control.get_theme_font_size("normal_font_size")
+		var last_normal_font_size: int = int(control.get_meta("normal_font_size_last_applied", -1))
+		var base_normal_font_size: int = int(control.get_meta("normal_font_size_base", current_normal_font_size))
+		if base_normal_font_size <= 0 or (last_normal_font_size != -1 and current_normal_font_size != last_normal_font_size):
+			base_normal_font_size = current_normal_font_size
+			control.set_meta("normal_font_size_base", base_normal_font_size)
+		elif not control.has_meta("normal_font_size_base"):
+			control.set_meta("normal_font_size_base", base_normal_font_size)
+		var scaled_normal_font_size: int = _scaled_adjusted_size(base_normal_font_size)
+		if current_normal_font_size != scaled_normal_font_size:
+			control.add_theme_font_size_override("normal_font_size", scaled_normal_font_size)
+		control.set_meta("normal_font_size_last_applied", scaled_normal_font_size)
+	var line_spacing: int = _scaled_line_spacing()
 	if control is RichTextLabel:
-		control.add_theme_constant_override("line_separation", GLOBAL_LINE_SPACING)
-		control.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
+		control.add_theme_constant_override("line_separation", line_spacing)
+		control.add_theme_constant_override("line_spacing", line_spacing)
 	elif control is Label or control is Button:
-		control.add_theme_constant_override("line_spacing", GLOBAL_LINE_SPACING)
-	control.set_meta("line_spacing_tuned", true)
+		control.add_theme_constant_override("line_spacing", line_spacing)
 
 func _ready() -> void:
 	randomize()
+	_load_ui_settings()
 	_apply_global_font()
 	TextDB.reload_texts()
 	tutorial_manager = TUTORIAL_MANAGER_SCRIPT.new()
@@ -1208,8 +1275,7 @@ func _ready() -> void:
 	_build_system_menu_ui()
 	_build_tutorial_toast_ui()
 	_build_turn_result_ui()
-	_apply_title_fonts()
-	_apply_body_fonts()
+	_apply_font_preferences()
 	detail_panel.gui_input.connect(_on_detail_panel_gui_input)
 	detail_header.gui_input.connect(_on_detail_header_gui_input)
 	_configure_popup_for_detail()
@@ -1534,9 +1600,9 @@ func _build_audio_options_overlay() -> void:
 	audio_options_panel.anchor_right = 0.5
 	audio_options_panel.anchor_bottom = 0.5
 	audio_options_panel.offset_left = -280
-	audio_options_panel.offset_top = -190
+	audio_options_panel.offset_top = -230
 	audio_options_panel.offset_right = 280
-	audio_options_panel.offset_bottom = 190
+	audio_options_panel.offset_bottom = 230
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
 	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
@@ -1579,6 +1645,7 @@ func _build_audio_options_overlay() -> void:
 	_build_audio_slider_row(slider_box, "master", TextDB.get_text("ui.audio_options.master"))
 	_build_audio_slider_row(slider_box, "music", TextDB.get_text("ui.audio_options.music"))
 	_build_audio_slider_row(slider_box, "sfx", TextDB.get_text("ui.audio_options.sfx"))
+	_build_font_size_slider_row(slider_box, TextDB.get_text("ui.audio_options.font_size"))
 	var footer: HBoxContainer = HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 10)
 	box.add_child(footer)
@@ -1619,6 +1686,29 @@ func _build_audio_slider_row(parent: VBoxContainer, channel_id: String, label_te
 	audio_option_sliders[channel_id] = slider
 	audio_option_value_labels[channel_id] = value_label
 
+func _build_font_size_slider_row(parent: VBoxContainer, label_text: String) -> void:
+	var row: VBoxContainer = VBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	var header: HBoxContainer = HBoxContainer.new()
+	row.add_child(header)
+	var name_label: Label = Label.new()
+	name_label.text = label_text
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(name_label)
+	ui_font_size_value_label = Label.new()
+	ui_font_size_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	ui_font_size_value_label.custom_minimum_size = Vector2(60.0, 0.0)
+	header.add_child(ui_font_size_value_label)
+	ui_font_size_slider = HSlider.new()
+	ui_font_size_slider.min_value = UI_FONT_SCALE_MIN * 100.0
+	ui_font_size_slider.max_value = UI_FONT_SCALE_MAX * 100.0
+	ui_font_size_slider.step = UI_FONT_SCALE_STEP * 100.0
+	ui_font_size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ui_font_size_slider.value_changed.connect(_on_font_size_slider_value_changed)
+	ui_font_size_slider.drag_ended.connect(_on_font_size_slider_drag_ended)
+	row.add_child(ui_font_size_slider)
+
 func _open_audio_options_overlay() -> void:
 	_build_audio_options_overlay()
 	if audio_options_overlay == null:
@@ -1638,27 +1728,38 @@ func _close_audio_options_overlay(play_sound: bool = true) -> void:
 		_play_ui_sound("panel_close")
 
 func _refresh_audio_options_overlay() -> void:
-	if audio_options_overlay == null or audio_manager == null:
+	if audio_options_overlay == null:
 		return
 	audio_options_title.text = TextDB.get_text("ui.audio_options.title")
 	audio_options_subtitle.text = TextDB.get_text("ui.audio_options.subtitle")
 	audio_options_subtitle.visible = false
 	audio_options_reset_button.text = TextDB.get_text("ui.audio_options.reset")
 	audio_options_close_button.text = TextDB.get_text("ui.audio_options.close", TextDB.get_text("ui.buttons.close"))
-	for channel_id in ["master", "music", "sfx"]:
-		var slider: HSlider = audio_option_sliders.get(channel_id, null) as HSlider
-		if slider == null:
-			continue
-		slider.set_block_signals(true)
-		slider.value = round(audio_manager.get_volume_level(channel_id) * 100.0)
-		slider.set_block_signals(false)
-		_update_audio_option_value_label(channel_id)
+	if audio_manager != null:
+		for channel_id in ["master", "music", "sfx"]:
+			var slider: HSlider = audio_option_sliders.get(channel_id, null) as HSlider
+			if slider == null:
+				continue
+			slider.set_block_signals(true)
+			slider.value = round(audio_manager.get_volume_level(channel_id) * 100.0)
+			slider.set_block_signals(false)
+			_update_audio_option_value_label(channel_id)
+	if ui_font_size_slider != null:
+		ui_font_size_slider.set_block_signals(true)
+		ui_font_size_slider.value = round(ui_font_scale * 100.0)
+		ui_font_size_slider.set_block_signals(false)
+		_update_font_size_value_label()
 
 func _update_audio_option_value_label(channel_id: String) -> void:
 	var value_label: Label = audio_option_value_labels.get(channel_id, null) as Label
 	if value_label == null or audio_manager == null:
 		return
 	value_label.text = TextDB.format_text("ui.audio_options.value", [int(round(audio_manager.get_volume_level(channel_id) * 100.0))], {}, "%d%%")
+
+func _update_font_size_value_label() -> void:
+	if ui_font_size_value_label == null:
+		return
+	ui_font_size_value_label.text = TextDB.format_text("ui.audio_options.value", [int(round(ui_font_scale * 100.0))], {}, "%d%%")
 
 func _on_audio_slider_value_changed(value: float, channel_id: String) -> void:
 	if audio_manager == null:
@@ -1670,11 +1771,28 @@ func _on_audio_slider_drag_ended(changed: bool, channel_id: String) -> void:
 	if changed and channel_id in ["master", "sfx"]:
 		_play_ui_sound("button")
 
-func _on_audio_options_reset_pressed() -> void:
-	if audio_manager == null:
+func _on_font_size_slider_value_changed(value: float) -> void:
+	var next_scale: float = clampf(value / 100.0, UI_FONT_SCALE_MIN, UI_FONT_SCALE_MAX)
+	if absf(next_scale - ui_font_scale) <= 0.001:
+		_update_font_size_value_label()
 		return
-	audio_manager.reset_volume_levels()
-	_refresh_audio_options_overlay()
+	ui_font_scale = next_scale
+	_save_ui_settings()
+	_apply_font_preferences()
+
+func _on_font_size_slider_drag_ended(changed: bool) -> void:
+	if changed:
+		_play_ui_sound("button")
+
+func _on_audio_options_reset_pressed() -> void:
+	if audio_manager != null:
+		audio_manager.reset_volume_levels()
+	if absf(ui_font_scale - UI_FONT_SCALE_DEFAULT) > 0.001:
+		ui_font_scale = UI_FONT_SCALE_DEFAULT
+		_save_ui_settings()
+		_apply_font_preferences()
+	else:
+		_refresh_audio_options_overlay()
 	_play_ui_sound("button")
 
 func _on_event_dialog_toggled(event_id: String, expanded: bool) -> void:
@@ -3272,7 +3390,7 @@ func _open_detail_popup(card_id: String) -> void:
 	window.set_meta("detail_key", window_key)
 	window.setup(payload)
 	window.apply_title_font(_load_font_resource(TITLE_FONT_PATH))
-	window.apply_body_font_size(BODY_FONT_SIZE)
+	window.apply_body_font_size(_current_body_font_size(), _scaled_line_spacing())
 	detail_window_layer.add_child(window)
 	active_detail_windows.append(window)
 	detail_window_by_key[window_key] = window

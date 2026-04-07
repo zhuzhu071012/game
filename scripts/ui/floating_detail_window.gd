@@ -42,14 +42,14 @@ func apply_title_font(font_resource: Font) -> void:
 	if title_label != null:
 		title_label.add_theme_font_override("font", font_resource)
 
-func apply_body_font_size(font_size: int) -> void:
+func apply_body_font_size(font_size: int, line_spacing: int = 4) -> void:
 	if font_size <= 0:
 		return
 	_ensure_ui()
 	if body_label != null:
 		body_label.add_theme_font_size_override("normal_font_size", font_size)
-		body_label.add_theme_constant_override("line_separation", 4)
-		body_label.add_theme_constant_override("line_spacing", 4)
+		body_label.add_theme_constant_override("line_separation", line_spacing)
+		body_label.add_theme_constant_override("line_spacing", line_spacing)
 		body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 

@@ -233,7 +233,8 @@ func _ensure_ui() -> void:
 	body_label.scroll_active = true
 	body_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	body_label.gui_input.connect(_on_body_label_gui_input)
 	body_margin.add_child(body_label)
 
 func _apply_payload() -> void:
@@ -284,6 +285,30 @@ func _on_panel_gui_input(event: InputEvent) -> void:
 		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
 			emit_signal("focus_requested", self)
+
+func _on_body_label_gui_input(event: InputEvent) -> void:
+	if body_label == null:
+		return
+	if event is not InputEventMouseButton:
+		return
+	var mouse_event: InputEventMouseButton = event as InputEventMouseButton
+	if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+		emit_signal("focus_requested", self)
+		return
+	var direction: float = 0.0
+	if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		direction = -1.0
+	elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		direction = 1.0
+	else:
+		return
+	emit_signal("focus_requested", self)
+	var scroll_bar: VScrollBar = body_label.get_v_scroll_bar()
+	if scroll_bar == null or is_zero_approx(scroll_bar.max_value - scroll_bar.min_value):
+		return
+	var step: float = 72.0 * maxf(mouse_event.factor, 1.0)
+	scroll_bar.value = clampf(scroll_bar.value + direction * step, scroll_bar.min_value, scroll_bar.max_value)
+	accept_event()
 
 func _on_header_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:

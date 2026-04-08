@@ -5,3 +5,4 @@ res://scenes/Main.tscn
 res://data/texts/tutorial.json
 res://scripts/core/game_data.gd
 res://data/texts/ui.json
+res://scripts/ui/floating_detail_window.gd

@@ -130,6 +130,8 @@ var detail_window_spawn_index: int = 0
 var dragging_detail_panel: bool = false
 var detail_panel_drag_offset: Vector2 = Vector2.ZERO
 var detail_panel_has_position: bool = false
+var detail_panel_size_lock_active: bool = false
+var detail_panel_open_token: int = 0
 var detail_assignment_scroll: ScrollContainer
 var tutorial_manager
 var tutorial_dialog_overlay: Control
@@ -1339,7 +1341,7 @@ func _build_system_menu_ui() -> void:
 	system_menu_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	system_menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	system_menu_overlay.z_as_relative = false
-	system_menu_overlay.z_index = 900
+	system_menu_overlay.z_index = 2048
 	system_menu_overlay.visible = false
 	add_child(system_menu_overlay)
 	system_menu_cover = ColorRect.new()
@@ -2084,10 +2086,19 @@ func _prepare_detail_panel_window() -> void:
 		if current_parent != null:
 			current_parent.remove_child(detail_panel)
 		add_child(detail_panel)
+	detail_panel.set("layout_mode", 1)
+	detail_panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	detail_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	detail_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	detail_panel.anchor_right = 0.0
 	detail_panel.anchor_bottom = 0.0
+	detail_panel.offset_left = 0.0
+	detail_panel.offset_top = 0.0
+	detail_panel.offset_right = DETAIL_PANEL_WINDOW_SIZE.x
+	detail_panel.offset_bottom = DETAIL_PANEL_WINDOW_SIZE.y
 	detail_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	if not detail_panel.resized.is_connected(_on_detail_panel_resized):
+		detail_panel.resized.connect(_on_detail_panel_resized)
 	detail_panel.z_as_relative = false
 	detail_panel.z_index = 18
 	detail_panel.custom_minimum_size = DETAIL_PANEL_WINDOW_SIZE
@@ -2125,9 +2136,13 @@ func _prepare_detail_assignment_scroll() -> void:
 func _apply_detail_panel_window_size() -> void:
 	if detail_panel == null:
 		return
+	detail_panel_size_lock_active = true
 	detail_panel.custom_minimum_size = DETAIL_PANEL_WINDOW_SIZE
+	detail_panel.offset_right = detail_panel.offset_left + DETAIL_PANEL_WINDOW_SIZE.x
+	detail_panel.offset_bottom = detail_panel.offset_top + DETAIL_PANEL_WINDOW_SIZE.y
 	detail_panel.size = DETAIL_PANEL_WINDOW_SIZE
 	detail_panel.update_minimum_size()
+	detail_panel_size_lock_active = false
 	if detail_assignment_scroll != null:
 		detail_assignment_scroll.custom_minimum_size = Vector2(0.0, LIST_CARD_HEIGHT + 18.0)
 
@@ -2140,6 +2155,18 @@ func _raise_window_layer(panel: Control) -> void:
 	var panel_parent: Node = panel.get_parent()
 	if panel_parent != null:
 		panel_parent.move_child(panel, panel_parent.get_child_count() - 1)
+
+func _on_detail_panel_resized() -> void:
+	if detail_panel == null or detail_panel_size_lock_active:
+		return
+	if absf(detail_panel.size.x - DETAIL_PANEL_WINDOW_SIZE.x) <= 0.5 and absf(detail_panel.size.y - DETAIL_PANEL_WINDOW_SIZE.y) <= 0.5:
+		return
+	call_deferred("_restore_detail_panel_window_size")
+
+func _restore_detail_panel_window_size() -> void:
+	_apply_detail_panel_window_size()
+	if detail_panel != null and detail_panel.visible:
+		_ensure_detail_panel_position()
 
 func _focus_detail_panel() -> void:
 	if detail_panel == null:
@@ -3571,10 +3598,12 @@ func _show_slot_detail(slot_id: String, focus_window: bool = false, suppress_foc
 func _detail_setup(title: String, subtitle: String, body: String, icon_path: String, assigned_cards: Array, footnote: String, focus_window: bool = false, suppress_focus: bool = false) -> void:
 	var detail_panel_was_visible: bool = detail_panel.visible
 	detail_panel_open = true
-	detail_panel.visible = true
+	detail_panel_open_token += 1
+	detail_panel.visible = detail_panel_was_visible
+	detail_panel.modulate = Color.WHITE
 	_apply_detail_panel_window_size()
 	_ensure_detail_panel_position()
-	if not suppress_focus and (focus_window or not detail_panel_was_visible):
+	if detail_panel_was_visible and not suppress_focus and focus_window:
 		_focus_detail_panel()
 	detail_title.text = title
 	detail_subtitle.text = subtitle
@@ -3590,7 +3619,32 @@ func _detail_setup(title: String, subtitle: String, body: String, icon_path: Str
 	else:
 		detail_icon.texture = null
 	_refresh_detail_assignment_row(selected_slot_id, assigned_cards)
-	call_deferred("_apply_detail_panel_window_size")
+	if detail_panel_was_visible:
+		call_deferred("_apply_detail_panel_window_size")
+	else:
+		detail_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		detail_panel.visible = true
+		call_deferred("_finalize_detail_panel_open", detail_panel_open_token, focus_window, suppress_focus)
+
+func _finalize_detail_panel_open(token: int, focus_window: bool, suppress_focus: bool) -> void:
+	if detail_panel == null or not detail_panel_open or token != detail_panel_open_token:
+		return
+	_apply_detail_panel_window_size()
+	_ensure_detail_panel_position()
+	await get_tree().process_frame
+	if detail_panel == null or not detail_panel_open or token != detail_panel_open_token:
+		return
+	_apply_detail_panel_window_size()
+	_ensure_detail_panel_position()
+	await get_tree().process_frame
+	if detail_panel == null or not detail_panel_open or token != detail_panel_open_token:
+		return
+	_apply_detail_panel_window_size()
+	_ensure_detail_panel_position()
+	detail_panel.modulate = Color.WHITE
+	detail_panel.visible = true
+	if not suppress_focus:
+		_focus_detail_panel()
 
 func _build_detail_assignment_well(content: Control) -> PanelContainer:
 	var panel: PanelContainer = PanelContainer.new()
@@ -4107,7 +4161,9 @@ func _on_event_dialog_header_gui_input(event: InputEvent) -> void:
 func _close_detail_panel() -> void:
 	selected_slot_id = ""
 	detail_panel_open = false
+	detail_panel_open_token += 1
 	dragging_detail_panel = false
+	detail_panel.modulate = Color.WHITE
 	detail_panel.visible = false
 	_refresh_board()
 

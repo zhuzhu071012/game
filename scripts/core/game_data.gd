@@ -47,9 +47,9 @@ static func create_run_state() -> RunState:
 		"tutorial_last_report_step": 0,
 		"tutorial_pending_popup": "",
 		"camp_supplies_base": 3,
-		"camp_forces_base": 1,
-		"camp_cohesion_base": 1,
-		"camp_strategy_base": 1
+		"camp_forces_base": 3,
+		"camp_cohesion_base": 3,
+		"camp_strategy_base": 3
 	}
 	run_state.resource_states = {
 		"silver_pack": 0,

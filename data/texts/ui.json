@@ -1,8 +1,8 @@
 {
 	"buttons": {
-		"end_turn": "结束回合",
-		"show_log": "显示日志",
-		"hide_log": "隐藏日志",
+		"end_turn": "时节轮转",
+		"show_log": "查看日志",
+		"hide_log": "合上日志",
 		"close": "关闭",
 		"next": "继续",
 		"finish": "完成"
@@ -55,11 +55,11 @@
 		"defeat_ending": "[b]败局结局[/b]\n%s\n\n你撑到终场，却在最后的对撞里失了先机。",
 		"personal_missing": "%s未能来到你的案前。",
 		"personal_joined": "%s仍在帐下，结局随大势沉浮。",
-		"personal_trusted": "%s仍愿追随你，心意未改。",
+		"personal_trusted": "%s仍愿追随你，忠心未改。",
 		"personal_strained": "%s虽未离去，心中已生裂隙。",
 		"personal_sick": "%s病势沉重，终未能尽其才。",
 		"personal_lost": "%s已不在终局之列。",
-		"personal_progressed": "%s的个人线留下了额外余波。"
+		"personal_progressed": "%s的命运留下了额外余波。"
 	},
 	"event_slots": {
 		"character_title": "人物投入",

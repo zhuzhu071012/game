@@ -401,9 +401,9 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 			command_units += 1
 	military_units += int(run_state.resource_states.get("northern_corps", 0))
 	var supplies: int = int(run_state.flags.get("camp_supplies_base", 3))
-	var forces: int = int(run_state.flags.get("camp_forces_base", 1))
-	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 1))
-	var strategy: int = int(run_state.flags.get("camp_strategy_base", 1))
+	var forces: int = int(run_state.flags.get("camp_forces_base", 3))
+	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 3))
+	var strategy: int = int(run_state.flags.get("camp_strategy_base", 3))
 
 	return {
 		"supplies": clampi(supplies, 0, 12),

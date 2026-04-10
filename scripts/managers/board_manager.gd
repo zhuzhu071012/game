@@ -121,12 +121,31 @@ func restore_state(event_ids: Array[String], snapshot: Dictionary) -> void:
 	var saved_events: Dictionary = snapshot.get("event_assignments", {}) as Dictionary
 	for event_id_variant in saved_events.keys():
 		var event_id: String = str(event_id_variant)
+		if not event_ids.has(event_id):
+			continue
 		var slots: Dictionary = saved_events[event_id] as Dictionary
 		event_assignments[event_id] = {
 			"character": (slots.get("character", []) as Array).duplicate(true),
 			"resource": (slots.get("resource", []) as Array).duplicate(true)
 		}
-	committed_cards = (snapshot.get("committed_cards", {}) as Dictionary).duplicate(true)
+	committed_cards.clear()
+	for slot_id_variant in slot_assignments.keys():
+		var slot_id: String = str(slot_id_variant)
+		for card_variant in slot_assignments[slot_id] as Array:
+			var card: Dictionary = card_variant as Dictionary
+			var uid: String = str(card.get("uid", ""))
+			if not uid.is_empty():
+				committed_cards[uid] = slot_id
+	for event_id_variant in event_assignments.keys():
+		var event_id: String = str(event_id_variant)
+		var event_slots: Dictionary = event_assignments[event_id] as Dictionary
+		for slot_type_variant in event_slots.keys():
+			var slot_type: String = str(slot_type_variant)
+			for card_variant in event_slots[slot_type] as Array:
+				var card: Dictionary = card_variant as Dictionary
+				var uid: String = str(card.get("uid", ""))
+				if not uid.is_empty():
+					committed_cards[uid] = "%s:%s" % [event_id, slot_type]
 	emit_signal("board_changed")
 
 func is_committed(card_uid: String) -> bool:

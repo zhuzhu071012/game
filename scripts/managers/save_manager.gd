@@ -10,7 +10,8 @@ const RUN_STATE_FIELDS: Array[String] = [
 	"morale", "jingzhou_stability", "naval_readiness", "alliance_strength",
 	"fire_progress", "active_event_ids", "active_character_states", "relation_states",
 	"risk_states", "flags", "log_entries", "roster_ids", "locked_character_ids",
-	"active_event_states", "resource_states", "victory_points", "settlement_snapshot",
+	"active_event_states", "resource_states", "story_event_queue", "story_event_history",
+	"story_event_counters", "victory_points", "settlement_snapshot",
 	"settlement_report", "settlement_pages", "personal_epilogues", "game_over", "ending_id"
 ]
 

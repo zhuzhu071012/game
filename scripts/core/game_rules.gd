@@ -400,6 +400,7 @@ static func current_camp_attributes(run_state: RunState, character_defs: Diction
 		if character.specialty_tags.has("command"):
 			command_units += 1
 	military_units += int(run_state.resource_states.get("northern_corps", 0))
+	military_units += int(run_state.resource_states.get("hebei_old_guard", 0))
 	var supplies: int = int(run_state.flags.get("camp_supplies_base", 3))
 	var forces: int = int(run_state.flags.get("camp_forces_base", 3))
 	var cohesion: int = int(run_state.flags.get("camp_cohesion_base", 3))
@@ -706,7 +707,7 @@ static func _is_audience_resource(payload: Dictionary) -> bool:
 	if str(payload.get("card_type", "")) != "resource":
 		return false
 	var card_id: String = str(payload.get("id", ""))
-	if card_id in ["gift", "sanjian_dao", "silver_pack", "sealed_letter", "yecheng_letter", "calming_incense"]:
+	if card_id in ["gift", "sanjian_dao", "silver_pack", "sealed_letter", "yecheng_letter", "calming_incense", "communal_aid"]:
 		return true
 	var tags: Array[String] = _payload_tags(payload)
 	for required_tag_variant in ["gift", "relation", "support", "mind", "money", "document"]:

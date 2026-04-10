@@ -1,0 +1,489 @@
+{
+  "event_order": [
+    "cold_drought",
+    "horse_for_grain",
+    "where_are_the_remonstrators",
+    "liaodong_heads",
+    "reward_debate",
+    "wounded_camp",
+    "frontier_petition",
+    "hebei_old_allies",
+    "fengxiao_afterthoughts"
+  ],
+  "events": {
+    "cold_drought": {
+      "tag_ids": ["fixed", "logistics", "camp"],
+      "counter_tags": ["military"],
+      "skip_choice": true,
+      "time_limit_turns": 1,
+      "trigger": {
+        "type": "after_turn",
+        "turn": 1
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "miasma", "value": 1}
+      ],
+      "plans": {
+        "find_water": {
+          "attribute_keys": ["constitution", "intelligence"],
+          "specialty_tags": ["search"],
+          "allowed_resource_ids": ["silver_pack"],
+          "required_resources": {
+            "silver_pack": 1
+          },
+          "resource_bonus": {
+            "silver_pack": 1
+          },
+          "resource_caps": {
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "supplies", "value": 1},
+              {"type": "camp_delta", "key": "cohesion", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "camp_delta", "key": "supplies", "value": -1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "supplies", "value": -1}
+            ]
+          }
+        }
+      }
+    },
+    "horse_for_grain": {
+      "tag_ids": ["floating", "logistics", "camp"],
+      "counter_tags": ["military"],
+      "time_limit_turns": 1,
+      "trigger": {
+        "type": "condition",
+        "condition": "supplies_below",
+        "value": 3,
+        "min_turn": 1
+      },
+      "timeout_effects": [
+        {"type": "camp_delta", "key": "supplies", "value": -1}
+      ],
+      "plans": {
+        "slaughter_horses": {
+          "attribute_keys": ["constitution", "intelligence"],
+          "specialty_tags": ["command"],
+          "allowed_resource_ids": [],
+          "required_resources": {},
+          "resource_bonus": {},
+          "resource_caps": {},
+          "plan_modifier": 0,
+          "dc": 10,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "supplies", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "camp_delta", "key": "supplies", "value": 1},
+              {"type": "camp_delta", "key": "strategy", "value": -1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "supplies", "value": 1},
+              {"type": "camp_delta", "key": "strategy", "value": -1}
+            ]
+          }
+        },
+        "hold_the_line": {
+          "attribute_keys": ["constitution", "strength"],
+          "specialty_tags": ["command"],
+          "allowed_resource_ids": [],
+          "required_resources": {},
+          "resource_bonus": {},
+          "resource_caps": {},
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [],
+            "partial_success": [
+              {"type": "camp_delta", "key": "forces", "value": -1},
+              {"type": "risk_delta", "risk_id": "rumor", "value": 1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "forces", "value": -1},
+              {"type": "risk_delta", "risk_id": "rumor", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    "where_are_the_remonstrators": {
+      "tag_ids": ["fixed", "court", "image"],
+      "counter_tags": ["court"],
+      "time_limit_turns": 2,
+      "trigger": {
+        "type": "after_turn",
+        "turn": 2
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+      ],
+      "plans": {
+        "reward_truth": {
+          "attribute_keys": ["perception", "charisma"],
+          "specialty_tags": ["negotiation"],
+          "allowed_resource_ids": ["silver_pack"],
+          "required_resources": {
+            "silver_pack": 1
+          },
+          "resource_bonus": {
+            "silver_pack": 1
+          },
+          "resource_caps": {
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "cohesion", "value": 1},
+              {"type": "camp_delta", "key": "strategy", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "camp_delta", "key": "cohesion", "value": 1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "cohesion", "value": 1}
+            ]
+          }
+        },
+        "let_it_pass": {
+          "attribute_keys": ["perception", "intelligence"],
+          "specialty_tags": [],
+          "allowed_resource_ids": [],
+          "required_resources": {},
+          "resource_bonus": {},
+          "resource_caps": {},
+          "plan_modifier": 0,
+          "dc": 10,
+          "partial_margin": 1,
+          "effects": {
+            "success": [],
+            "partial_success": [
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ],
+            "failure": [
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ]
+          }
+        },
+        "strike_the_court": {
+          "attribute_keys": ["charisma", "strength"],
+          "specialty_tags": ["intimidation"],
+          "allowed_resource_ids": ["spy_report"],
+          "required_resources": {
+            "spy_report": 1
+          },
+          "resource_bonus": {
+            "spy_report": 1
+          },
+          "resource_caps": {
+            "spy_report": 1
+          },
+          "plan_modifier": 0,
+          "dc": 15,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "strategy", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "camp_delta", "key": "strategy", "value": 1},
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "strategy", "value": 1},
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    "liaodong_heads": {
+      "tag_ids": ["fixed", "hebei", "court"],
+      "counter_tags": ["court"],
+      "time_limit_turns": 1,
+      "trigger": {
+        "type": "after_turn",
+        "turn": 3
+      },
+      "plans": {
+        "advance_hebei_thread": {
+          "character_optional": true,
+          "attribute_keys": [],
+          "specialty_tags": [],
+          "allowed_resource_ids": [],
+          "required_resources": {},
+          "resource_bonus": {},
+          "resource_caps": {},
+          "plan_modifier": 0,
+          "dc": 0,
+          "partial_margin": 1,
+          "instant_resolve": true,
+          "instant_outcome": "success",
+          "effects": {
+            "success": [
+              {"type": "flag_set", "key": "hebei_story_started", "value": true}
+            ],
+            "partial_success": [],
+            "failure": []
+          }
+        }
+      }
+    },
+    "reward_debate": {
+      "tag_ids": ["floating", "army", "court"],
+      "counter_tags": ["court"],
+      "skip_choice": true,
+      "time_limit_turns": 2,
+      "trigger": {
+        "type": "condition",
+        "condition": "forces_below",
+        "value": 4,
+        "min_turn": 5
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+      ],
+      "plans": {
+        "settle_merits": {
+          "attribute_keys": ["perception", "charisma"],
+          "specialty_tags": ["negotiation"],
+          "allowed_resource_ids": ["silver_pack"],
+          "required_resources": {
+            "silver_pack": 1
+          },
+          "resource_bonus": {
+            "silver_pack": 1
+          },
+          "resource_caps": {
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "cohesion", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ],
+            "failure": [
+              {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    "wounded_camp": {
+      "tag_ids": ["floating", "military", "camp"],
+      "counter_tags": ["military"],
+      "skip_choice": true,
+      "time_limit_turns": 3,
+      "trigger": {
+        "type": "condition",
+        "min_turn": 5,
+        "any_of": [
+          {"condition": "forces_below", "value": 5},
+          {"condition": "risk_at_least", "risk_id": "miasma", "value": 1}
+        ]
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "miasma", "value": 1}
+      ],
+      "plans": {
+        "tend_the_wounded": {
+          "attribute_keys": ["constitution", "perception"],
+          "specialty_tags": ["medical"],
+          "allowed_resource_ids": ["herbal_tonic", "silver_pack"],
+          "required_resources": {
+            "herbal_tonic": 1,
+            "silver_pack": 1
+          },
+          "resource_bonus": {},
+          "resource_caps": {
+            "herbal_tonic": 1,
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "camp_delta", "key": "forces", "value": 1},
+              {"type": "camp_delta", "key": "cohesion", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "camp_delta", "key": "forces", "value": 1}
+            ],
+            "failure": [
+              {"type": "camp_delta", "key": "forces", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    "frontier_petition": {
+      "tag_ids": ["floating", "court", "camp"],
+      "counter_tags": ["court"],
+      "skip_choice": true,
+      "time_limit_turns": 2,
+      "trigger": {
+        "type": "condition",
+        "min_turn": 9,
+        "any_of": [
+          {"condition": "alienation_at_least", "value": 2},
+          {"condition": "no_cao_governance_turns", "value": 5}
+        ]
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "alienation", "value": 1}
+      ],
+      "plans": {
+        "answer_petitions": {
+          "attribute_keys": ["constitution", "intelligence"],
+          "specialty_tags": [],
+          "allowed_resource_ids": ["silver_pack"],
+          "required_resources": {
+            "silver_pack": 1
+          },
+          "resource_bonus": {},
+          "resource_caps": {
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "resource_delta", "resource_id": "communal_aid", "value": 1}
+            ],
+            "partial_success": [
+              {"type": "risk_delta", "risk_id": "headwind", "value": 1}
+            ],
+            "failure": [
+              {"type": "risk_delta", "risk_id": "headwind", "value": 1}
+            ]
+          }
+        }
+      }
+    },
+    "hebei_old_allies": {
+      "tag_ids": ["fixed", "hebei", "court"],
+      "counter_tags": ["court"],
+      "skip_choice": true,
+      "time_limit_turns": 3,
+      "trigger": {
+        "type": "after_turn",
+        "turn": 10,
+        "requires_flag": "hebei_story_started"
+      },
+      "timeout_effects": [
+        {"type": "risk_delta", "risk_id": "rumor", "value": 1}
+      ],
+      "plans": {
+        "bind_old_allies": {
+          "attribute_keys": ["perception", "intelligence"],
+          "specialty_tags": ["intimidation", "stratagem"],
+          "allowed_resource_ids": ["spy_report", "silver_pack"],
+          "required_resources": {
+            "spy_report": 1,
+            "silver_pack": 1
+          },
+          "resource_bonus": {
+            "spy_report": 1,
+            "silver_pack": 1
+          },
+          "resource_caps": {
+            "spy_report": 1,
+            "silver_pack": 1
+          },
+          "plan_modifier": 0,
+          "dc": 13,
+          "partial_margin": 1,
+          "effects": {
+            "success": [
+              {"type": "resource_delta", "resource_id": "hebei_old_guard", "value": 1}
+            ],
+            "partial_success": [],
+            "failure": []
+          }
+        }
+      }
+    },
+    "fengxiao_afterthoughts": {
+      "tag_ids": ["fixed", "court"],
+      "counter_tags": ["court"],
+      "time_limit_turns": 0,
+      "trigger": {
+        "type": "after_turn",
+        "turn": 11,
+        "requires_roster_id": "guo_jia"
+      },
+      "plans": {
+        "seek_statecraft": {
+          "required_character_ids": ["guo_jia"],
+          "attribute_keys": ["intelligence", "perception"],
+          "specialty_tags": [],
+          "allowed_resource_ids": ["spy_report"],
+          "required_resources": {
+            "spy_report": 1
+          },
+          "resource_bonus": {},
+          "resource_caps": {
+            "spy_report": 1
+          },
+          "plan_modifier": 0,
+          "dc": 0,
+          "partial_margin": 1,
+          "always_success": true,
+          "effects": {
+            "success": [
+              {"type": "flag_set", "key": "scheme_counter_ready", "value": true},
+              {"type": "relation_delta", "character_id": "guo_jia", "value": 1},
+              {"type": "counter_delta", "counter_id": "guojia_illness", "value": 1}
+            ],
+            "partial_success": [],
+            "failure": []
+          }
+        },
+        "let_him_rest": {
+          "required_character_ids": ["guo_jia"],
+          "attribute_keys": ["perception", "charisma"],
+          "specialty_tags": [],
+          "allowed_resource_ids": ["herbal_tonic"],
+          "required_resources": {
+            "herbal_tonic": 1
+          },
+          "resource_bonus": {},
+          "resource_caps": {
+            "herbal_tonic": 1
+          },
+          "plan_modifier": 0,
+          "dc": 0,
+          "partial_margin": 1,
+          "always_success": true,
+          "effects": {
+            "success": [
+              {"type": "relation_delta", "character_id": "guo_jia", "value": 1}
+            ],
+            "partial_success": [],
+            "failure": []
+          }
+        }
+      }
+    }
+  }
+}

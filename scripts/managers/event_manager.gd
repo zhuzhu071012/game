@@ -1,6 +1,19 @@
 extends Node
 class_name EventManager
 
+const DISABLED_LEGACY_EVENT_IDS: Array[String] = [
+	"grain_shortage",
+	"river_omens",
+	"jingzhou_whispers",
+	"ember_dream",
+	"xun_yu_letters",
+	"camp_fever",
+	"hidden_correspondence",
+	"harbor_survey",
+	"tribute_market",
+	"talent_trace"
+]
+
 # 事件管理器：负责事件生成、条件检查、投入判定与结果发放。
 # 临时事件卡的玩法规则优先集中在这里，避免写进 UI。
 
@@ -12,12 +25,33 @@ var event_defs: Dictionary = {}
 
 func setup(definitions: Dictionary) -> void:
 	event_defs = definitions
+	for event_id in DISABLED_LEGACY_EVENT_IDS:
+		if not event_defs.has(event_id):
+			continue
+		var event: EventData = event_defs[event_id] as EventData
+		if event != null:
+			event.weight = 0
+
+func prune_disabled_events(run_state: RunState) -> bool:
+	if run_state == null:
+		return false
+	var changed: bool = false
+	for event_id in DISABLED_LEGACY_EVENT_IDS:
+		if run_state.active_event_ids.has(event_id):
+			run_state.active_event_ids.erase(event_id)
+			changed = true
+		if run_state.active_event_states.has(event_id):
+			run_state.active_event_states.erase(event_id)
+			changed = true
+	return changed
 
 func spawn_events_for_turn(run_state: RunState) -> Array[String]:
 	var spawned: Array[String] = []
 	var max_weight: int = _max_event_spawn_weight()
 	for event_id_variant in event_defs.keys():
 		var event_id: String = str(event_id_variant)
+		if DISABLED_LEGACY_EVENT_IDS.has(event_id):
+			continue
 		var event: EventData = event_defs[event_id] as EventData
 		var spawn_flag: String = "%s_spawned" % event_id
 		if run_state.active_event_states.has(event_id):
@@ -74,7 +108,7 @@ func advance_unresolved_events(run_state: RunState, relation_manager: RelationMa
 	for event_id_variant in run_state.active_event_ids.duplicate():
 		var event_id: String = str(event_id_variant)
 		var state: Dictionary = run_state.active_event_states.get(event_id, {})
-		if state.is_empty():
+		if state.is_empty() or bool(state.get("story_event", false)) or not event_defs.has(event_id):
 			continue
 		state["turns_left"] = int(state.get("turns_left", 0)) - 1
 		run_state.active_event_states[event_id] = state

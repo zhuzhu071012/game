@@ -127,7 +127,7 @@
 		},
 		"audience_resource_1": {
 			"title": "资财位（可空）",
-			"body": "可放入礼物或银两等资源，用于提升召对效果。"
+			"body": "可放入礼物、银两、书信或共济等资源；共济可在召对中缓和离心。"
 		},
 		"research_primary": {
 			"title": "主研位",
@@ -217,6 +217,9 @@
 	"turn_results": {
 		"page": "结果 %d / %d",
 		"reward_header": "获得结果",
+		"roll_header": "判定",
+		"roll_wait": "掷骰中……",
+		"roll_summary": "%d + %d = %d，修正 %+d，最终 %d / DC %d",
 		"collect_all": "收集全部",
 		"card_back": "待收取",
 		"card_hint": "点击翻开",

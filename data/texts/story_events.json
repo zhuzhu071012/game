@@ -1,0 +1,286 @@
+{
+  "ui": {
+	"title": "待决事件",
+	"plan_header": "处置方案",
+	"body_header": "事由",
+	"config_header": "投入与判定",
+	"character_header": "投入角色",
+	"character_empty": "尚未选择角色",
+	"resource_header": "资源投入",
+	"resource_empty": "此方案不需要额外资源。",
+	"breakdown_header": "修正明细",
+	"result_header": "结算结果",
+	"effect_header": "结果影响",
+	"turn_limit": "时限：%d 回合",
+	"queue_progress": "待处理 %d / %d",
+	"confirm": "确认执行",
+	"continue": "继续",
+	"select_character": "投入",
+	"remove_character": "移出",
+	"plus": "+",
+	"minus": "-",
+	"need_character": "需要先选择一名角色。",
+	"need_resource": "所需资源不足。",
+	"formula": "2d6 + 属性修正 + 专长修正 + 资源修正 + 方案修正 + 状态修正 + 环境修正",
+	"roll_summary": "掷骰：2d6=%d，修正合计 %+d，最终结果 %d，对抗 DC %d。",
+	"preview_summary": "当前总修正 %+d，对抗 DC %d。",
+	"outcome_success": "成功",
+	"outcome_partial_success": "勉强压下",
+	"outcome_failure": "失手",
+	"no_effect": "无明显变化",
+	"consumed_header": "消耗资源",
+	"errors": {
+	  "character_required": "此方案必须由一名角色出面处理。",
+	  "resource_required": "缺少所需资源：%s。",
+	  "resource_overflow": "%s 的投入数量超过当前持有。"
+	},
+	"confirm_plan": "采用此策",
+	"plan_choice_hint": "先在此选定处置方案。确认后，该事件会落到桌面上，改为通过事件卡槽位投入角色与资源。",
+	"board_selected_plan_header": "当前方案",
+	"board_requirements_header": "落卡需求",
+	"board_followup_header": "判定说明",
+	"board_selected_plan": "当前方案：%s",
+	"board_requirements": "落卡需求：%s",
+	"board_optional_resources": "可额外投入：%s",
+	"board_need_character": "需要 1 名角色",
+	"board_attribute_hint_generic": "此事需要%s兼备之人。",
+	"board_specialty_hint": "若又擅长%s，处置起来会更稳妥。",
+	"board_attribute_subjects": {
+	  "charisma_perception": "此事需要看得透人心、也压得住场面之人。",
+	  "charisma_strength": "此事需要压得住众人、也拿得出手段之人。",
+	  "constitution_intelligence": "此事需要能担事、也有谋断之人。",
+	  "constitution_perception": "此事需要能体恤军情、也肯耐心收拾残局之人。",
+	  "constitution_strength": "此事需要撑得住局面、也下得了决断之人。",
+	  "intelligence_perception": "此事需要看得细、想得深之人。"
+	},
+	"board_formula": "判定采用：2d6 + 属性修正 + 专长修正 + 资源修正 + 方案修正 + 状态修正 + 环境修正",
+	"pending_body": "【%s】尚未投入齐备，本回合暂未处理。",
+	"expired_body": "【%s】时限已尽，未能及时处置。"
+  },
+  "meta": {
+	"tags": {
+	  "fixed": "固定",
+	  "floating": "浮动",
+	  "military": "军务",
+	  "camp": "营务",
+	  "logistics": "粮运",
+	  "court": "群臣",
+	  "image": "形象",
+	  "hebei": "河北",
+	  "army": "军功"
+	},
+	"attributes": {
+	  "strength": "力量",
+	  "agility": "敏捷",
+	  "constitution": "体质",
+	  "intelligence": "智力",
+	  "perception": "感知",
+	  "charisma": "魅力"
+	},
+	"specialties": {
+	  "command": "治军",
+	  "search": "搜索",
+	  "negotiation": "交涉",
+	  "intimidation": "威慑",
+	  "deception": "欺诈",
+	  "medical": "医疗",
+	  "stratagem": "奇谋"
+	},
+	"camp_keys": {
+	  "supplies": "粮草",
+	  "forces": "兵力",
+	  "cohesion": "人心",
+	  "strategy": "军略"
+	},
+	"risks": {
+	  "miasma": "疫气",
+	  "alienation": "离心",
+	  "rumor": "流言",
+	  "headwind": "头风"
+	}
+  },
+  "logs": {
+	"queued": "新事件待决：%s",
+	"resolved": "【%s】%s，结果为%s。",
+	"effect_gain": "%s +%d",
+	"effect_loss": "%s %d",
+	"resource_line": "%s ×%d",
+	"pending": "【%s】仍待处置。",
+	"expired": "【%s】已错过时限，按失手结算。",
+	"committed": "【%s】已采用“%s”，事件已落到桌面等待投入。"
+  },
+  "events": {
+	"cold_drought": {
+	  "title": "寒旱无水",
+	  "description": "北征乌桓已毕，大军自柳城凯旋，却兵疲马瘦，时寒且旱，二百里无复水，军又乏食。",
+	  "timeout": "你终究没能在时限内稳住这场寒旱。行伍里先散开的不是阵势，而是咳喘与疫气。",
+	  "plans": {
+		"find_water": {
+		  "title": "凿井寻水",
+		  "summary": "体质+智力 / 搜索 / 银两 / DC13",
+		  "result": {
+			"success": "你命人沿路勘地凿井，又拨出银钱让辎重优先照应最难支的队伍。总算在最危险的时候替大军续上了一口命。",
+			"partial_success": "井是凿了，水却来得慢。表面上勉强稳住，实际仍耗掉了眼前本就不多的粮草。",
+			"failure": "井壁里只有冷硬的土，队伍却已经再也等不起。还未走远，口粮先少了一截。"
+		  }
+		}
+	  }
+	},
+	"horse_for_grain": {
+	  "title": "杀马为粮",
+	  "description": "粮草不继，军中有人请杀马为粮。宝马可惜，士卒更贵。",
+	  "timeout": "你迟疑太久，军中先断了炊。到了最后，既没保住战马，也没保住粮草。",
+	  "plans": {
+		"slaughter_horses": {
+		  "title": "杀马保军",
+		  "summary": "体质+智力 / 治军 / 无 / DC10",
+		  "result": {
+			"success": "你咬牙下令，先保住营中最急的一口命。马是折了，可粮草到底被硬拉回来一些。",
+			"partial_success": "你终究还是动了战马。军里暂时续上了粮，可也等于亲手削掉了几分后路。",
+			"failure": "你下令太迟，杀马所得已经赶不上缺口。军中怨气与慌乱反而先一步漫开。"
+		  }
+		},
+		"hold_the_line": {
+		  "title": "保留战马",
+		  "summary": "体质+力量 / 治军 / 无 / DC13",
+		  "result": {
+			"success": "你硬把众议压了回去，先保住了战马与后续机动。眼前虽苦，总算没再添新的损失。",
+			"partial_success": "你保住了战马，却没能保住人心和体力。前营先有减员，暗地里也起了议论。",
+			"failure": "你既舍不得马，也顶不住缺粮。军中先丢的是兵力，后头跟着来的还有流言。"
+		  }
+		}
+	  }
+	},
+	"where_are_the_remonstrators": {
+	  "title": "前谏者何在",
+	  "description": "归途中，你忽然问起当初劝阻北征的人，众人皆惧，不知祸福。你心里明白，此番得胜，有天幸，不可视作常例。",
+	  "timeout": "你终究没有给这件事一个交代。众人表面沉默，心里却各自记下了新的离心。",
+	  "plans": {
+		"reward_truth": {
+		  "title": "厚赏谏者",
+		  "summary": "感知+魅力 / 交涉 / 银两 / DC13",
+		  "result": {
+			"success": "你不但认前言，也让敢言之人得到看得见的回报。群臣这才缓缓松开那口一直悬着的气。",
+			"partial_success": "你把姿态摆得很足，也确实让人心稍稍安定。只是这份安稳还不够深，更多只是暂时的止血。",
+			"failure": "银钱给出去了，话也说出来了，可群臣并没有因此真正放心。你只换回一层薄薄的人心。"
+		  }
+		},
+		"let_it_pass": {
+		  "title": "轻轻揭过",
+		  "summary": "感知+智力 / 无 / 无 / DC10",
+		  "result": {
+			"success": "你把这句问话轻轻带过，不再追究。场面因此没有进一步坏下去。",
+			"partial_success": "你想让此事悄悄过去，可沉默本身就会生出新的猜疑。",
+			"failure": "你既不明说，也不给众人一个可依靠的定论。于是离心便顺着空白慢慢长出来。"
+		  }
+		},
+		"strike_the_court": {
+		  "title": "借机敲打群臣",
+		  "summary": "魅力+力量 / 威慑 / 密报 / DC15",
+		  "result": {
+			"success": "你借着先前密报里掌握的细节点到为止，群臣立刻听懂了分寸。军略也因此更进一步收回掌中。",
+			"partial_success": "你确实立住了威势，却也让众人把那股寒意记在心里。军略得了，人心却没全跟上。",
+			"failure": "你想借势整饬群臣，却只让他们更清楚地感到彼此之间那层裂痕。军略看似立住，离心也随之加深。"
+		  }
+		}
+	  }
+	},
+	"liaodong_heads": {
+	  "title": "辽东传首",
+	  "description": "辽东送来袁尚、袁熙首级，袁氏大势已去。但河北并不会因两颗人头立刻安稳，旧部仍蠢蠢欲动。",
+	  "plans": {
+		"advance_hebei_thread": {
+		  "title": "着手收束河北后势",
+		  "summary": "无判定 / 推进后续“河北旧附”事件",
+		  "result": {
+			"success": "你没有在这两颗人头上浪费太多情绪，而是立刻着手收束后势。河北真正的难处，从此才算开始浮出水面。"
+		  }
+		}
+	  }
+	},
+	"reward_debate": {
+	  "title": "战后论功",
+	  "description": "前军有功，军中论功请赏之声渐起。赏若不明，则人心不平。",
+	  "timeout": "你迟迟没给军中一个交代。到了最后，这场论功本身也成了新的离心。",
+	  "plans": {
+		"settle_merits": {
+		  "title": "整饬封赏次序",
+		  "summary": "感知+魅力 / 交涉 / 银两 / DC13",
+		  "result": {
+			"success": "你把封赏的秩序重新理了出来，让最该先安的人先安下来。营中的议论声终于弱了一些。",
+			"partial_success": "你总算把最急的一层压住了，可赏薄赏厚的比较依然在暗地里继续。",
+			"failure": "封赏没有压住纷争，反而让更多人开始记你这一笔账。"
+		  }
+		}
+	  }
+	},
+	"wounded_camp": {
+	  "title": "伤兵满营",
+	  "description": "营中伤兵堆积，家眷无人可依。有人求药，有人望乡，也有人只是熬着一口气。北征胜利的阴影投射在他们身上。",
+	  "timeout": "你没能在伤兵彻底压垮营气之前腾出手来。疫气又沿着伤寒与破败慢慢爬回营里。",
+	  "plans": {
+		"tend_the_wounded": {
+		  "title": "安置伤兵",
+		  "summary": "体质+感知 / 医疗 / 草药、银两 / DC13",
+		  "result": {
+			"success": "你把药材、口粮和安置次序一并理清，最先稳下来的不是伤口，而是人心。兵力也因此缓回了一口气。",
+			"partial_success": "你至少保住了最危险的一批人。兵力稍有回升，可营中的疲惫与沉重还没有真正散开。",
+			"failure": "你只是勉强把人从最坏处拉回来一些。兵力有了起色，营里的压抑却并未因此真正减轻。"
+		  }
+		}
+	  }
+	},
+	"frontier_petition": {
+	  "title": "边郡请命",
+	  "description": "书信已堆满案头。边郡官吏纷纷请命，请求补官、增兵、赈恤、移民。",
+	  "timeout": "边郡请命堆得越来越高，你终究没能及时接住。拖延本身，也成了新的离心。",
+	  "plans": {
+		"answer_petitions": {
+		  "title": "分批裁处边郡请命",
+		  "summary": "体质+智力 / 无 / 银两 / DC13",
+		  "result": {
+			"success": "你把最急的几份请命先行裁下，既给地方一个说法，也替自己留下了后手。案头因此多了一份可反复调度的共济文书。",
+			"partial_success": "你勉强把最急的一批压住了，可中枢与地方的来回拉扯也让你头风再起。",
+			"failure": "你顾得了前头，顾不了后头。政务还没理顺，头风先一步缠上了你。"
+		  }
+		}
+	  }
+	},
+	"hebei_old_allies": {
+	  "title": "河北旧附",
+	  "description": "袁氏旧附表面归顺，私下仍各有观望。你得让他们记住，你们已经在一条船上。",
+	  "timeout": "你没能在时限内把这些旧附重新钉进秩序里。表面的顺服下面，很快又长出新的流言。",
+	  "plans": {
+		"bind_old_allies": {
+		  "title": "整编河北旧附",
+		  "summary": "感知+智力 / 威慑、奇谋 / 密报、银两 / DC13",
+		  "result": {
+			"success": "你借着密报与赏罚把人心一层层压回队列，终于从这些观望者里抽出一支可用的河北旧部。",
+			"partial_success": "你暂时压住了他们的观望，却还没有真正把人收为己用。",
+			"failure": "你看似动了手，实则只让他们更谨慎地藏起了真实态度。"
+		  }
+		}
+	  }
+	},
+	"fengxiao_afterthoughts": {
+	  "title": "奉孝余议",
+	  "description": "郭嘉虽已随军北返，但远征让他的身体愈发虚弱。他仍会替你分析北南轻重，只是说话比从前更轻。",
+	  "plans": {
+		"seek_statecraft": {
+		  "title": "请其专议国策",
+		  "summary": "智力+感知 / 必须投入郭嘉 / 密报 / DC0",
+		  "result": {
+			"success": "你还是把案头最难的那部分递到了奉孝面前。他说得很轻，却仍替你拨开了一条更深的研究路。代价是，他的身体也因此又往下沉了一层。"
+		  }
+		},
+		"let_him_rest": {
+		  "title": "令其暂且养病",
+		  "summary": "感知+魅力 / 必须投入郭嘉 / 草药 / DC0",
+		  "result": {
+			"success": "你没有再逼他把最后一分心力也耗在案上，只让他先把这一口气缓稳。奉孝记住了这份收手。"
+		  }
+		}
+	  }
+	}
+  }
+}

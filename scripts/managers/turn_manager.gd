@@ -53,7 +53,7 @@ func _collect_result_rewards(before_state: Dictionary, run_state: RunState) -> A
 			})
 	return rewards
 
-func _append_result_presentation_from_state(before_state: Dictionary, run_state: RunState, source_kind: String, source_id: String, title: String, logs: Array) -> void:
+func _append_result_presentation_from_state(before_state: Dictionary, run_state: RunState, source_kind: String, source_id: String, title: String, logs: Array, extra: Dictionary = {}) -> void:
 	var rewards: Array = _collect_result_rewards(before_state, run_state)
 	var lines: Array[String] = []
 	for log_variant in logs:
@@ -62,19 +62,37 @@ func _append_result_presentation_from_state(before_state: Dictionary, run_state:
 			lines.append(line)
 	if rewards.is_empty() and lines.is_empty():
 		return
-	_result_presentations.append({
+	var payload: Dictionary = {
 		"source_kind": source_kind,
 		"source_id": source_id,
 		"title": title,
 		"body": "\n\n".join(lines),
 		"rewards": rewards
-	})
+	}
+	for key_variant in extra.keys():
+		payload[str(key_variant)] = extra[key_variant]
+	_result_presentations.append(payload)
 
-func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manager: EventManager, relation_manager: RelationManager, characters: Dictionary, resources: Dictionary, tutorial_manager = null) -> Array[String]:
+func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manager: EventManager, relation_manager: RelationManager, characters: Dictionary, resources: Dictionary, tutorial_manager = null, story_event_manager = null) -> Array[String]:
 	_clear_result_presentations()
 	if tutorial_manager != null and tutorial_manager.is_active(run_state):
+		var tutorial_step_before: int = tutorial_manager.current_step(run_state)
+		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
 		_clear_result_presentations()
 		var tutorial_logs: Array[String] = tutorial_manager.resolve_turn(run_state, board_manager, event_manager, relation_manager, characters, resources)
+		var tutorial_rewards: Array = _collect_result_rewards(reward_snapshot, run_state)
+		if not tutorial_rewards.is_empty():
+			var tutorial_result_title: String = tutorial_manager.report_title(run_state)
+			if tutorial_result_title.strip_edges().is_empty():
+				tutorial_result_title = TextDB.get_text("tutorial.steps.step_%d.title" % tutorial_step_before, "Tutorial Step %d" % tutorial_step_before)
+			_append_result_presentation_from_state(
+				reward_snapshot,
+				run_state,
+				"tutorial",
+				"step_%d" % tutorial_step_before,
+				tutorial_result_title,
+				tutorial_logs
+			)
 		board_manager.reset_turn_targets(run_state.active_event_ids)
 		run_state.log_entries.append_array(tutorial_logs)
 		emit_signal("turn_finished")
@@ -90,16 +108,54 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 		var event_id: String = str(event_id_variant)
 		var event_cards: Array = board_manager.get_event_cards(event_id)
 		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
-		var event_logs: Array[String] = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
-		logs.append_array(event_logs)
-		var event: EventData = event_manager.event_defs.get(event_id) as EventData
-		var event_title: String = event.title if event != null else event_id
-		_append_result_presentation_from_state(reward_snapshot, run_state, "event", event_id, event_title, event_logs)
+		var event_state: Dictionary = run_state.active_event_states.get(event_id, {}) as Dictionary
+		if bool(event_state.get("story_event", false)) and story_event_manager != null:
+			var story_result: Dictionary = story_event_manager.resolve_board_event(run_state, event_id, event_cards, characters, resources)
+			var story_logs: Array[String] = []
+			for line_variant in story_result.get("logs", []) as Array:
+				story_logs.append(str(line_variant))
+			logs.append_array(story_logs)
+			var presentation_lines: Array[String] = []
+			for line_variant in story_result.get("presentation_lines", []) as Array:
+				presentation_lines.append(str(line_variant))
+			_append_result_presentation_from_state(
+				reward_snapshot,
+				run_state,
+				"event",
+				event_id,
+				str(story_result.get("title", story_event_manager.event_title(event_id))),
+				presentation_lines,
+				{"dice": (story_result.get("dice", {}) as Dictionary).duplicate(true)}
+			)
+		else:
+			var event_logs: Array[String] = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
+			logs.append_array(event_logs)
+			var event: EventData = event_manager.event_defs.get(event_id) as EventData
+			var event_title: String = event.title if event != null else event_id
+			_append_result_presentation_from_state(reward_snapshot, run_state, "event", event_id, event_title, event_logs)
 		logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
 		if run_state.game_over:
 			return _finish_run(run_state, board_manager, logs)
 	logs.append_array(_consume_committed_resources(run_state, board_manager, resources))
 	logs.append_array(event_manager.advance_unresolved_events(run_state, relation_manager))
+	if story_event_manager != null:
+		for expired_variant in story_event_manager.advance_unresolved_board_events(run_state):
+			var expired: Dictionary = expired_variant as Dictionary
+			var expired_logs: Array[String] = []
+			for line_variant in expired.get("logs", []) as Array:
+				expired_logs.append(str(line_variant))
+			logs.append_array(expired_logs)
+			var body_lines: Array[String] = []
+			for line_variant in expired.get("presentation_lines", []) as Array:
+				body_lines.append(str(line_variant))
+			if not expired_logs.is_empty() or not body_lines.is_empty():
+				_result_presentations.append({
+					"source_kind": "event",
+					"source_id": str(expired.get("event_id", "")),
+					"title": str(expired.get("title", "")),
+					"body": "\n\n".join(body_lines),
+					"rewards": []
+				})
 	logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
 	if run_state.game_over:
 		return _finish_run(run_state, board_manager, logs)
@@ -169,6 +225,8 @@ func _resolve_governance(run_state: RunState, cards: Array, relation_manager: Re
 		return logs
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
+	if character_ids.has("cao_cao"):
+		run_state.flags["last_cao_governance_turn"] = run_state.turn_index
 	var roll_value: int = GameRules.roll_2d6()
 	var total_score: float = _pair_slot_total(run_state, primary_id, support_id, "governance", characters) + float(roll_value)
 	var silver_gain: int = maxi(0, int(floor(total_score / 7.0)))
@@ -202,9 +260,9 @@ func _resolve_governance(run_state: RunState, cards: Array, relation_manager: Re
 		_:
 			logs.append(TextDB.get_text("logs.slots.governance.other"))
 	if not primary_id.is_empty() and primary_id != "cao_cao":
-		_apply_favor_progression(run_state, relation_manager, primary_id, 1)
+		_apply_favor_progression(run_state, relation_manager, primary_id, 1, false)
 	if not support_id.is_empty() and support_id != "cao_cao":
-		_apply_favor_progression(run_state, relation_manager, support_id, 1)
+		_apply_favor_progression(run_state, relation_manager, support_id, 1, false)
 	var writ_chance: float = GOVERNANCE_WRIT_CHANCE_XUN_YU if primary_id == "xun_yu" else GOVERNANCE_WRIT_CHANCE_DEFAULT
 	if randf() <= writ_chance:
 		_gain_resource(run_state, "recruit_writ", 1)
@@ -224,6 +282,7 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var gift_count: int = _resource_count_any(cards, ["gift", "sanjian_dao"])
 	var letter_count: int = _resource_count_any(cards, ["sealed_letter", "yecheng_letter"])
+	var communal_aid_count: int = _resource_count(cards, "communal_aid")
 	if not risk_ids.is_empty():
 		var primary_id: String = character_ids[0]
 		var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
@@ -231,10 +290,15 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 		if risk_id not in ["rumor", "alienation"]:
 			return logs
 		var risk_roll: int = GameRules.roll_2d6()
-		var risk_total: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "audience", characters))) + risk_roll
+		var aid_bonus: int = communal_aid_count * 3 if risk_id == "alienation" else 0
+		var risk_total: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "audience", characters))) + risk_roll + aid_bonus
 		if risk_total > 15:
-			run_state.risk_states[risk_id] = maxi(0, int(run_state.risk_states.get(risk_id, 0)) - 1)
+			var reduction: int = 1 + (communal_aid_count if risk_id == "alienation" else 0)
+			var before_risk: int = int(run_state.risk_states.get(risk_id, 0))
+			run_state.risk_states[risk_id] = maxi(0, before_risk - reduction)
 			logs.append(TextDB.get_text("logs.slots.audience.success"))
+			if risk_id == "alienation" and communal_aid_count > 0 and before_risk > int(run_state.risk_states.get(risk_id, 0)):
+				logs.append(TextDB.get_text("logs.slots.audience.communal_aid"))
 		else:
 			if risk_total <= 8:
 				run_state.risk_states[risk_id] = int(run_state.risk_states.get(risk_id, 0)) + 1
@@ -257,6 +321,9 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 				relation_manager.add_rumor_risk(run_state, partner_id, -1)
 			if silver_count > 0 and total_score >= 16:
 				run_state.morale += 1
+			if communal_aid_count > 0 and int(run_state.risk_states.get("alienation", 0)) > 0:
+				run_state.risk_states["alienation"] = maxi(0, int(run_state.risk_states.get("alienation", 0)) - communal_aid_count)
+				logs.append(TextDB.get_text("logs.slots.audience.communal_aid"))
 			logs.append(TextDB.get_text("logs.slots.audience.success"))
 			if gift_count > 0:
 				logs.append(TextDB.get_text("logs.slots.audience.gift"))
@@ -526,7 +593,7 @@ func _set_character_track(run_state: RunState, character_id: String, key: String
 		return
 	run_state.active_character_states[character_id][key] = clampi(value, 0, 12)
 
-func _apply_favor_progression(run_state: RunState, relation_manager: RelationManager, character_id: String, delta: int) -> void:
+func _apply_favor_progression(run_state: RunState, relation_manager: RelationManager, character_id: String, delta: int, grant_calming_incense: bool = true) -> void:
 	if delta == 0 or not run_state.relation_states.has(character_id):
 		return
 	var before_favor: int = int(run_state.relation_states[character_id].get("favor", 0))
@@ -534,7 +601,7 @@ func _apply_favor_progression(run_state: RunState, relation_manager: RelationMan
 	relation_manager.apply_favor(run_state, character_id, delta)
 	var after_favor: int = int(run_state.relation_states[character_id].get("favor", 0))
 	var after_label: String = GameRules.relation_label(after_favor)
-	if after_favor > before_favor and after_label != before_label:
+	if grant_calming_incense and after_favor > before_favor and after_label != before_label:
 		_gain_resource(run_state, "calming_incense", 1)
 
 func _gain_resource(run_state: RunState, resource_id: String, amount: int) -> void:
@@ -552,7 +619,7 @@ func _grant_recruit_character(run_state: RunState, relation_manager: RelationMan
 	if not run_state.roster_ids.has(character_id):
 		run_state.roster_ids.append(character_id)
 	if run_state.relation_states.has(character_id):
-		_apply_favor_progression(run_state, relation_manager, character_id, 1 + int(extra_help))
+		_apply_favor_progression(run_state, relation_manager, character_id, 1 + int(extra_help), false)
 	var character: CharacterData = characters.get(character_id) as CharacterData
 	var display_name: String = character_id
 	if character != null:

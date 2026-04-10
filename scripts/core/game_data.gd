@@ -46,6 +46,8 @@ static func create_run_state() -> RunState:
 		"tutorial_completed": false,
 		"tutorial_last_report_step": 0,
 		"tutorial_pending_popup": "",
+		"hebei_story_started": false,
+		"last_cao_governance_turn": 0,
 		"camp_supplies_base": 3,
 		"camp_forces_base": 3,
 		"camp_cohesion_base": 3,
@@ -63,7 +65,9 @@ static func create_run_state() -> RunState:
 		"yecheng_letter": 0,
 		"sanjian_dao": 0,
 		"night_watch_roll": 0,
-		"northern_corps": 0
+		"northern_corps": 0,
+		"communal_aid": 0,
+		"hebei_old_guard": 0
 	}
 	for relation_variant in create_relations():
 		var relation: RelationData = relation_variant as RelationData
@@ -294,6 +298,26 @@ static func create_resources() -> Dictionary:
 		"category": "military",
 		"description": TextDB.get_text("resources.northern_corps.description"),
 		"tags": ["military", "troop", "command"],
+		"value": 2,
+		"consumable": false,
+		"art_path": "res://assets/cards/resource_placeholder.svg"
+	})
+	map["communal_aid"] = _make_resource({
+		"id": "communal_aid",
+		"display_name": TextDB.get_text("resources.communal_aid.name"),
+		"category": "support",
+		"description": TextDB.get_text("resources.communal_aid.description"),
+		"tags": ["relation", "support", "document"],
+		"value": 1,
+		"consumable": true,
+		"art_path": "res://assets/cards/resource_placeholder.svg"
+	})
+	map["hebei_old_guard"] = _make_resource({
+		"id": "hebei_old_guard",
+		"display_name": TextDB.get_text("resources.hebei_old_guard.name"),
+		"category": "military",
+		"description": TextDB.get_text("resources.hebei_old_guard.description"),
+		"tags": ["military", "troop", "hebei", "command"],
 		"value": 2,
 		"consumable": false,
 		"art_path": "res://assets/cards/resource_placeholder.svg"

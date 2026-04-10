@@ -4,8 +4,15 @@ const CARD_SCENE := preload("res://scenes/CardView.tscn")
 const SLOT_SCENE := preload("res://scenes/SlotView.tscn")
 const EVENT_UI_CONTROLLER_SCRIPT := preload("res://scripts/ui/event_ui_controller.gd")
 const FLOATING_DETAIL_WINDOW_SCRIPT := preload("res://scripts/ui/floating_detail_window.gd")
+const SYSTEM_MENU_CONTROLLER_SCRIPT := preload("res://scripts/ui/system_menu_controller.gd")
+const AUDIO_OPTIONS_CONTROLLER_SCRIPT := preload("res://scripts/ui/audio_options_controller.gd")
+const SAVE_SLOT_CONTROLLER_SCRIPT := preload("res://scripts/ui/save_slot_controller.gd")
+const TUTORIAL_UI_CONTROLLER_SCRIPT := preload("res://scripts/ui/tutorial_ui_controller.gd")
+const TURN_RESULT_CONTROLLER_SCRIPT := preload("res://scripts/ui/turn_result_controller.gd")
+const STORY_EVENT_CONTROLLER_SCRIPT := preload("res://scripts/ui/story_event_controller.gd")
 const TUTORIAL_MANAGER_SCRIPT := preload("res://scripts/managers/tutorial_manager.gd")
 const SAVE_MANAGER_SCRIPT := preload("res://scripts/managers/save_manager.gd")
+const STORY_EVENT_MANAGER_SCRIPT := preload("res://scripts/managers/story_event_manager.gd")
 const FIRE_MARKER_TEXTURE := preload("res://assets/ui/fire_marker.svg")
 const GLOBAL_FONT_PATH := "res://assets/fonts/ZhuqueFangsong-Regular.ttf"
 const TITLE_FONT_PATH := "res://assets/fonts/Huiwen-mincho.ttf"
@@ -190,6 +197,11 @@ var turn_result_overlay: Control
 var turn_result_panel: PanelContainer
 var turn_result_title: Label
 var turn_result_subtitle: Label
+var turn_result_dice_panel: PanelContainer
+var turn_result_dice_title: Label
+var turn_result_dice_row: HBoxContainer
+var turn_result_dice_summary: Label
+var turn_result_die_labels: Array = []
 var turn_result_body: RichTextLabel
 var turn_result_reward_title: Label
 var turn_result_card_scroll: ScrollContainer
@@ -202,9 +214,45 @@ var turn_result_index: int = -1
 var turn_result_card_entries: Array = []
 var turn_result_active: bool = false
 var turn_result_collecting: bool = false
+var turn_result_dice_token: int = 0
 var pending_turn_result_report_payload: Dictionary = {}
+var story_event_manager
+var story_event_overlay: Control
+var story_event_panel: PanelContainer
+var story_event_title: Label
+var story_event_subtitle: Label
+var story_event_body: RichTextLabel
+var story_event_plan_list: VBoxContainer
+var story_event_plan_summary: Label
+var story_event_character_status: Label
+var story_event_character_list: VBoxContainer
+var story_event_resource_list: VBoxContainer
+var story_event_breakdown: RichTextLabel
+var story_event_confirm_button: Button
+var story_event_result_panel: PanelContainer
+var story_event_result_body: RichTextLabel
+var story_event_continue_button: Button
+var story_event_active: bool = false
+var story_event_selected_plan_id: String = ""
+var story_event_selected_character_id: String = ""
+var story_event_resource_allocations: Dictionary = {}
+var story_event_total_count: int = 0
+var story_event_current_index: int = 0
+var story_event_result_visible: bool = false
+var story_event_result_text: String = ""
+var story_event_display_event: Dictionary = {}
+var pending_story_event_report_payload: Dictionary = {}
 var startup_cover_active: bool = true
 var loaded_font_resources: Dictionary = {}
+var top_info_attribute_labels: Dictionary = {}
+var top_info_attribute_arrow_labels: Dictionary = {}
+var story_event_attribute_preview: Dictionary = {}
+var system_menu_controller
+var audio_options_controller
+var save_slot_controller
+var tutorial_ui_controller
+var turn_result_controller
+var story_event_controller
 
 @onready var board_manager: BoardManager = $BoardManager
 @onready var event_manager: EventManager = $EventManager
@@ -267,6 +315,9 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		if story_event_active:
+			get_viewport().set_input_as_handled()
+			return
 		if turn_result_active:
 			_on_turn_result_continue_pressed()
 			get_viewport().set_input_as_handled()
@@ -293,727 +344,94 @@ func _audio_options_visible() -> bool:
 	return audio_options_overlay != null and audio_options_overlay.visible
 
 func _build_turn_result_ui() -> void:
-	if turn_result_overlay != null:
-		return
-	turn_result_overlay = Control.new()
-	turn_result_overlay.name = "TurnResultOverlay"
-	turn_result_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	turn_result_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	turn_result_overlay.z_as_relative = false
-	turn_result_overlay.z_index = 1010
-	turn_result_overlay.visible = false
-	add_child(turn_result_overlay)
-	var shade: ColorRect = ColorRect.new()
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.76)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	turn_result_overlay.add_child(shade)
-	var center: CenterContainer = CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	turn_result_overlay.add_child(center)
-	turn_result_animation_layer = Control.new()
-	turn_result_animation_layer.name = "TurnResultAnimationLayer"
-	turn_result_animation_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	turn_result_animation_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	turn_result_overlay.add_child(turn_result_animation_layer)
-	turn_result_panel = PanelContainer.new()
-	turn_result_panel.custom_minimum_size = Vector2(920.0, 640.0)
-	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.06, 0.06, 0.07, 0.985)
-	panel_style.border_color = Color(0.44, 0.44, 0.46, 0.96)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.corner_radius_top_left = 16
-	panel_style.corner_radius_top_right = 16
-	panel_style.corner_radius_bottom_left = 16
-	panel_style.corner_radius_bottom_right = 16
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
-	panel_style.shadow_size = 12
-	turn_result_panel.add_theme_stylebox_override("panel", panel_style)
-	center.add_child(turn_result_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 18)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 18)
-	turn_result_panel.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 12)
-	margin.add_child(box)
-	var header: HBoxContainer = HBoxContainer.new()
-	header.add_theme_constant_override("separation", 10)
-	box.add_child(header)
-	var title_box: VBoxContainer = VBoxContainer.new()
-	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_box.add_theme_constant_override("separation", 4)
-	header.add_child(title_box)
-	turn_result_title = Label.new()
-	turn_result_title.add_theme_font_size_override("font_size", 30)
-	title_box.add_child(turn_result_title)
-	turn_result_subtitle = Label.new()
-	turn_result_subtitle.modulate = Color(0.84, 0.82, 0.78, 0.92)
-	turn_result_subtitle.add_theme_font_size_override("font_size", 15)
-	title_box.add_child(turn_result_subtitle)
-	var body_panel: PanelContainer = PanelContainer.new()
-	body_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var body_style: StyleBoxFlat = StyleBoxFlat.new()
-	body_style.bg_color = Color(0.03, 0.04, 0.05, 0.94)
-	body_style.border_color = Color(0.16, 0.18, 0.21, 0.95)
-	body_style.border_width_left = 1
-	body_style.border_width_top = 1
-	body_style.border_width_right = 1
-	body_style.border_width_bottom = 1
-	body_style.corner_radius_top_left = 10
-	body_style.corner_radius_top_right = 10
-	body_style.corner_radius_bottom_left = 10
-	body_style.corner_radius_bottom_right = 10
-	body_panel.add_theme_stylebox_override("panel", body_style)
-	box.add_child(body_panel)
-	var body_margin: MarginContainer = MarginContainer.new()
-	body_margin.add_theme_constant_override("margin_left", 14)
-	body_margin.add_theme_constant_override("margin_top", 12)
-	body_margin.add_theme_constant_override("margin_right", 14)
-	body_margin.add_theme_constant_override("margin_bottom", 12)
-	body_panel.add_child(body_margin)
-	turn_result_body = RichTextLabel.new()
-	turn_result_body.bbcode_enabled = true
-	turn_result_body.fit_content = false
-	turn_result_body.scroll_active = true
-	turn_result_body.custom_minimum_size = Vector2(0.0, 220.0)
-	turn_result_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	turn_result_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	turn_result_body.mouse_filter = Control.MOUSE_FILTER_STOP
-	body_margin.add_child(turn_result_body)
-	turn_result_reward_title = Label.new()
-	turn_result_reward_title.add_theme_font_size_override("font_size", 18)
-	box.add_child(turn_result_reward_title)
-	turn_result_card_scroll = ScrollContainer.new()
-	turn_result_card_scroll.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_HEIGHT + 20.0)
-	turn_result_card_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	turn_result_card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	turn_result_card_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	box.add_child(turn_result_card_scroll)
-	turn_result_card_row = HBoxContainer.new()
-	turn_result_card_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	turn_result_card_row.add_theme_constant_override("separation", 12)
-	turn_result_card_scroll.add_child(turn_result_card_row)
-	var actions: HBoxContainer = HBoxContainer.new()
-	actions.add_theme_constant_override("separation", 10)
-	box.add_child(actions)
-	turn_result_collect_button = Button.new()
-	turn_result_collect_button.custom_minimum_size = Vector2(130.0, 42.0)
-	turn_result_collect_button.pressed.connect(_on_turn_result_collect_pressed)
-	actions.add_child(turn_result_collect_button)
-	var spacer: Control = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	actions.add_child(spacer)
-	turn_result_continue_button = Button.new()
-	turn_result_continue_button.custom_minimum_size = Vector2(110.0, 42.0)
-	turn_result_continue_button.pressed.connect(_on_turn_result_continue_pressed)
-	actions.add_child(turn_result_continue_button)
+	turn_result_controller.build_if_needed()
 
 func _make_turn_result_reward_payload(reward: Dictionary) -> Dictionary:
-	var card_type: String = str(reward.get("card_type", ""))
-	var card_id: String = str(reward.get("id", ""))
-	var amount: int = maxi(1, int(reward.get("amount", 1)))
-	match card_type:
-		"character":
-			if not characters.has(card_id):
-				return {}
-			var character: CharacterData = characters[card_id] as CharacterData
-			var role_name: String = _role_type_text(character.role_type)
-			var subtitle: String = role_name
-			if run_state != null and run_state.relation_states.has(card_id):
-				subtitle = "%s / %s" % [role_name, relation_manager.describe_relation(run_state, card_id)]
-			return {
-				"uid": "result:character:%s" % card_id,
-				"id": card_id,
-				"card_type": "character",
-				"title": character.display_name,
-				"subtitle": subtitle,
-				"body": _character_body(card_id, false),
-				"tags": character.tags,
-				"locked": true,
-				"image_path": character.art_path,
-				"image_label": character.display_name,
-				"art_bg_color": Color(0.20, 0.20, 0.22),
-				"color": Color(0.12, 0.12, 0.13),
-				"compact_details": true,
-				"show_subtitle_in_compact": false,
-				"show_assigned_in_compact": false,
-				"embedded": true,
-				"card_width": TURN_RESULT_CARD_WIDTH,
-				"art_height": TURN_RESULT_CARD_ART_HEIGHT,
-				"collapsed_height": TURN_RESULT_CARD_HEIGHT,
-				"expanded_height": TURN_RESULT_CARD_HEIGHT,
-				"stack_count": amount
-			}
-		"resource":
-			if not resources.has(card_id):
-				return {}
-			var resource: ResourceCardData = resources[card_id] as ResourceCardData
-			return {
-				"uid": "result:resource:%s" % card_id,
-				"id": card_id,
-				"card_type": "resource",
-				"title": resource.display_name,
-				"subtitle": _resource_category_text(resource.category),
-				"body": resource.description,
-				"tags": resource.tags,
-				"locked": true,
-				"image_path": resource.art_path,
-				"image_label": resource.display_name,
-				"art_bg_color": Color(0.18, 0.18, 0.19),
-				"color": Color(0.11, 0.11, 0.12),
-				"compact_details": true,
-				"show_subtitle_in_compact": false,
-				"show_assigned_in_compact": false,
-				"embedded": true,
-				"card_width": TURN_RESULT_CARD_WIDTH,
-				"art_height": TURN_RESULT_CARD_ART_HEIGHT,
-				"collapsed_height": TURN_RESULT_CARD_HEIGHT,
-				"expanded_height": TURN_RESULT_CARD_HEIGHT,
-				"stack_count": amount
-			}
-	return {}
+	return turn_result_controller.make_reward_payload(reward)
 
 func _make_turn_result_card_front(reward: Dictionary) -> Control:
-	var payload: Dictionary = _make_turn_result_reward_payload(reward)
-	if payload.is_empty():
-		return null
-	var card_size := Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT)
-	var panel: PanelContainer = PanelContainer.new()
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.custom_minimum_size = card_size
-	panel.size = card_size
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = payload.get("color", Color(0.12, 0.12, 0.13)) as Color
-	panel_style.border_color = Color(0.50, 0.50, 0.52, 0.96)
-	panel_style.border_width_left = 3
-	panel_style.border_width_top = 3
-	panel_style.border_width_right = 3
-	panel_style.border_width_bottom = 3
-	panel_style.corner_radius_top_left = 10
-	panel_style.corner_radius_top_right = 10
-	panel_style.corner_radius_bottom_left = 10
-	panel_style.corner_radius_bottom_right = 10
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
-	panel_style.shadow_size = 6
-	panel.add_theme_stylebox_override("panel", panel_style)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_theme_constant_override("margin_left", 5)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_right", 5)
-	margin.add_theme_constant_override("margin_bottom", 5)
-	panel.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 3)
-	margin.add_child(box)
-	var art_frame: PanelContainer = PanelContainer.new()
-	art_frame.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_ART_HEIGHT)
-	art_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var art_style: StyleBoxFlat = StyleBoxFlat.new()
-	art_style.bg_color = (payload.get("art_bg_color", payload.get("color", Color(0.23, 0.19, 0.14))) as Color).darkened(0.12)
-	art_style.corner_radius_top_left = 8
-	art_style.corner_radius_top_right = 8
-	art_style.corner_radius_bottom_left = 8
-	art_style.corner_radius_bottom_right = 8
-	art_style.border_width_left = 2
-	art_style.border_width_top = 2
-	art_style.border_width_right = 2
-	art_style.border_width_bottom = 2
-	art_style.border_color = Color(0.54, 0.54, 0.56, 0.88)
-	art_style.shadow_color = Color(0.0, 0.0, 0.0, 0.20)
-	art_style.shadow_size = 4
-	art_frame.add_theme_stylebox_override("panel", art_style)
-	box.add_child(art_frame)
-	var art_margin: MarginContainer = MarginContainer.new()
-	art_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art_margin.add_theme_constant_override("margin_left", 1)
-	art_margin.add_theme_constant_override("margin_top", 1)
-	art_margin.add_theme_constant_override("margin_right", 1)
-	art_margin.add_theme_constant_override("margin_bottom", 1)
-	art_frame.add_child(art_margin)
-	var art_content: Control = Control.new()
-	art_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	art_content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	art_margin.add_child(art_content)
-	var art_texture: TextureRect = TextureRect.new()
-	art_texture.set_anchors_preset(Control.PRESET_FULL_RECT)
-	art_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	art_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var image_path: String = str(payload.get("image_path", ""))
-	if not image_path.is_empty() and ResourceLoader.exists(image_path):
-		art_texture.texture = load(image_path) as Texture2D
-	art_content.add_child(art_texture)
-	if art_texture.texture == null:
-		var art_label: Label = Label.new()
-		art_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-		art_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		art_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		art_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		art_label.text = str(payload.get("image_label", payload.get("title", TextDB.get_text("ui.fallback.card"))))
-		art_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art_content.add_child(art_label)
-	var title: Label = Label.new()
-	title.text = str(payload.get("title", TextDB.get_text("ui.fallback.card")))
-	title.custom_minimum_size = Vector2(0.0, 24.0)
-	title.clip_text = true
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.add_theme_font_size_override("font_size", 13)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(title)
-	var amount: int = maxi(1, int(payload.get("stack_count", 1)))
-	if amount > 1:
-		var badge: PanelContainer = PanelContainer.new()
-		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.anchor_left = 1.0
-		badge.anchor_top = 0.0
-		badge.anchor_right = 1.0
-		badge.anchor_bottom = 0.0
-		badge.offset_left = -38.0
-		badge.offset_top = 6.0
-		badge.offset_right = -6.0
-		badge.offset_bottom = 30.0
-		var badge_style: StyleBoxFlat = StyleBoxFlat.new()
-		badge_style.bg_color = Color(0.10, 0.10, 0.11, 0.94)
-		badge_style.border_width_left = 1
-		badge_style.border_width_top = 1
-		badge_style.border_width_right = 1
-		badge_style.border_width_bottom = 1
-		badge_style.border_color = Color(0.70, 0.70, 0.72, 0.92)
-		badge_style.corner_radius_top_left = 10
-		badge_style.corner_radius_top_right = 10
-		badge_style.corner_radius_bottom_left = 10
-		badge_style.corner_radius_bottom_right = 10
-		badge.add_theme_stylebox_override("panel", badge_style)
-		var badge_label: Label = Label.new()
-		badge_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		badge_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		badge_label.text = str(amount) if amount < 100 else "99+"
-		badge_label.add_theme_font_size_override("font_size", 11)
-		badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.add_child(badge_label)
-		art_content.add_child(badge)
-	return panel
+	return turn_result_controller.make_card_front(reward)
 
 func _make_turn_result_card_back(reward: Dictionary) -> PanelContainer:
-	var amount: int = maxi(1, int(reward.get("amount", 1)))
-	var back: PanelContainer = PanelContainer.new()
-	back.set_anchors_preset(Control.PRESET_FULL_RECT)
-	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.10, 0.10, 0.11, 0.96)
-	style.border_color = Color(0.66, 0.66, 0.68, 0.92)
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.28)
-	style.shadow_size = 8
-	back.add_theme_stylebox_override("panel", style)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	back.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 8)
-	margin.add_child(box)
-	var title: Label = Label.new()
-	title.text = TextDB.get_text("ui.turn_results.card_back")
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title.add_theme_font_size_override("font_size", 18)
-	box.add_child(title)
-	var hint: Label = Label.new()
-	hint.text = TextDB.get_text("ui.turn_results.card_hint")
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.modulate = Color(1.0, 1.0, 1.0, 0.72)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint.add_theme_font_size_override("font_size", 12)
-	box.add_child(hint)
-	if amount > 1:
-		var badge: Label = Label.new()
-		badge.text = "x%d" % amount
-		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		badge.anchor_left = 1.0
-		badge.anchor_top = 0.0
-		badge.anchor_right = 1.0
-		badge.anchor_bottom = 0.0
-		badge.offset_left = -46.0
-		badge.offset_top = 8.0
-		badge.offset_right = -12.0
-		badge.offset_bottom = 26.0
-		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		back.add_child(badge)
-	return back
+	return turn_result_controller.make_card_back(reward)
 
 func _all_turn_result_cards_collected() -> bool:
-	for entry_variant in turn_result_card_entries:
-		var entry: Dictionary = entry_variant as Dictionary
-		if not bool(entry.get("collected", false)):
-			return false
-	return true
+	return turn_result_controller.all_cards_collected()
 
 func _clear_turn_result_cards() -> void:
-	turn_result_card_entries.clear()
-	turn_result_collecting = false
-	if turn_result_animation_layer != null:
-		for child in turn_result_animation_layer.get_children():
-			child.queue_free()
-	if turn_result_card_row == null:
-		return
-	for child in turn_result_card_row.get_children():
-		child.queue_free()
+	turn_result_controller.clear_cards()
 
 func _render_turn_result_cards(rewards: Array) -> void:
-	_clear_turn_result_cards()
-	for reward_variant in rewards:
-		if reward_variant is not Dictionary:
-			continue
-		var reward: Dictionary = (reward_variant as Dictionary).duplicate(true)
-		var card_size := Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT)
-		var button: Control = Control.new()
-		button.custom_minimum_size = card_size
-		button.size = card_size
-		button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		button.mouse_filter = Control.MOUSE_FILTER_STOP
-		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		button.gui_input.connect(_on_turn_result_card_gui_input.bind(button))
-		turn_result_card_row.add_child(button)
-		var front_card: Control = _make_turn_result_card_front(reward)
-		if front_card != null:
-			front_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			front_card.visible = false
-			front_card.position = Vector2.ZERO
-			front_card.anchor_left = 0.0
-			front_card.anchor_top = 0.0
-			front_card.anchor_right = 0.0
-			front_card.anchor_bottom = 0.0
-			front_card.offset_left = 0.0
-			front_card.offset_top = 0.0
-			front_card.offset_right = card_size.x
-			front_card.offset_bottom = card_size.y
-			front_card.custom_minimum_size = card_size
-			front_card.size = card_size
-			front_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			front_card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			button.add_child(front_card)
-		var back_card: PanelContainer = _make_turn_result_card_back(reward)
-		back_card.position = Vector2.ZERO
-		back_card.anchor_left = 0.0
-		back_card.anchor_top = 0.0
-		back_card.anchor_right = 0.0
-		back_card.anchor_bottom = 0.0
-		back_card.offset_left = 0.0
-		back_card.offset_top = 0.0
-		back_card.offset_right = card_size.x
-		back_card.offset_bottom = card_size.y
-		back_card.custom_minimum_size = card_size
-		back_card.size = card_size
-		back_card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		back_card.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		button.add_child(back_card)
-		turn_result_card_entries.append({
-			"button": button,
-			"holder": button,
-			"front": front_card,
-			"back": back_card,
-			"reward": reward,
-			"revealed": false,
-			"collected": false
-		})
-	_refresh_turn_result_collect_button()
+	turn_result_controller.render_cards(rewards)
 
 func _find_turn_result_card_index(button: Control) -> int:
-	for index in range(turn_result_card_entries.size()):
-		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-		if entry.get("button", null) == button:
-			return index
-	return -1
+	return turn_result_controller.find_card_index(button)
 
 func _set_turn_result_card_revealed(index: int, animated: bool = true, play_sound: bool = true) -> void:
-	if index < 0 or index >= turn_result_card_entries.size():
-		return
-	var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-	if bool(entry.get("revealed", false)):
-		return
-	entry["revealed"] = true
-	turn_result_card_entries[index] = entry
-	var button: Control = entry.get("button", null) as Control
-	var holder: Control = entry.get("holder", button) as Control
-	var front_card: Control = entry.get("front", null) as Control
-	var back_card: PanelContainer = entry.get("back", null) as PanelContainer
-	if holder == null or front_card == null or back_card == null:
-		_refresh_turn_result_collect_button()
-		return
-	var holder_size: Vector2 = holder.size if holder.size != Vector2.ZERO else holder.custom_minimum_size
-	holder.pivot_offset = holder_size * 0.5
-	holder.scale = Vector2.ONE
-	if not animated:
-		back_card.visible = false
-		front_card.visible = true
-		if play_sound:
-			_play_ui_sound("card_flip")
-		_refresh_turn_result_collect_button()
-		return
-	var tween: Tween = create_tween()
-	tween.tween_property(holder, "scale:x", 0.08, 0.08).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-	tween.tween_callback(_swap_turn_result_card_faces.bind(index))
-	if play_sound:
-		tween.tween_callback(_play_ui_sound.bind("card_flip"))
-	tween.tween_property(holder, "scale:x", 1.05, 0.10).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(holder, "scale:x", 1.0, 0.05).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	turn_result_controller.set_card_revealed(index, animated, play_sound)
 
 func _swap_turn_result_card_faces(index: int) -> void:
-	if index < 0 or index >= turn_result_card_entries.size():
-		return
-	var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-	var front_card: Control = entry.get("front", null) as Control
-	var back_card: PanelContainer = entry.get("back", null) as PanelContainer
-	if front_card != null:
-		front_card.visible = true
-	if back_card != null:
-		back_card.visible = false
-	_refresh_turn_result_collect_button()
+	turn_result_controller._swap_card_faces(index)
 
 func _collect_all_turn_result_cards(animated: bool = false) -> bool:
-	var had_hidden: bool = false
-	for index in range(turn_result_card_entries.size()):
-		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-		if not bool(entry.get("revealed", false)):
-			had_hidden = true
-		_set_turn_result_card_revealed(index, animated, false)
-	_refresh_turn_result_collect_button()
-	return had_hidden
+	return turn_result_controller.collect_all_cards(animated)
 
 func _turn_result_target_rect_for_reward(reward: Dictionary) -> Rect2:
-	var card_type: String = str(reward.get("card_type", ""))
-	var card_id: String = str(reward.get("id", ""))
-	var row: Control = resource_row if card_type == "resource" else roster_row
-	if row != null:
-		for child in row.get_children():
-			var card: CardView = child as CardView
-			if card == null or not card.visible:
-				continue
-			if str(card.card_payload.get("card_type", "")) == card_type and str(card.card_payload.get("id", "")) == card_id:
-				return card.get_global_rect()
-	var fallback: Control = resource_scroll if card_type == "resource" else roster_scroll
-	if fallback != null and fallback.visible:
-		return fallback.get_global_rect()
-	if hands_panel != null and hands_panel.visible:
-		return hands_panel.get_global_rect()
-	return Rect2(get_viewport_rect().size * 0.5 - Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT) * 0.5, Vector2(TURN_RESULT_CARD_WIDTH, TURN_RESULT_CARD_HEIGHT))
+	return turn_result_controller.target_rect_for_reward(reward)
 
 func _collect_turn_result_cards_to_targets(play_sound: bool = true) -> void:
-	if turn_result_collecting or _all_turn_result_cards_collected():
-		_refresh_turn_result_collect_button()
-		return
-	turn_result_collecting = true
-	_collect_all_turn_result_cards(false)
-	_refresh_turn_result_collect_button()
-	if play_sound:
-		_play_ui_sound("collect_all")
-	var source_rects: Array[Rect2] = []
-	for entry_variant in turn_result_card_entries:
-		var entry: Dictionary = entry_variant as Dictionary
-		var front_card: Control = entry.get("front", null) as Control
-		var button: Control = entry.get("button", null) as Control
-		var source_rect: Rect2 = front_card.get_global_rect() if front_card != null and front_card.visible else (button.get_global_rect() if button != null else Rect2())
-		source_rects.append(source_rect)
-	var longest: float = 0.0
-	for index in range(turn_result_card_entries.size()):
-		var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-		if bool(entry.get("collected", false)):
-			continue
-		var reward: Dictionary = entry.get("reward", {}) as Dictionary
-		var button: Control = entry.get("button", null) as Control
-		var source_rect: Rect2 = source_rects[index] if index < source_rects.size() else Rect2()
-		var flyer: Control = _make_turn_result_card_front(reward)
-		if flyer != null:
-			flyer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			flyer.top_level = true
-			flyer.z_as_relative = false
-			flyer.z_index = 2600 + index
-			flyer.custom_minimum_size = source_rect.size
-			flyer.size = source_rect.size
-			flyer.position = source_rect.position
-			flyer.pivot_offset = source_rect.size * 0.5
-			if turn_result_animation_layer != null:
-				turn_result_animation_layer.add_child(flyer)
-			else:
-				turn_result_overlay.add_child(flyer)
-			var target_rect: Rect2 = _turn_result_target_rect_for_reward(reward)
-			var target_position: Vector2 = target_rect.position + (target_rect.size - source_rect.size) * 0.5
-			var delay: float = float(index) * 0.05
-			var duration: float = 0.34
-			longest = maxf(longest, delay + duration)
-			var tween: Tween = create_tween()
-			if delay > 0.0:
-				tween.tween_interval(delay)
-			tween.tween_property(flyer, "position", target_position, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-			tween.parallel().tween_property(flyer, "scale", Vector2(0.76, 0.76), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-			tween.parallel().tween_property(flyer, "modulate:a", 0.12, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-		entry["collected"] = true
-		turn_result_card_entries[index] = entry
-		if button != null:
-			button.modulate = Color(1.0, 1.0, 1.0, 0.0)
-			button.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_refresh_turn_result_collect_button()
-	if longest > 0.0:
-		await get_tree().create_timer(longest + 0.04).timeout
-	if turn_result_animation_layer != null:
-		for child in turn_result_animation_layer.get_children():
-			child.queue_free()
-	turn_result_collecting = false
-	_refresh_turn_result_collect_button()
+	await turn_result_controller.collect_cards_to_targets(play_sound)
 
 func _refresh_turn_result_collect_button() -> void:
-	if turn_result_collect_button == null:
-		return
-	turn_result_collect_button.text = TextDB.get_text("ui.turn_results.collect_all")
-	var has_collectable: bool = false
-	for entry_variant in turn_result_card_entries:
-		var entry: Dictionary = entry_variant as Dictionary
-		if not bool(entry.get("collected", false)):
-			has_collectable = true
-			break
-	turn_result_collect_button.disabled = turn_result_collecting or not has_collectable
-	if turn_result_continue_button != null:
-		turn_result_continue_button.disabled = turn_result_collecting
+	turn_result_controller.refresh_collect_button()
 
 func _show_current_turn_result() -> void:
-	if not turn_result_active or turn_result_index < 0 or turn_result_index >= turn_result_queue.size():
-		_finish_turn_result_sequence()
-		return
-	if turn_result_overlay == null:
-		_build_turn_result_ui()
-	turn_result_collecting = false
-	var entry: Dictionary = turn_result_queue[turn_result_index] as Dictionary
-	var rewards: Array = entry.get("rewards", []) as Array
-	turn_result_title.text = str(entry.get("title", TextDB.get_text("ui.fallback.card")))
-	turn_result_subtitle.text = TextDB.format_text("ui.turn_results.page", [turn_result_index + 1, turn_result_queue.size()])
-	var body_text: String = str(entry.get("body", "")).strip_edges()
-	if body_text.is_empty():
-		body_text = TextDB.format_text("ui.turn_results.default_body", [turn_result_title.text])
-	turn_result_body.text = body_text
-	turn_result_body.scroll_to_line(0)
-	_set_rich_text_layout(turn_result_body, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP)
-	turn_result_reward_title.text = TextDB.get_text("ui.turn_results.reward_header")
-	turn_result_reward_title.visible = not rewards.is_empty()
-	if turn_result_card_scroll != null:
-		turn_result_card_scroll.visible = not rewards.is_empty()
-	if turn_result_collect_button != null:
-		turn_result_collect_button.visible = not rewards.is_empty()
-	_render_turn_result_cards(rewards)
-	turn_result_continue_button.text = TextDB.get_text("ui.buttons.next")
-	turn_result_overlay.visible = true
-	turn_result_continue_button.grab_focus()
+	turn_result_controller.show_current_result()
 
 func _start_turn_result_sequence(results: Array, report_payload: Dictionary) -> bool:
-	if results.is_empty():
-		return false
-	if turn_result_overlay == null:
-		_build_turn_result_ui()
-	pending_turn_result_report_payload = report_payload.duplicate(true)
-	turn_result_queue = results.duplicate(true)
-	turn_result_index = 0
-	turn_result_active = true
-	turn_result_collecting = false
-	detail_overlay.visible = false
-	_configure_popup_for_detail()
-	_play_ui_sound("panel_open")
-	_show_current_turn_result()
-	return true
+	return turn_result_controller.start_sequence(results, report_payload)
 
 func _finish_turn_result_sequence() -> void:
-	turn_result_active = false
-	turn_result_collecting = false
-	turn_result_index = -1
-	turn_result_queue.clear()
-	_clear_turn_result_cards()
-	if turn_result_overlay != null:
-		turn_result_overlay.visible = false
-	var payload: Dictionary = pending_turn_result_report_payload.duplicate(true)
-	pending_turn_result_report_payload.clear()
-	if payload.is_empty():
-		return
-	if bool(payload.get("show_report", false)):
-		_show_turn_report_dialog(
-			int(payload.get("turn_index", run_state.turn_index)),
-			payload.get("logs", []) as Array[String],
-			str(payload.get("title", "")),
-			str(payload.get("subtitle", "")),
-			str(payload.get("body", ""))
-		)
-	elif defer_settlement_popup and run_state != null and run_state.game_over:
-		defer_settlement_popup = false
-		settlement_page_index = -1
-		_refresh_settlement_sequence()
+	turn_result_controller.finish_sequence()
+
+func _build_story_event_ui() -> void:
+	story_event_controller.build_if_needed()
+
+func _start_story_event_sequence(report_payload: Dictionary) -> bool:
+	return story_event_controller.start_sequence(report_payload)
+
+func _resume_story_event_sequence_after_load() -> void:
+	story_event_controller.resume_after_load()
+
+func _prepare_story_event_current_event() -> void:
+	story_event_controller.prepare_current_event()
+
+func _finish_story_event_sequence() -> void:
+	story_event_controller.finish_sequence()
+
+func _story_event_plan_info_text(event_id: String, plan_id: String) -> String:
+	return story_event_controller.plan_info_text(event_id, plan_id)
+
+func _refresh_story_event_ui() -> void:
+	story_event_controller.refresh_ui()
+
+func _on_story_event_plan_pressed(plan_id: String) -> void:
+	story_event_controller.on_plan_pressed(plan_id)
+
+func _on_story_event_confirm_pressed() -> void:
+	story_event_controller.on_confirm_pressed()
+
+func _on_story_event_continue_pressed() -> void:
+	story_event_controller.on_continue_pressed()
 
 func _on_turn_result_card_gui_input(event: InputEvent, button: Control) -> void:
-	if not turn_result_active or turn_result_collecting:
-		return
-	if event is InputEventMouseButton:
-		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			var index: int = _find_turn_result_card_index(button)
-			if index >= 0:
-				var entry: Dictionary = turn_result_card_entries[index] as Dictionary
-				if bool(entry.get("collected", false)):
-					return
-				_set_turn_result_card_revealed(index, true, true)
-				accept_event()
+	turn_result_controller.handle_input(event, button)
 
 func _on_turn_result_collect_pressed() -> void:
-	if not turn_result_active or turn_result_collecting:
-		return
-	await _collect_turn_result_cards_to_targets(true)
+	await turn_result_controller.on_collect_pressed()
 
 func _on_turn_result_continue_pressed() -> void:
-	if not turn_result_active or turn_result_collecting:
-		return
-	var auto_collected: bool = false
-	if not _all_turn_result_cards_collected():
-		auto_collected = true
-		await _collect_turn_result_cards_to_targets(true)
-	turn_result_index += 1
-	if turn_result_index >= turn_result_queue.size():
-		_finish_turn_result_sequence()
-		return
-	if not auto_collected:
-		_play_ui_sound("button")
-	_show_current_turn_result()
+	await turn_result_controller.on_continue_pressed()
 
 func _load_font_resource(font_path: String) -> FontFile:
 	if font_path.is_empty():
@@ -1082,7 +500,7 @@ func _apply_title_fonts() -> void:
 		title_font = _load_font_resource(TITLE_FONT_PATH)
 	if title_font == null:
 		return
-	for node in [system_menu_title, detail_title, popup_title, event_dialog_title]:
+	for node in [system_menu_title, detail_title, popup_title, event_dialog_title, story_event_title]:
 		var control: Control = node as Control
 		_apply_title_font_override(control, title_font)
 
@@ -1101,7 +519,7 @@ func _apply_body_font_override(label: RichTextLabel) -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 func _apply_body_fonts() -> void:
-	for label in [detail_body, event_dialog_body, popup_body, turn_result_body]:
+	for label in [detail_body, event_dialog_body, popup_body, turn_result_body, story_event_body, story_event_breakdown, story_event_result_body]:
 		_apply_body_font_override(label as RichTextLabel)
 
 func _apply_font_preferences() -> void:
@@ -1208,12 +626,32 @@ func _ready() -> void:
 	TextDB.reload_texts()
 	tutorial_manager = TUTORIAL_MANAGER_SCRIPT.new()
 	save_manager = SAVE_MANAGER_SCRIPT.new()
+	story_event_manager = STORY_EVENT_MANAGER_SCRIPT.new()
+	system_menu_controller = SYSTEM_MENU_CONTROLLER_SCRIPT.new()
+	audio_options_controller = AUDIO_OPTIONS_CONTROLLER_SCRIPT.new()
+	save_slot_controller = SAVE_SLOT_CONTROLLER_SCRIPT.new()
+	tutorial_ui_controller = TUTORIAL_UI_CONTROLLER_SCRIPT.new()
+	turn_result_controller = TURN_RESULT_CONTROLLER_SCRIPT.new()
+	story_event_controller = STORY_EVENT_CONTROLLER_SCRIPT.new()
+	add_child(system_menu_controller)
+	add_child(audio_options_controller)
+	add_child(save_slot_controller)
+	add_child(tutorial_ui_controller)
+	add_child(turn_result_controller)
+	add_child(story_event_controller)
+	system_menu_controller.setup(self)
+	audio_options_controller.setup(self)
+	save_slot_controller.setup(self)
+	tutorial_ui_controller.setup(self)
+	turn_result_controller.setup(self)
+	story_event_controller.setup(self)
 	characters = GameData.create_characters()
 	resources = GameData.create_resources()
 	risks = GameData.create_risks()
 	events = GameData.create_events()
 	run_state = GameData.create_run_state()
 	event_manager.setup(events)
+	story_event_manager.setup()
 	event_manager.event_spawned.connect(_on_event_spawned)
 	event_manager.event_resolved.connect(_on_event_resolved)
 	board_manager.board_changed.connect(_refresh_board)
@@ -1257,7 +695,8 @@ func _ready() -> void:
 		event_dialog_slot_row,
 		event_dialog_assigned_title,
 		event_dialog_assigned_row,
-		Callable(self, "_event_body")
+		Callable(self, "_event_body"),
+		Callable(self, "_event_title")
 	)
 	event_ui_controller.refresh_requested.connect(_refresh_board)
 	event_ui_controller.target_drop_requested.connect(_on_target_drop_requested)
@@ -1277,6 +716,7 @@ func _ready() -> void:
 	_build_system_menu_ui()
 	_build_tutorial_toast_ui()
 	_build_turn_result_ui()
+	_build_story_event_ui()
 	_apply_font_preferences()
 	detail_panel.gui_input.connect(_on_detail_panel_gui_input)
 	detail_header.gui_input.connect(_on_detail_header_gui_input)
@@ -1334,146 +774,15 @@ func _update_desk_background_parallax(mouse_position: Vector2) -> void:
 	desk_background_material.set_shader_parameter("uv_offset", normalized * DESK_BACKGROUND_PARALLAX)
 
 func _build_system_menu_ui() -> void:
-	if system_menu_overlay != null:
-		return
-	system_menu_overlay = Control.new()
-	system_menu_overlay.name = "SystemMenuOverlay"
-	system_menu_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	system_menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	system_menu_overlay.z_as_relative = false
-	system_menu_overlay.z_index = 2048
-	system_menu_overlay.visible = false
-	add_child(system_menu_overlay)
-	system_menu_cover = ColorRect.new()
-	system_menu_cover.set_anchors_preset(Control.PRESET_FULL_RECT)
-	system_menu_cover.color = Color(0.0, 0.0, 0.0, 1.0)
-	system_menu_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	system_menu_overlay.add_child(system_menu_cover)
-	system_menu_panel = PanelContainer.new()
-	system_menu_panel.anchor_left = 0.5
-	system_menu_panel.anchor_top = 0.5
-	system_menu_panel.anchor_right = 0.5
-	system_menu_panel.anchor_bottom = 0.5
-	system_menu_panel.offset_left = -240
-	system_menu_panel.offset_top = -230
-	system_menu_panel.offset_right = 240
-	system_menu_panel.offset_bottom = 230
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.07, 0.08, 0.98)
-	style.border_color = Color(0.45, 0.45, 0.47, 0.95)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.corner_radius_top_left = 16
-	style.corner_radius_top_right = 16
-	style.corner_radius_bottom_left = 16
-	style.corner_radius_bottom_right = 16
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.40)
-	style.shadow_size = 10
-	system_menu_panel.add_theme_stylebox_override("panel", style)
-	system_menu_overlay.add_child(system_menu_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 24)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_right", 24)
-	margin.add_theme_constant_override("margin_bottom", 24)
-	system_menu_panel.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 12)
-	margin.add_child(box)
-	system_menu_title = Label.new()
-	system_menu_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	system_menu_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	system_menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	system_menu_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	system_menu_title.add_theme_font_size_override("font_size", 36)
-	box.add_child(system_menu_title)
-	system_menu_subtitle = Label.new()
-	system_menu_subtitle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	system_menu_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	system_menu_subtitle.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	system_menu_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	system_menu_subtitle.modulate = Color(1,1,1,0.78)
-	system_menu_subtitle.visible = false
-	box.add_child(system_menu_subtitle)
-	system_menu_primary_button = _make_system_menu_button()
-	system_menu_primary_button.pressed.connect(_on_system_menu_primary_pressed)
-	box.add_child(system_menu_primary_button)
-	system_menu_return_button = _make_system_menu_button()
-	system_menu_return_button.pressed.connect(_on_system_menu_return_pressed)
-	box.add_child(system_menu_return_button)
-	system_menu_load_button = _make_system_menu_button()
-	system_menu_load_button.pressed.connect(_on_system_menu_load_pressed)
-	box.add_child(system_menu_load_button)
-	system_menu_save_button = _make_system_menu_button()
-	system_menu_save_button.pressed.connect(_on_system_menu_save_pressed)
-	box.add_child(system_menu_save_button)
-	system_menu_options_button = _make_system_menu_button()
-	system_menu_options_button.pressed.connect(_on_system_menu_options_pressed)
-	box.add_child(system_menu_options_button)
-	system_menu_help_button = _make_system_menu_button()
-	system_menu_help_button.pressed.connect(_on_system_menu_help_pressed)
-	box.add_child(system_menu_help_button)
-	_build_save_slot_overlay()
-	_build_audio_options_overlay()
+	system_menu_controller.build_if_needed()
+	save_slot_controller.build_if_needed()
+	audio_options_controller.build_if_needed()
 
 func _build_tutorial_toast_ui() -> void:
-	if tutorial_toast_panel != null:
-		return
-	tutorial_toast_panel = PanelContainer.new()
-	tutorial_toast_panel.anchor_left = 0.5
-	tutorial_toast_panel.anchor_top = 1.0
-	tutorial_toast_panel.anchor_right = 0.5
-	tutorial_toast_panel.anchor_bottom = 1.0
-	tutorial_toast_panel.offset_left = -250
-	tutorial_toast_panel.offset_top = -120
-	tutorial_toast_panel.offset_right = 250
-	tutorial_toast_panel.offset_bottom = -56
-	tutorial_toast_panel.z_as_relative = false
-	tutorial_toast_panel.z_index = 1200
-	tutorial_toast_panel.visible = false
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.06, 0.94)
-	style.border_color = Color(0.62, 0.62, 0.64, 0.92)
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	tutorial_toast_panel.add_theme_stylebox_override("panel", style)
-	add_child(tutorial_toast_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	tutorial_toast_panel.add_child(margin)
-	tutorial_toast_label = Label.new()
-	tutorial_toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	tutorial_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tutorial_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tutorial_toast_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tutorial_toast_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(tutorial_toast_label)
+	tutorial_ui_controller.build_toast_if_needed()
 
 func _show_transient_tutorial_hint(message: String, duration: float = 2.4) -> void:
-	if tutorial_toast_panel == null or tutorial_toast_label == null:
-		return
-	var safe_message: String = message.strip_edges()
-	if safe_message.is_empty():
-		return
-	tutorial_toast_token += 1
-	var token: int = tutorial_toast_token
-	tutorial_toast_label.text = safe_message
-	tutorial_toast_panel.visible = true
-	_call_hide_tutorial_toast(token, duration)
+	tutorial_ui_controller.show_toast(message, duration)
 
 func _call_hide_tutorial_toast(token: int, duration: float) -> void:
 	_hide_tutorial_toast_later(token, duration)
@@ -1493,43 +802,7 @@ func _make_system_menu_button() -> Button:
 	return button
 
 func _show_system_menu(visible: bool) -> void:
-	if system_menu_overlay == null:
-		return
-	var was_visible: bool = system_menu_overlay.visible
-	var child_overlay_was_visible: bool = (save_slot_overlay != null and save_slot_overlay.visible) or _audio_options_visible()
-	if visible and not was_visible and not startup_cover_active:
-		_play_ui_sound("panel_open")
-	if visible and system_menu_cover != null:
-		system_menu_cover.color = Color(0.0, 0.0, 0.0, 1.0) if startup_cover_active else Color(0.02, 0.02, 0.03, 0.84)
-	system_menu_overlay.visible = visible
-	if not visible:
-		_close_save_slot_overlay()
-		_close_audio_options_overlay(false)
-		if was_visible and not child_overlay_was_visible:
-			_play_ui_sound("panel_close")
-		return
-	var title_font_size: int = 76 if startup_cover_active else 36
-	system_menu_panel.offset_left = -320 if startup_cover_active else -240
-	system_menu_panel.offset_right = 320 if startup_cover_active else 240
-	system_menu_title.add_theme_font_size_override("font_size", title_font_size)
-	system_menu_title.custom_minimum_size = Vector2(0.0, 116.0) if startup_cover_active else Vector2.ZERO
-	system_menu_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	system_menu_title.text = TextDB.get_text("ui.system_menu.cover_title") if startup_cover_active else TextDB.get_text("ui.system_menu.title")
-	system_menu_subtitle.text = TextDB.get_text("ui.system_menu.startup_subtitle") if startup_cover_active else TextDB.get_text("ui.system_menu.ingame_subtitle")
-	system_menu_subtitle.visible = false
-	system_menu_primary_button.text = TextDB.get_text("ui.system_menu.new_game") if startup_cover_active else TextDB.get_text("ui.system_menu.resume")
-	system_menu_return_button.text = TextDB.get_text("ui.system_menu.return_to_cover")
-	system_menu_load_button.text = TextDB.get_text("ui.system_menu.load")
-	system_menu_save_button.text = TextDB.get_text("ui.system_menu.save")
-	system_menu_options_button.text = TextDB.get_text("ui.system_menu.options")
-	system_menu_help_button.text = TextDB.get_text("ui.system_menu.help")
-	var tutorial_locked: bool = not startup_cover_active and tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state)
-	var has_save: bool = save_manager != null and save_manager.has_any_save()
-	system_menu_return_button.visible = not startup_cover_active
-	system_menu_load_button.disabled = tutorial_locked or not has_save
-	system_menu_save_button.visible = not startup_cover_active
-	system_menu_save_button.disabled = startup_cover_active or tutorial_locked
-	system_menu_primary_button.grab_focus()
+	system_menu_controller.show_menu(visible)
 
 func _on_system_menu_primary_pressed() -> void:
 	if startup_cover_active:
@@ -1584,84 +857,7 @@ func _on_system_menu_help_pressed() -> void:
 	_show_message_popup(TextDB.get_text("ui.detail_slots.menu_help.title"), "", TextDB.get_text("ui.detail_slots.menu_help.body"))
 
 func _build_audio_options_overlay() -> void:
-	if audio_options_overlay != null or system_menu_overlay == null:
-		return
-	audio_options_overlay = Control.new()
-	audio_options_overlay.name = "AudioOptionsOverlay"
-	audio_options_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	audio_options_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	audio_options_overlay.visible = false
-	system_menu_overlay.add_child(audio_options_overlay)
-	var shade: ColorRect = ColorRect.new()
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.30)
-	audio_options_overlay.add_child(shade)
-	audio_options_panel = PanelContainer.new()
-	audio_options_panel.anchor_left = 0.5
-	audio_options_panel.anchor_top = 0.5
-	audio_options_panel.anchor_right = 0.5
-	audio_options_panel.anchor_bottom = 0.5
-	audio_options_panel.offset_left = -280
-	audio_options_panel.offset_top = -230
-	audio_options_panel.offset_right = 280
-	audio_options_panel.offset_bottom = 230
-	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
-	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.corner_radius_top_left = 16
-	panel_style.corner_radius_top_right = 16
-	panel_style.corner_radius_bottom_left = 16
-	panel_style.corner_radius_bottom_right = 16
-	audio_options_panel.add_theme_stylebox_override("panel", panel_style)
-	audio_options_overlay.add_child(audio_options_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	audio_options_panel.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 12)
-	margin.add_child(box)
-	audio_options_title = Label.new()
-	audio_options_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	audio_options_title.add_theme_font_size_override("font_size", 28)
-	box.add_child(audio_options_title)
-	audio_options_subtitle = Label.new()
-	audio_options_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	audio_options_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	audio_options_subtitle.modulate = Color(1, 1, 1, 0.78)
-	audio_options_subtitle.visible = false
-	box.add_child(audio_options_subtitle)
-	var slider_box: VBoxContainer = VBoxContainer.new()
-	slider_box.add_theme_constant_override("separation", 12)
-	slider_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(slider_box)
-	_build_audio_slider_row(slider_box, "master", TextDB.get_text("ui.audio_options.master"))
-	_build_audio_slider_row(slider_box, "music", TextDB.get_text("ui.audio_options.music"))
-	_build_audio_slider_row(slider_box, "sfx", TextDB.get_text("ui.audio_options.sfx"))
-	_build_font_size_slider_row(slider_box, TextDB.get_text("ui.audio_options.font_size"))
-	var footer: HBoxContainer = HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 10)
-	box.add_child(footer)
-	audio_options_reset_button = Button.new()
-	audio_options_reset_button.custom_minimum_size = Vector2(130.0, 42.0)
-	audio_options_reset_button.pressed.connect(_on_audio_options_reset_pressed)
-	footer.add_child(audio_options_reset_button)
-	var spacer: Control = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(spacer)
-	audio_options_close_button = Button.new()
-	audio_options_close_button.custom_minimum_size = Vector2(110.0, 42.0)
-	audio_options_close_button.pressed.connect(_close_audio_options_overlay)
-	footer.add_child(audio_options_close_button)
+	audio_options_controller.build_if_needed()
 
 func _build_audio_slider_row(parent: VBoxContainer, channel_id: String, label_text: String) -> void:
 	var row: VBoxContainer = VBoxContainer.new()
@@ -1712,62 +908,22 @@ func _build_font_size_slider_row(parent: VBoxContainer, label_text: String) -> v
 	row.add_child(ui_font_size_slider)
 
 func _open_audio_options_overlay() -> void:
-	_build_audio_options_overlay()
-	if audio_options_overlay == null:
-		return
-	var was_visible: bool = audio_options_overlay.visible
-	if not was_visible:
-		_play_ui_sound("panel_open")
-	_refresh_audio_options_overlay()
-	audio_options_overlay.visible = true
+	audio_options_controller.open()
 
 func _close_audio_options_overlay(play_sound: bool = true) -> void:
-	if audio_options_overlay == null:
-		return
-	var was_visible: bool = audio_options_overlay.visible
-	audio_options_overlay.visible = false
-	if was_visible and play_sound:
-		_play_ui_sound("panel_close")
+	audio_options_controller.close(play_sound)
 
 func _refresh_audio_options_overlay() -> void:
-	if audio_options_overlay == null:
-		return
-	audio_options_title.text = TextDB.get_text("ui.audio_options.title")
-	audio_options_subtitle.text = TextDB.get_text("ui.audio_options.subtitle")
-	audio_options_subtitle.visible = false
-	audio_options_reset_button.text = TextDB.get_text("ui.audio_options.reset")
-	audio_options_close_button.text = TextDB.get_text("ui.audio_options.close", TextDB.get_text("ui.buttons.close"))
-	if audio_manager != null:
-		for channel_id in ["master", "music", "sfx"]:
-			var slider: HSlider = audio_option_sliders.get(channel_id, null) as HSlider
-			if slider == null:
-				continue
-			slider.set_block_signals(true)
-			slider.value = round(audio_manager.get_volume_level(channel_id) * 100.0)
-			slider.set_block_signals(false)
-			_update_audio_option_value_label(channel_id)
-	if ui_font_size_slider != null:
-		ui_font_size_slider.set_block_signals(true)
-		ui_font_size_slider.value = round(ui_font_scale * 100.0)
-		ui_font_size_slider.set_block_signals(false)
-		_update_font_size_value_label()
+	audio_options_controller.refresh()
 
 func _update_audio_option_value_label(channel_id: String) -> void:
-	var value_label: Label = audio_option_value_labels.get(channel_id, null) as Label
-	if value_label == null or audio_manager == null:
-		return
-	value_label.text = TextDB.format_text("ui.audio_options.value", [int(round(audio_manager.get_volume_level(channel_id) * 100.0))], {}, "%d%%")
+	audio_options_controller._update_audio_option_value_label(channel_id)
 
 func _update_font_size_value_label() -> void:
-	if ui_font_size_value_label == null:
-		return
-	ui_font_size_value_label.text = TextDB.format_text("ui.audio_options.value", [int(round(ui_font_scale * 100.0))], {}, "%d%%")
+	audio_options_controller._update_font_size_value_label()
 
 func _on_audio_slider_value_changed(value: float, channel_id: String) -> void:
-	if audio_manager == null:
-		return
-	audio_manager.set_volume_level(channel_id, value / 100.0)
-	_update_audio_option_value_label(channel_id)
+	audio_options_controller._on_audio_slider_value_changed(value, channel_id)
 
 func _on_audio_slider_drag_ended(changed: bool, channel_id: String) -> void:
 	if changed and channel_id in ["master", "sfx"]:
@@ -1787,15 +943,7 @@ func _on_font_size_slider_drag_ended(changed: bool) -> void:
 		_play_ui_sound("button")
 
 func _on_audio_options_reset_pressed() -> void:
-	if audio_manager != null:
-		audio_manager.reset_volume_levels()
-	if absf(ui_font_scale - UI_FONT_SCALE_DEFAULT) > 0.001:
-		ui_font_scale = UI_FONT_SCALE_DEFAULT
-		_save_ui_settings()
-		_apply_font_preferences()
-	else:
-		_refresh_audio_options_overlay()
-	_play_ui_sound("button")
+	audio_options_controller._on_audio_options_reset_pressed()
 
 func _on_event_dialog_toggled(event_id: String, expanded: bool) -> void:
 	if expanded:
@@ -1818,157 +966,23 @@ func _save_system_game() -> bool:
 	return save_manager.save_system(run_state, board_manager)
 
 func _build_save_slot_overlay() -> void:
-	if save_slot_overlay != null or system_menu_overlay == null:
-		return
-	save_slot_overlay = Control.new()
-	save_slot_overlay.name = "SaveSlotOverlay"
-	save_slot_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	save_slot_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	save_slot_overlay.visible = false
-	system_menu_overlay.add_child(save_slot_overlay)
-	var shade: ColorRect = ColorRect.new()
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.28)
-	save_slot_overlay.add_child(shade)
-	save_slot_panel = PanelContainer.new()
-	save_slot_panel.anchor_left = 0.5
-	save_slot_panel.anchor_top = 0.5
-	save_slot_panel.anchor_right = 0.5
-	save_slot_panel.anchor_bottom = 0.5
-	save_slot_panel.offset_left = -360
-	save_slot_panel.offset_top = -250
-	save_slot_panel.offset_right = 360
-	save_slot_panel.offset_bottom = 250
-	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
-	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.corner_radius_top_left = 16
-	panel_style.corner_radius_top_right = 16
-	panel_style.corner_radius_bottom_left = 16
-	panel_style.corner_radius_bottom_right = 16
-	save_slot_panel.add_theme_stylebox_override("panel", panel_style)
-	save_slot_overlay.add_child(save_slot_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 22)
-	margin.add_theme_constant_override("margin_top", 20)
-	margin.add_theme_constant_override("margin_right", 22)
-	margin.add_theme_constant_override("margin_bottom", 20)
-	save_slot_panel.add_child(margin)
-	var box: VBoxContainer = VBoxContainer.new()
-	box.add_theme_constant_override("separation", 10)
-	margin.add_child(box)
-	save_slot_title = Label.new()
-	save_slot_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	save_slot_title.add_theme_font_size_override("font_size", 28)
-	box.add_child(save_slot_title)
-	save_slot_subtitle = Label.new()
-	save_slot_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	save_slot_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	save_slot_subtitle.modulate = Color(1, 1, 1, 0.78)
-	save_slot_subtitle.visible = false
-	box.add_child(save_slot_subtitle)
-	var slot_list: VBoxContainer = VBoxContainer.new()
-	slot_list.add_theme_constant_override("separation", 8)
-	slot_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(slot_list)
-	save_slot_buttons.clear()
-	for _index in range(6):
-		var slot_button: Button = Button.new()
-		slot_button.custom_minimum_size = Vector2(0.0, 52.0)
-		slot_button.focus_mode = Control.FOCUS_ALL
-		slot_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		slot_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		slot_button.pressed.connect(_on_save_slot_button_pressed.bind(_index))
-		slot_list.add_child(slot_button)
-		save_slot_buttons.append(slot_button)
-	var footer: HBoxContainer = HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 10)
-	box.add_child(footer)
-	save_slot_prev_button = Button.new()
-	save_slot_prev_button.text = TextDB.get_text("ui.save_slots.prev", "Prev")
-	save_slot_prev_button.custom_minimum_size = Vector2(110.0, 42.0)
-	save_slot_prev_button.pressed.connect(_on_save_slot_prev_pressed)
-	footer.add_child(save_slot_prev_button)
-	save_slot_page_label = Label.new()
-	save_slot_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	save_slot_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	footer.add_child(save_slot_page_label)
-	save_slot_next_button = Button.new()
-	save_slot_next_button.text = TextDB.get_text("ui.save_slots.next", "Next")
-	save_slot_next_button.custom_minimum_size = Vector2(110.0, 42.0)
-	save_slot_next_button.pressed.connect(_on_save_slot_next_pressed)
-	footer.add_child(save_slot_next_button)
-	save_slot_close_button = Button.new()
-	save_slot_close_button.text = TextDB.get_text("ui.buttons.close")
-	save_slot_close_button.custom_minimum_size = Vector2(110.0, 42.0)
-	save_slot_close_button.pressed.connect(_close_save_slot_overlay)
-	footer.add_child(save_slot_close_button)
+	save_slot_controller.build_if_needed()
 
 func _open_save_slot_overlay(mode: String) -> void:
-	if save_manager == null:
-		return
-	_build_save_slot_overlay()
-	if save_slot_overlay == null:
-		return
-	var was_visible: bool = save_slot_overlay.visible
-	if not was_visible:
-		_play_ui_sound("panel_open")
-	save_slot_mode = mode
-	save_slot_page = 0
-	save_slot_overlay.visible = true
-	_refresh_save_slot_overlay()
+	save_slot_controller.open(mode)
 
 func _close_save_slot_overlay() -> void:
-	if save_slot_overlay == null:
-		return
-	var was_visible: bool = save_slot_overlay.visible
-	save_slot_overlay.visible = false
-	save_slot_mode = ""
-	if was_visible:
-		_play_ui_sound("panel_close")
+	save_slot_controller.close()
 
 func _refresh_save_slot_overlay() -> void:
-	if save_slot_overlay == null or not save_slot_overlay.visible or save_manager == null:
-		return
-	var page_total: int = maxi(1, save_manager.page_count())
-	save_slot_page = clampi(save_slot_page, 0, page_total - 1)
-	var is_load_mode: bool = save_slot_mode == "load"
-	save_slot_title.text = TextDB.get_text("ui.save_slots.load_title", "Load Save") if is_load_mode else TextDB.get_text("ui.save_slots.save_title", "Choose Slot")
-	save_slot_subtitle.text = TextDB.get_text("ui.save_slots.load_subtitle", "Choose a slot to load.") if is_load_mode else TextDB.get_text("ui.save_slots.save_subtitle", "System slot autosaves each turn; other slots are manual.")
-	save_slot_subtitle.visible = false
-	save_slot_page_label.text = TextDB.format_text("ui.save_slots.page", [save_slot_page + 1, page_total], {}, "Page %d / %d")
-	save_slot_prev_button.disabled = save_slot_page <= 0
-	save_slot_next_button.disabled = save_slot_page >= page_total - 1
-	var slot_entries: Array[Dictionary] = save_manager.list_slots(save_slot_page)
-	for button_index in range(save_slot_buttons.size()):
-		var button: Button = save_slot_buttons[button_index]
-		if button_index >= slot_entries.size():
-			button.visible = false
-			button.disabled = true
-			continue
-		button.visible = true
-		var entry: Dictionary = slot_entries[button_index]
-		var slot_index: int = int(entry.get("slot_index", -1))
-		var has_save: bool = bool(entry.get("has_save", false))
-		var metadata: Dictionary = entry.get("metadata", {}) as Dictionary
-		button.text = _save_slot_button_text(slot_index, has_save, metadata)
-		button.disabled = is_load_mode and not has_save
+	save_slot_controller.refresh()
 
 func _save_slot_button_text(slot_index: int, has_save: bool, metadata: Dictionary) -> String:
-	var slot_name: String = save_manager.slot_display_name(slot_index)
-	if not has_save:
-		return TextDB.format_text("ui.save_slots.empty", [slot_name], {}, "%s\nEmpty")
-	var label: String = str(metadata.get("label", slot_name))
-	var term_name: String = str(metadata.get("term_name", ""))
-	var turn_index: int = int(metadata.get("turn_index", 0))
-	var saved_at: String = str(metadata.get("saved_at", ""))
-	return TextDB.format_text("ui.save_slots.filled", [slot_name, label, term_name, turn_index, saved_at], {}, "%s | %s\n%s | Turn %d | %s")
+	return save_slot_controller.save_slot_button_text(slot_index, has_save, metadata)
 
 func _on_save_slot_button_pressed(local_index: int) -> void:
+	save_slot_controller._on_save_slot_button_pressed(local_index)
+	return
 	if save_manager == null or run_state == null:
 		return
 	var slot_index: int = save_slot_page * save_manager.PAGE_SIZE + local_index
@@ -1993,10 +1007,14 @@ func _on_save_slot_button_pressed(local_index: int) -> void:
 		_show_message_popup(TextDB.get_text("ui.system_menu.save", "存档"), "", TextDB.get_text("ui.system_menu.save_done"))
 
 func _on_save_slot_prev_pressed() -> void:
+	save_slot_controller._on_save_slot_prev_pressed()
+	return
 	save_slot_page -= 1
 	_refresh_save_slot_overlay()
 
 func _on_save_slot_next_pressed() -> void:
+	save_slot_controller._on_save_slot_next_pressed()
+	return
 	save_slot_page += 1
 	_refresh_save_slot_overlay()
 
@@ -2005,9 +1023,15 @@ func _apply_loaded_snapshot(snapshot: Dictionary) -> void:
 	run_state = snapshot.get("run_state", GameData.create_run_state()) as RunState
 	if tutorial_manager != null and run_state != null:
 		tutorial_manager.repair_loaded_state(run_state)
+	if event_manager != null and run_state != null:
+		event_manager.prune_disabled_events(run_state)
+	if story_event_manager != null and run_state != null:
+		story_event_manager.sync_active_board_events(run_state, events)
 	board_manager.restore_state(run_state.active_event_ids, snapshot.get("board", {}) as Dictionary)
 	startup_cover_active = false
 	_refresh_board()
+	if story_event_manager != null and story_event_manager.has_pending_events(run_state):
+		call_deferred("_resume_story_event_sequence_after_load")
 
 func _build_top_bar_layout() -> void:
 	if fire_panel != null:
@@ -2498,25 +1522,77 @@ func _set_popup_cancel_state(visible: bool, text: String = "") -> void:
 func _refresh_top_bar() -> void:
 	for child in top_info.get_children():
 		child.queue_free()
-	var items: Array[String] = []
+	top_info_attribute_labels.clear()
+	top_info_attribute_arrow_labels.clear()
 	var shown_turn: int = run_state.turn_index
 	var total_turns: int = GameRules.settlement_turn() if GameRules.is_settlement_turn(shown_turn) else GameRules.playable_turns()
 	var term_name: String = GameRules.current_term_name(shown_turn)
 	var camp: Dictionary = GameRules.current_camp_attributes(run_state, characters)
-	items.append(TextDB.format_text("ui.status.term", [term_name, shown_turn, total_turns]))
-	items.append(_camp_status_text("supplies", int(camp.get("supplies", 0))))
-	items.append(_camp_status_text("forces", int(camp.get("forces", 0))))
-	items.append(_camp_status_text("cohesion", int(camp.get("cohesion", 0))))
-	items.append(_camp_status_text("strategy", int(camp.get("strategy", 0))))
-	for item in items:
+	var term_label: Label = Label.new()
+	term_label.text = TextDB.format_text("ui.status.term", [term_name, shown_turn, total_turns])
+	top_info.add_child(term_label)
+	for attribute_id in ["supplies", "forces", "cohesion", "strategy"]:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
 		var label: Label = Label.new()
-		label.text = item
-		top_info.add_child(label)
+		label.text = _camp_status_text(attribute_id, int(camp.get(attribute_id, 0)))
+		row.add_child(label)
+		var arrow: Label = Label.new()
+		arrow.visible = false
+		arrow.add_theme_font_size_override("font_size", 20)
+		row.add_child(arrow)
+		top_info.add_child(row)
+		top_info_attribute_labels[attribute_id] = label
+		top_info_attribute_arrow_labels[attribute_id] = arrow
+	_apply_story_event_attribute_preview()
 	_refresh_fire_progress()
 
 func _camp_status_text(attribute_id: String, value: int) -> String:
 	var label_text: String = TextDB.get_text("system.camp_attributes.%s" % attribute_id, attribute_id)
 	return "%s %d" % [label_text, value]
+
+func _set_story_event_attribute_preview(preview: Dictionary) -> void:
+	story_event_attribute_preview = preview.duplicate(true)
+	_apply_story_event_attribute_preview()
+
+func _clear_story_event_attribute_preview() -> void:
+	story_event_attribute_preview.clear()
+	_apply_story_event_attribute_preview()
+
+func _apply_story_event_attribute_preview() -> void:
+	for attribute_id_variant in top_info_attribute_labels.keys():
+		var attribute_id: String = str(attribute_id_variant)
+		var label: Label = top_info_attribute_labels.get(attribute_id) as Label
+		var arrow: Label = top_info_attribute_arrow_labels.get(attribute_id) as Label
+		if label == null:
+			continue
+		label.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		label.scale = Vector2.ONE
+		label.remove_theme_color_override("font_color")
+		label.remove_theme_color_override("font_outline_color")
+		label.remove_theme_constant_override("outline_size")
+		if arrow != null:
+			arrow.visible = false
+			arrow.text = ""
+			arrow.modulate = Color(1.0, 1.0, 1.0, 1.0)
+			arrow.remove_theme_color_override("font_color")
+			arrow.remove_theme_color_override("font_outline_color")
+			arrow.remove_theme_constant_override("outline_size")
+		if not story_event_attribute_preview.has(attribute_id):
+			continue
+		var direction: int = int(story_event_attribute_preview.get(attribute_id, 0))
+		var accent: Color = Color(0.76, 0.96, 0.66, 1.0) if direction >= 0 else Color(1.0, 0.72, 0.58, 1.0)
+		label.modulate = accent
+		label.add_theme_color_override("font_color", accent)
+		label.add_theme_color_override("font_outline_color", accent.darkened(0.7))
+		label.add_theme_constant_override("outline_size", 8)
+		if arrow != null and direction != 0:
+			arrow.visible = true
+			arrow.text = "↑" if direction > 0 else "↓"
+			arrow.modulate = accent
+			arrow.add_theme_color_override("font_color", accent)
+			arrow.add_theme_color_override("font_outline_color", accent.darkened(0.7))
+			arrow.add_theme_constant_override("outline_size", 8)
 
 func _game_over_text() -> String:
 	var ending_tier: String = str(run_state.flags.get("ending_tier", "bad"))
@@ -2641,151 +1717,16 @@ func _show_tutorial_prompt_if_needed(force: bool = false) -> bool:
 	return true
 
 func _build_tutorial_dialog_ui() -> void:
-	if tutorial_dialog_overlay != null:
-		return
-	tutorial_dialog_overlay = Control.new()
-	tutorial_dialog_overlay.name = "TutorialDialogueOverlay"
-	tutorial_dialog_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	tutorial_dialog_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	tutorial_dialog_overlay.z_as_relative = false
-	tutorial_dialog_overlay.z_index = 1200
-	tutorial_dialog_overlay.visible = false
-	add_child(tutorial_dialog_overlay)
-	tutorial_dialog_overlay.gui_input.connect(_on_tutorial_dialog_gui_input)
-	var dimmer: ColorRect = ColorRect.new()
-	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dimmer.color = Color(0.0, 0.0, 0.0, 0.14)
-	dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tutorial_dialog_overlay.add_child(dimmer)
-	tutorial_dialog_panel = PanelContainer.new()
-	tutorial_dialog_panel.anchor_left = 0.03
-	tutorial_dialog_panel.anchor_top = 1.0
-	tutorial_dialog_panel.anchor_right = 0.97
-	tutorial_dialog_panel.anchor_bottom = 1.0
-	tutorial_dialog_panel.offset_top = -252.0
-	tutorial_dialog_panel.offset_bottom = -14.0
-	tutorial_dialog_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	tutorial_dialog_panel.gui_input.connect(_on_tutorial_dialog_gui_input)
-	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.05, 0.05, 0.06, 0.96)
-	panel_style.border_color = Color(0.45, 0.45, 0.48, 0.95)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.corner_radius_top_left = 12
-	panel_style.corner_radius_top_right = 12
-	panel_style.corner_radius_bottom_left = 12
-	panel_style.corner_radius_bottom_right = 12
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
-	panel_style.shadow_size = 8
-	tutorial_dialog_panel.add_theme_stylebox_override("panel", panel_style)
-	tutorial_dialog_overlay.add_child(tutorial_dialog_panel)
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	tutorial_dialog_panel.add_child(margin)
-	var row: HBoxContainer = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(row)
-	tutorial_dialog_left_portrait = TextureRect.new()
-	tutorial_dialog_left_portrait.custom_minimum_size = Vector2(150.0, 210.0)
-	tutorial_dialog_left_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tutorial_dialog_left_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tutorial_dialog_left_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(tutorial_dialog_left_portrait)
-	var center_box: VBoxContainer = VBoxContainer.new()
-	center_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	center_box.add_theme_constant_override("separation", 8)
-	row.add_child(center_box)
-	tutorial_dialog_name = Label.new()
-	tutorial_dialog_name.add_theme_font_size_override("font_size", 28)
-	tutorial_dialog_name.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center_box.add_child(tutorial_dialog_name)
-	tutorial_dialog_text = RichTextLabel.new()
-	tutorial_dialog_text.bbcode_enabled = false
-	tutorial_dialog_text.fit_content = false
-	tutorial_dialog_text.scroll_active = false
-	tutorial_dialog_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tutorial_dialog_text.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tutorial_dialog_text.add_theme_font_size_override("normal_font_size", 24)
-	tutorial_dialog_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center_box.add_child(tutorial_dialog_text)
-	tutorial_dialog_hint = Label.new()
-	tutorial_dialog_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	tutorial_dialog_hint.modulate = Color(1.0, 1.0, 1.0, 0.72)
-	tutorial_dialog_hint.text = TextDB.get_text("ui.messages.dialog_click_continue", "Continue")
-	tutorial_dialog_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center_box.add_child(tutorial_dialog_hint)
-	tutorial_dialog_right_portrait = TextureRect.new()
-	tutorial_dialog_right_portrait.custom_minimum_size = Vector2(150.0, 210.0)
-	tutorial_dialog_right_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	tutorial_dialog_right_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	tutorial_dialog_right_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(tutorial_dialog_right_portrait)
+	tutorial_ui_controller.build_dialog_if_needed()
 
 func _show_tutorial_followup_if_needed() -> bool:
-	if tutorial_manager == null or run_state == null or detail_overlay.visible:
-		return false
-	var popup: Dictionary = tutorial_manager.consume_followup_popup(run_state)
-	if popup.is_empty():
-		return false
-	_show_message_popup(
-		str(popup.get("title", "")),
-		str(popup.get("subtitle", "")),
-		str(popup.get("body", "")),
-		str(popup.get("presentation", "")),
-		str(popup.get("image_path", ""))
-	)
-	tutorial_prompt_after_popup = bool(popup.get("chain_to_prompt", false))
-	return true
+	return tutorial_ui_controller.show_tutorial_followup_if_needed()
 
 func _try_show_tutorial_pre_report_dialog(report_turn_index: int, report_logs: Array[String], title_override: String, subtitle_override: String, body_override: String) -> bool:
-	if tutorial_manager == null or run_state == null:
-		return false
-	var dialogue: Dictionary = tutorial_manager.pre_report_dialogue(run_state)
-	if dialogue.is_empty():
-		return false
-	pending_report_payload = {
-		"turn_index": report_turn_index,
-		"logs": report_logs.duplicate(true),
-		"title": title_override,
-		"subtitle": subtitle_override,
-		"body": body_override
-	}
-	_start_tutorial_dialog(dialogue)
-	return true
+	return tutorial_ui_controller.try_show_pre_report_dialog(report_turn_index, report_logs, title_override, subtitle_override, body_override)
 
 func _start_tutorial_dialog(dialogue: Dictionary) -> void:
-	if tutorial_dialog_overlay == null:
-		_build_tutorial_dialog_ui()
-	tutorial_dialog_lines = []
-	for line_variant in dialogue.get("lines", []):
-		if line_variant is Dictionary:
-			tutorial_dialog_lines.append((line_variant as Dictionary).duplicate(true))
-	tutorial_dialog_index = 0
-	tutorial_dialog_active = not tutorial_dialog_lines.is_empty()
-	if not tutorial_dialog_active:
-		_finish_tutorial_dialog()
-		return
-	var left_character_id: String = str(dialogue.get("left_character_id", ""))
-	var right_character_id: String = str(dialogue.get("right_character_id", ""))
-	tutorial_dialog_flip_sides = false
-	if left_character_id == "cao_cao" and not right_character_id.is_empty():
-		tutorial_dialog_flip_sides = true
-		var swapped_character_id: String = left_character_id
-		left_character_id = right_character_id
-		right_character_id = swapped_character_id
-	_set_tutorial_dialog_portrait(tutorial_dialog_left_portrait, left_character_id)
-	_set_tutorial_dialog_portrait(tutorial_dialog_right_portrait, right_character_id)
-	detail_overlay.visible = false
-	tutorial_dialog_overlay.visible = true
-	_render_tutorial_dialog_line()
+	tutorial_ui_controller.start_dialog(dialogue)
 
 func _set_tutorial_dialog_portrait(target: TextureRect, character_id: String) -> void:
 	if target == null:
@@ -2813,44 +1754,13 @@ func _render_tutorial_dialog_line() -> void:
 	tutorial_dialog_hint.text = TextDB.get_text("ui.messages.dialog_click_continue", "Continue")
 
 func _advance_tutorial_dialog() -> void:
-	if not tutorial_dialog_active:
-		return
-	tutorial_dialog_index += 1
-	if tutorial_dialog_index >= tutorial_dialog_lines.size():
-		_finish_tutorial_dialog()
-		return
-	_render_tutorial_dialog_line()
+	tutorial_ui_controller.advance_dialog()
 
 func _finish_tutorial_dialog() -> void:
-	tutorial_dialog_active = false
-	tutorial_dialog_index = -1
-	tutorial_dialog_flip_sides = false
-	tutorial_dialog_lines.clear()
-	if tutorial_dialog_overlay != null:
-		tutorial_dialog_overlay.visible = false
-	var payload: Dictionary = pending_report_payload.duplicate(true)
-	pending_report_payload.clear()
-	if payload.is_empty():
-		return
-	var report_logs: Array[String] = []
-	for log_variant in payload.get("logs", []):
-		report_logs.append(str(log_variant))
-	_show_turn_report_dialog(
-		int(payload.get("turn_index", run_state.turn_index)),
-		report_logs,
-		str(payload.get("title", "")),
-		str(payload.get("subtitle", "")),
-		str(payload.get("body", ""))
-	)
+	tutorial_ui_controller.finish_dialog()
 
 func _on_tutorial_dialog_gui_input(event: InputEvent) -> void:
-	if not tutorial_dialog_active:
-		return
-	if event is InputEventMouseButton:
-		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			_advance_tutorial_dialog()
-			accept_event()
+	tutorial_ui_controller._on_tutorial_dialog_gui_input(event)
 
 func _build_popup_presentation_ui() -> void:
 	if popup_panel == null or popup_effect_overlay != null:
@@ -3452,7 +2362,7 @@ func _build_popup_payload(card_id: String) -> Dictionary:
 	if events.has(card_id):
 		var data_event: EventData = events[card_id] as EventData
 		return {
-			"title": data_event.title,
+			"title": _event_title(data_event),
 			"subtitle": _event_category_text(data_event.category),
 			"body": _event_body(data_event),
 			"image_path": data_event.art_path
@@ -3907,8 +2817,15 @@ func _resource_body(data_res: ResourceCardData) -> String:
 	return _decorate_body_with_tags(data_res.description, data_res.tags)
 
 func _event_body(data_event: EventData) -> String:
+	if story_event_manager != null and run_state != null and story_event_manager.is_story_board_event(run_state, data_event.id):
+		return story_event_manager.describe_board_event(run_state, data_event.id)
 	var sections: Array[String] = [data_event.description, event_manager.describe_event_rules(data_event, run_state)]
-	return _decorate_body_with_tags("\n\n".join(sections), data_event.tags)
+	return "\n\n".join(sections)
+
+func _event_title(data_event: EventData) -> String:
+	if story_event_manager != null and run_state != null and story_event_manager.is_story_board_event(run_state, data_event.id):
+		return story_event_manager.board_event_title(run_state, data_event.id)
+	return data_event.title
 
 func _risk_body(data_risk: RiskCardData, count: int) -> String:
 	var lines: Array[String] = [data_risk.description, ""]
@@ -3951,6 +2868,25 @@ func _tutorial_allows_assignment(target_id: String, payload: Dictionary) -> bool
 	if tutorial_manager == null:
 		return true
 	return tutorial_manager.can_assign(run_state, board_manager, target_id, payload)
+
+func _story_event_allows_assignment(target_id: String, payload: Dictionary) -> bool:
+	if story_event_manager == null or run_state == null:
+		return true
+	if payload.is_empty():
+		return false
+	var normalized_target_id: String = target_id.strip_edges()
+	if normalized_target_id.contains("@replace="):
+		normalized_target_id = normalized_target_id.get_slice("@replace=", 0)
+	if normalized_target_id.contains("#"):
+		normalized_target_id = normalized_target_id.get_slice("#", 0)
+	var event_id: String = normalized_target_id
+	var slot_type: String = str(payload.get("card_type", ""))
+	if normalized_target_id.contains(":"):
+		event_id = normalized_target_id.get_slice(":", 0)
+		slot_type = normalized_target_id.get_slice(":", 1)
+	if not story_event_manager.is_story_board_event(run_state, event_id):
+		return true
+	return story_event_manager.can_assign_to_board_event(run_state, event_id, payload, slot_type)
 
 func _on_card_quick_assign_requested(payload: Dictionary) -> void:
 	if payload.is_empty():
@@ -4061,6 +2997,8 @@ func _event_quick_target(event_id: String, payload: Dictionary, base_score: int)
 		return {}
 	if not _tutorial_allows_assignment("%s:%s" % [event_id, slot_type], payload):
 		return {}
+	if not _story_event_allows_assignment("%s:%s" % [event_id, slot_type], payload):
+		return {}
 	var event_data: EventData = events[event_id] as EventData
 	var slot_label: String = TextDB.get_text("ui.event_slots.%s_title" % slot_type)
 	return {
@@ -4125,7 +3063,7 @@ func _on_target_drop_requested(target_id: String, payload: Dictionary) -> void:
 	var tutorial_target_id: String = str(target_info.get("tutorial_target_id", ""))
 	var resolved_target_id: String = str(target_info.get("resolved_target_id", ""))
 	var replace_uid: String = str(target_info.get("replace_uid", ""))
-	if not _tutorial_allows_assignment(tutorial_target_id, payload):
+	if not _tutorial_allows_assignment(tutorial_target_id, payload) or not _story_event_allows_assignment(resolved_target_id if not resolved_target_id.is_empty() else tutorial_target_id, payload):
 		run_state.log_entries.append(TextDB.get_text("logs.board.invalid_drop"))
 		_play_ui_sound("assign_fail")
 		_refresh_board()
@@ -4318,7 +3256,8 @@ func _confirm_end_turn() -> void:
 	_play_ui_sound("confirm")
 	_close_all_detail_views()
 	var resolved_turn_index: int = run_state.turn_index
-	var logs: Array[String] = turn_manager.resolve_turn(run_state, board_manager, event_manager, relation_manager, characters, resources, tutorial_manager)
+	var tutorial_active_before: bool = tutorial_manager != null and run_state != null and tutorial_manager.is_active(run_state)
+	var logs: Array[String] = turn_manager.resolve_turn(run_state, board_manager, event_manager, relation_manager, characters, resources, tutorial_manager, story_event_manager)
 	var report_logs: Array[String] = []
 	for log_variant in logs:
 		report_logs.append(str(log_variant))
@@ -4341,17 +3280,37 @@ func _confirm_end_turn() -> void:
 		report_subtitle_override = tutorial_manager.report_subtitle(run_state, resolved_turn_index)
 		report_body_override = tutorial_manager.report_body_override(run_state)
 		should_show_report = tutorial_manager.should_show_report(run_state)
-	if not tutorial_active:
-		var result_presentations: Array = turn_manager.consume_result_presentations()
-		if _start_turn_result_sequence(result_presentations, {
-			"turn_index": report_turn_index,
-			"logs": report_logs.duplicate(true),
-			"title": report_title_override,
-			"subtitle": report_subtitle_override,
-			"body": report_body_override,
-			"show_report": should_show_report
-		}):
-			return
+	var just_completed_tutorial: bool = tutorial_active_before and not tutorial_active and int(run_state.flags.get("tutorial_last_report_step", 0)) == 5
+	if not tutorial_active and not just_completed_tutorial and story_event_manager != null:
+		var queued_story_events: Array[Dictionary] = story_event_manager.queue_events_after_turn(run_state, resolved_turn_index)
+		if not queued_story_events.is_empty():
+			story_event_manager.sync_active_board_events(run_state, events)
+		for queued_variant in queued_story_events:
+			var queued_event: Dictionary = queued_variant as Dictionary
+			if story_event_manager.event_skips_choice(str(queued_event.get("event_id", ""))):
+				continue
+			var queued_title: String = story_event_manager.event_title(str(queued_event.get("event_id", "")))
+			if queued_title.is_empty():
+				continue
+			var queued_line: String = TextDB.format_text("story_events.logs.queued", [queued_title])
+			report_logs.append(queued_line)
+			run_state.log_entries.append(queued_line)
+		if not queued_story_events.is_empty():
+			_refresh_board()
+			_save_system_game()
+	var post_turn_payload: Dictionary = {
+		"turn_index": report_turn_index,
+		"logs": report_logs.duplicate(true),
+		"title": report_title_override,
+		"subtitle": report_subtitle_override,
+		"body": report_body_override,
+		"show_report": should_show_report
+	}
+	var result_presentations: Array = turn_manager.consume_result_presentations()
+	if _start_turn_result_sequence(result_presentations, post_turn_payload):
+		return
+	if not tutorial_active and not just_completed_tutorial and _start_story_event_sequence(post_turn_payload):
+		return
 	if should_show_report:
 		if _try_show_tutorial_pre_report_dialog(report_turn_index, report_logs, report_title_override, report_subtitle_override, report_body_override):
 			return
@@ -4364,7 +3323,7 @@ func _confirm_end_turn() -> void:
 			_show_tutorial_prompt_if_needed(true)
 
 func _on_end_turn_pressed() -> void:
-	if startup_cover_active or _system_menu_visible() or run_state.game_over or detail_overlay.visible or tutorial_dialog_active or turn_result_active:
+	if startup_cover_active or _system_menu_visible() or run_state.game_over or detail_overlay.visible or tutorial_dialog_active or turn_result_active or story_event_active:
 		return
 	if tutorial_manager != null:
 		var tutorial_status: Dictionary = tutorial_manager.end_turn_status(run_state, board_manager)

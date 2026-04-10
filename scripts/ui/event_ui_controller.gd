@@ -30,6 +30,7 @@ var event_dialog_assigned_title: Label
 var event_dialog_assigned_row: HBoxContainer
 
 var _event_body_callback: Callable = Callable()
+var _event_title_callback: Callable = Callable()
 var _expanded_event_id: String = ""
 var _dragging: bool = false
 var _drag_offset: Vector2 = Vector2.ZERO
@@ -47,7 +48,8 @@ func setup(
 	p_event_dialog_slot_row: HBoxContainer,
 	p_event_dialog_assigned_title: Label,
 	p_event_dialog_assigned_row: HBoxContainer,
-	p_event_body_callback: Callable
+	p_event_body_callback: Callable,
+	p_event_title_callback: Callable = Callable()
 ) -> void:
 	event_column = p_event_column
 	event_dialog = p_event_dialog
@@ -61,6 +63,7 @@ func setup(
 	event_dialog_assigned_title = p_event_dialog_assigned_title
 	event_dialog_assigned_row = p_event_dialog_assigned_row
 	_event_body_callback = p_event_body_callback
+	_event_title_callback = p_event_title_callback
 
 func get_expanded_event_id() -> String:
 	return _expanded_event_id
@@ -165,11 +168,11 @@ func _refresh_event_dialog(run_state: RunState, event_defs: Dictionary, board_ma
 	var event: EventData = event_defs[_expanded_event_id] as EventData
 	var state: Dictionary = run_state.active_event_states.get(_expanded_event_id, {})
 	event_dialog.visible = true
-	event_dialog_title.text = event.title
+	event_dialog_title.text = _event_title(event)
 	event_dialog_subtitle.text = TextDB.format_text("ui.event_subtitle.expanded", [int(state.get("turns_left", 0))])
 	event_dialog_subtitle.visible = false
 	event_dialog_body.text = _event_body(event)
-	_populate_event_dialog_slots(board_manager, _expanded_event_id)
+	_populate_event_dialog_slots(run_state, board_manager, _expanded_event_id)
 	event_dialog_assigned_title.visible = false
 	event_dialog_assigned_row.visible = false
 	_apply_dialog_rect(viewport_size)
@@ -224,32 +227,43 @@ func _configure_event_dialog_layout(viewport_size: Vector2) -> void:
 	event_dialog_assigned_title.visible = false
 	event_dialog_assigned_row.visible = false
 
-func _populate_event_dialog_slots(board_manager: BoardManager, event_id: String) -> void:
+func _populate_event_dialog_slots(run_state: RunState, board_manager: BoardManager, event_id: String) -> void:
 	if event_dialog_slot_row == null:
 		return
 	for child in event_dialog_slot_row.get_children():
 		child.queue_free()
 	event_dialog_slot_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	for slot_type in ["character", "resource"]:
+	var state: Dictionary = run_state.active_event_states.get(event_id, {}) as Dictionary
+	var slot_types: Array[String] = ["character", "resource"]
+	var configured_types: Array = state.get("story_event_slot_types", [])
+	if not configured_types.is_empty():
+		slot_types.clear()
+		for slot_type_variant in configured_types:
+			var configured_type: String = str(slot_type_variant)
+			if configured_type in ["character", "resource"] and not slot_types.has(configured_type):
+				slot_types.append(configured_type)
+	var slot_filters: Dictionary = state.get("story_event_slot_filters", {}) as Dictionary
+	for slot_type in slot_types:
 		var slot_cards: Array = board_manager.get_event_slot_cards(event_id, slot_type)
+		var slot_filter: Dictionary = (slot_filters.get(slot_type, {}) as Dictionary).duplicate(true)
 		if slot_cards.is_empty():
 			var placeholder: SlotView = SLOT_SCENE.instantiate()
 			placeholder.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
 			placeholder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			placeholder.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			placeholder.setup(_make_event_slot_payload(board_manager, event_id, slot_type), true)
+			placeholder.setup(_make_event_slot_payload(run_state, board_manager, event_id, slot_type, slot_filter), true)
 			placeholder.target_drop_requested.connect(_on_target_drop_requested)
 			event_dialog_slot_row.add_child(placeholder)
 		else:
 			var card: Dictionary = slot_cards[0] as Dictionary
-			var preview: CardView = _build_event_dialog_preview(card, event_id, slot_type, slot_cards)
+			var preview: CardView = _build_event_dialog_preview(card, event_id, slot_type, slot_cards, slot_filter)
 			preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
 			preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			preview.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 			event_dialog_slot_row.add_child(preview)
 	event_dialog_slot_row.queue_sort()
 
-func _build_event_dialog_preview(card: Dictionary, event_id: String, slot_type: String, current_cards: Array) -> CardView:
+func _build_event_dialog_preview(card: Dictionary, event_id: String, slot_type: String, current_cards: Array, slot_filter: Dictionary = {}) -> CardView:
 	var preview: CardView = CARD_SCENE.instantiate()
 	preview.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
 	var payload: Dictionary = card.duplicate(true)
@@ -271,6 +285,10 @@ func _build_event_dialog_preview(card: Dictionary, event_id: String, slot_type: 
 	payload["replace_drop_enabled"] = true
 	payload["replace_uid"] = str(card.get("uid", ""))
 	payload["current_cards"] = current_cards.duplicate(true)
+	payload["allowed_card_types"] = slot_filter.get("allowed_card_types", [])
+	payload["allowed_card_ids"] = slot_filter.get("allowed_card_ids", [])
+	payload["blocked_card_ids"] = slot_filter.get("blocked_card_ids", [])
+	payload["required_tags"] = slot_filter.get("required_tags", [])
 	preview.setup(payload)
 	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	preview.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -343,14 +361,13 @@ func _build_event_slot_well(slot_type: String, content: Control) -> PanelContain
 	center.add_child(content)
 	return panel
 
-func _make_event_slot_payload(board_manager: BoardManager, event_id: String, slot_type: String) -> Dictionary:
+func _make_event_slot_payload(run_state: RunState, board_manager: BoardManager, event_id: String, slot_type: String, slot_filter: Dictionary = {}) -> Dictionary:
 	var title_key: String = "ui.event_slots.%s_title" % slot_type
-	var body_key: String = "ui.event_slots.%s_body" % slot_type
 	var current_cards: Array = board_manager.get_event_slot_cards(event_id, slot_type)
-	var palette: Dictionary = {
-		"panel": Color(0.08, 0.08, 0.09) if slot_type == "character" else Color(0.07, 0.07, 0.08),
-		"art": Color(0.03, 0.03, 0.04) if slot_type == "character" else Color(0.02, 0.02, 0.03)
-	}
+	var prompt_text: String = _event_slot_prompt(run_state, event_id, slot_type, slot_filter)
+	var tooltip_lines: Array[String] = [TextDB.get_text(title_key)]
+	if not prompt_text.strip_edges().is_empty() and prompt_text != TextDB.get_text(title_key):
+		tooltip_lines.append(prompt_text.replace("\n", " / "))
 	return {
 		"id": "%s:%s" % [event_id, slot_type],
 		"target_id": "%s:%s" % [event_id, slot_type],
@@ -361,7 +378,10 @@ func _make_event_slot_payload(board_manager: BoardManager, event_id: String, slo
 		"body": "",
 		"assigned_text": "",
 		"image_path": "",
-		"image_label": "",
+		"image_label": prompt_text,
+		"tooltip_text": "\n".join(tooltip_lines),
+		"art_label_font_size": 16 if prompt_text.contains("\n") else 18,
+		"art_label_color": Color(0.90, 0.88, 0.82, 0.96),
 		"art_bg_color": Color(0.00, 0.01, 0.02, 1.0),
 		"color": Color(0.02, 0.03, 0.05, 0.98),
 		"compact_details": true,
@@ -374,9 +394,57 @@ func _make_event_slot_payload(board_manager: BoardManager, event_id: String, slo
 		"card_width": LIST_CARD_WIDTH,
 		"art_height": LIST_CARD_ART_HEIGHT,
 		"current_cards": current_cards,
+		"allowed_card_types": slot_filter.get("allowed_card_types", []),
+		"allowed_card_ids": slot_filter.get("allowed_card_ids", []),
+		"blocked_card_ids": slot_filter.get("blocked_card_ids", []),
+		"required_tags": slot_filter.get("required_tags", []),
 		"collapsed_height": LIST_CARD_HEIGHT,
 		"expanded_height": LIST_CARD_HEIGHT
 	}
+
+func _event_slot_prompt(run_state: RunState, event_id: String, slot_type: String, slot_filter: Dictionary) -> String:
+	if run_state == null:
+		return TextDB.get_text("ui.event_slots.%s_title" % slot_type)
+	match slot_type:
+		"character":
+			var character_ids: Array[String] = []
+			for character_id_variant in slot_filter.get("allowed_card_ids", []):
+				character_ids.append(str(character_id_variant))
+			if not character_ids.is_empty():
+				return "\n".join(_character_names(character_ids))
+			return TextDB.get_text("ui.event_slots.character_title")
+		"resource":
+			var state: Dictionary = run_state.active_event_states.get(event_id, {}) as Dictionary
+			var required_resources: Dictionary = state.get("story_event_required_resources", {}) as Dictionary
+			if not required_resources.is_empty():
+				var lines: Array[String] = []
+				for resource_id_variant in required_resources.keys():
+					var resource_id: String = str(resource_id_variant)
+					lines.append("%s ×%d" % [TextDB.get_text("resources.%s.name" % resource_id, resource_id), int(required_resources.get(resource_id, 0))])
+				return "\n".join(lines)
+			var resource_ids: Array[String] = []
+			for resource_id_variant in slot_filter.get("allowed_card_ids", []):
+				resource_ids.append(str(resource_id_variant))
+			if resource_ids.is_empty():
+				for resource_id_variant in state.get("story_event_allowed_resource_ids", []):
+					resource_ids.append(str(resource_id_variant))
+			if not resource_ids.is_empty():
+				return "\n".join(_resource_names(resource_ids))
+			return TextDB.get_text("ui.event_slots.resource_title")
+		_:
+			return TextDB.get_text("ui.event_slots.%s_title" % slot_type, slot_type)
+
+func _character_names(character_ids: Array[String]) -> Array[String]:
+	var names: Array[String] = []
+	for character_id in character_ids:
+		names.append(TextDB.get_text("characters.%s.name" % character_id, character_id))
+	return names
+
+func _resource_names(resource_ids: Array[String]) -> Array[String]:
+	var names: Array[String] = []
+	for resource_id in resource_ids:
+		names.append(TextDB.get_text("resources.%s.name" % resource_id, resource_id))
+	return names
 
 func _make_event_icon_payload(event: EventData, turns_left: int, _assigned_cards: Array, expanded: bool) -> Dictionary:
 	var art_color: Color = Color(0.22, 0.22, 0.23) if not expanded else Color(0.30, 0.30, 0.32)
@@ -390,7 +458,7 @@ func _make_event_icon_payload(event: EventData, turns_left: int, _assigned_cards
 		"body": event.description,
 		"tags": event.tags,
 		"assigned_text": "",
-		"badge_text": str(turns_left),
+		"badge_text": "" if turns_left <= 0 else str(turns_left),
 		"image_path": event.art_path,
 		"image_label": event.title,
 		"art_bg_color": art_color,
@@ -417,6 +485,11 @@ func _event_body(event: EventData) -> String:
 	if _event_body_callback.is_valid():
 		return str(_event_body_callback.call(event))
 	return event.description
+
+func _event_title(event: EventData) -> String:
+	if _event_title_callback.is_valid():
+		return str(_event_title_callback.call(event))
+	return event.title
 
 func _center_event_dialog(viewport_size: Vector2) -> void:
 	_apply_dialog_rect(viewport_size)

@@ -1,13 +1,26 @@
 extends Node
 class_name TurnResultController
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+const CARD_METRICS := preload("res://scripts/ui/card_metrics.gd")
+
 signal continue_requested
 
-const TURN_RESULT_CARD_WIDTH := 120.0
-const TURN_RESULT_CARD_HEIGHT := 160.0
-const TURN_RESULT_CARD_ART_HEIGHT := 116.0
+const DICE_ROLLER_CONTROL_SCRIPT := preload("res://addons/dice_roller/dice_roller_control/dice_roller_control.gd")
+const DICE_DEF_SCRIPT := preload("res://addons/dice_roller/dice_def.gd")
+const DICE_SHAPE_SCRIPT := preload("res://addons/dice_roller/dice_shape.gd")
+const TURN_RESULT_CARD_WIDTH := CARD_METRICS.COMPACT_CARD_WIDTH
+const TURN_RESULT_CARD_HEIGHT := CARD_METRICS.COMPACT_CARD_HEIGHT
+const TURN_RESULT_CARD_ART_HEIGHT := CARD_METRICS.COMPACT_CARD_ART_HEIGHT
+const TURN_RESULT_DICE_VIEW_SIZE := Vector2(300.0, 120.0)
+const TURN_RESULT_PANEL_DESIRED_SIZE := CARD_METRICS.TURN_RESULT_PANEL_SIZE
+const TURN_RESULT_PANEL_MARGIN := Vector2(96.0, 44.0)
+const TURN_RESULT_DICE_PANEL_HEIGHT := 172.0
+const TURN_RESULT_DICE_SUMMARY_HEIGHT := 96.0
+const TURN_RESULT_BODY_MIN_HEIGHT := 168.0
 
 var main
+var result_dice_control = null
 
 func setup(main_node) -> void:
 	main = main_node
@@ -25,7 +38,7 @@ func build_if_needed() -> void:
 	main.add_child(main.turn_result_overlay)
 	var shade: ColorRect = ColorRect.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.76)
+	shade.color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.76)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	main.turn_result_overlay.add_child(shade)
 	var center: CenterContainer = CenterContainer.new()
@@ -38,10 +51,13 @@ func build_if_needed() -> void:
 	main.turn_result_animation_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	main.turn_result_overlay.add_child(main.turn_result_animation_layer)
 	main.turn_result_panel = PanelContainer.new()
-	main.turn_result_panel.custom_minimum_size = Vector2(920.0, 640.0)
+	main.turn_result_panel.custom_minimum_size = TURN_RESULT_PANEL_DESIRED_SIZE
+	main.turn_result_panel.size = TURN_RESULT_PANEL_DESIRED_SIZE
+	main.turn_result_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	main.turn_result_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.06, 0.06, 0.07, 0.985)
-	panel_style.border_color = Color(0.44, 0.44, 0.46, 0.96)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.985)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.12), 0.96)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
@@ -55,16 +71,16 @@ func build_if_needed() -> void:
 	main.turn_result_panel.add_theme_stylebox_override("panel", panel_style)
 	center.add_child(main.turn_result_panel)
 	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 18)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 18)
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 16)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 16)
 	main.turn_result_panel.add_child(margin)
 	var box: VBoxContainer = VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 12)
+	box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	box.add_theme_constant_override("separation", 8)
 	margin.add_child(box)
 	var header: HBoxContainer = HBoxContainer.new()
 	header.add_theme_constant_override("separation", 10)
@@ -77,15 +93,17 @@ func build_if_needed() -> void:
 	main.turn_result_title.add_theme_font_size_override("font_size", 30)
 	title_box.add_child(main.turn_result_title)
 	main.turn_result_subtitle = Label.new()
-	main.turn_result_subtitle.modulate = Color(0.84, 0.82, 0.78, 0.92)
+	main.turn_result_subtitle.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.82)
 	main.turn_result_subtitle.add_theme_font_size_override("font_size", 15)
 	title_box.add_child(main.turn_result_subtitle)
 	main.turn_result_dice_panel = PanelContainer.new()
 	main.turn_result_dice_panel.visible = false
 	main.turn_result_dice_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main.turn_result_dice_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	main.turn_result_dice_panel.custom_minimum_size = Vector2(0.0, TURN_RESULT_DICE_PANEL_HEIGHT)
 	var dice_panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	dice_panel_style.bg_color = Color(0.08, 0.09, 0.11, 0.96)
-	dice_panel_style.border_color = Color(0.22, 0.24, 0.28, 0.94)
+	dice_panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.16), 0.96)
+	dice_panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE, 0.94)
 	dice_panel_style.border_width_left = 1
 	dice_panel_style.border_width_top = 1
 	dice_panel_style.border_width_right = 1
@@ -97,57 +115,54 @@ func build_if_needed() -> void:
 	main.turn_result_dice_panel.add_theme_stylebox_override("panel", dice_panel_style)
 	box.add_child(main.turn_result_dice_panel)
 	var dice_margin := MarginContainer.new()
-	dice_margin.add_theme_constant_override("margin_left", 12)
-	dice_margin.add_theme_constant_override("margin_top", 10)
-	dice_margin.add_theme_constant_override("margin_right", 12)
-	dice_margin.add_theme_constant_override("margin_bottom", 10)
+	dice_margin.add_theme_constant_override("margin_left", 10)
+	dice_margin.add_theme_constant_override("margin_top", 8)
+	dice_margin.add_theme_constant_override("margin_right", 10)
+	dice_margin.add_theme_constant_override("margin_bottom", 8)
 	main.turn_result_dice_panel.add_child(dice_margin)
 	var dice_box := VBoxContainer.new()
-	dice_box.add_theme_constant_override("separation", 8)
+	dice_box.add_theme_constant_override("separation", 6)
 	dice_margin.add_child(dice_box)
 	main.turn_result_dice_title = Label.new()
 	main.turn_result_dice_title.add_theme_font_size_override("font_size", 16)
 	dice_box.add_child(main.turn_result_dice_title)
+	var dice_content_row := HBoxContainer.new()
+	dice_content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dice_content_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	dice_content_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	dice_content_row.add_theme_constant_override("separation", 14)
+	dice_box.add_child(dice_content_row)
 	main.turn_result_dice_row = HBoxContainer.new()
+	main.turn_result_dice_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	main.turn_result_dice_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	main.turn_result_dice_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	main.turn_result_dice_row.add_theme_constant_override("separation", 12)
-	dice_box.add_child(main.turn_result_dice_row)
+	main.turn_result_dice_row.add_theme_constant_override("separation", 10)
+	main.turn_result_dice_row.custom_minimum_size = TURN_RESULT_DICE_VIEW_SIZE
+	dice_content_row.add_child(main.turn_result_dice_row)
 	main.turn_result_die_labels.clear()
-	for _die_index in range(2):
-		var die_panel := PanelContainer.new()
-		die_panel.custom_minimum_size = Vector2(58.0, 58.0)
-		var die_style: StyleBoxFlat = StyleBoxFlat.new()
-		die_style.bg_color = Color(0.14, 0.15, 0.18, 0.98)
-		die_style.border_color = Color(0.58, 0.58, 0.62, 0.94)
-		die_style.border_width_left = 2
-		die_style.border_width_top = 2
-		die_style.border_width_right = 2
-		die_style.border_width_bottom = 2
-		die_style.corner_radius_top_left = 10
-		die_style.corner_radius_top_right = 10
-		die_style.corner_radius_bottom_left = 10
-		die_style.corner_radius_bottom_right = 10
-		die_panel.add_theme_stylebox_override("panel", die_style)
-		main.turn_result_dice_row.add_child(die_panel)
-		var die_label := Label.new()
-		die_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		die_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		die_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		die_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		die_label.add_theme_font_size_override("font_size", 30)
-		die_panel.add_child(die_label)
-		main.turn_result_die_labels.append(die_label)
+	_ensure_result_dice_control()
 	main.turn_result_dice_summary = Label.new()
-	main.turn_result_dice_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main.turn_result_dice_summary.set_anchors_preset(Control.PRESET_FULL_RECT)
+	main.turn_result_dice_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	main.turn_result_dice_summary.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	main.turn_result_dice_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	main.turn_result_dice_summary.modulate = Color(0.90, 0.90, 0.92, 0.94)
+	main.turn_result_dice_summary.clip_text = true
+	main.turn_result_dice_summary.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.90)
 	main.turn_result_dice_summary.add_theme_font_size_override("font_size", 14)
-	dice_box.add_child(main.turn_result_dice_summary)
+	main.turn_result_dice_summary.custom_minimum_size = Vector2(0.0, TURN_RESULT_DICE_SUMMARY_HEIGHT)
+	var dice_summary_holder := Control.new()
+	dice_summary_holder.clip_contents = true
+	dice_summary_holder.custom_minimum_size = Vector2(260.0, TURN_RESULT_DICE_SUMMARY_HEIGHT)
+	dice_summary_holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dice_summary_holder.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dice_summary_holder.add_child(main.turn_result_dice_summary)
+	dice_content_row.add_child(dice_summary_holder)
 	var body_panel: PanelContainer = PanelContainer.new()
 	body_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body_panel.custom_minimum_size = Vector2(0.0, TURN_RESULT_BODY_MIN_HEIGHT + 22.0)
 	var body_style: StyleBoxFlat = StyleBoxFlat.new()
-	body_style.bg_color = Color(0.03, 0.04, 0.05, 0.94)
-	body_style.border_color = Color(0.16, 0.18, 0.21, 0.95)
+	body_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.22), 0.94)
+	body_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE, 0.95)
 	body_style.border_width_left = 1
 	body_style.border_width_top = 1
 	body_style.border_width_right = 1
@@ -168,7 +183,7 @@ func build_if_needed() -> void:
 	main.turn_result_body.bbcode_enabled = true
 	main.turn_result_body.fit_content = false
 	main.turn_result_body.scroll_active = true
-	main.turn_result_body.custom_minimum_size = Vector2(0.0, 220.0)
+	main.turn_result_body.custom_minimum_size = Vector2(0.0, TURN_RESULT_BODY_MIN_HEIGHT)
 	main.turn_result_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.turn_result_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	main.turn_result_body.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -177,7 +192,7 @@ func build_if_needed() -> void:
 	main.turn_result_reward_title.add_theme_font_size_override("font_size", 18)
 	box.add_child(main.turn_result_reward_title)
 	main.turn_result_card_scroll = ScrollContainer.new()
-	main.turn_result_card_scroll.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_HEIGHT + 20.0)
+	main.turn_result_card_scroll.custom_minimum_size = Vector2(0.0, TURN_RESULT_CARD_HEIGHT + 14.0)
 	main.turn_result_card_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.turn_result_card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	main.turn_result_card_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -193,6 +208,7 @@ func build_if_needed() -> void:
 	main.turn_result_collect_button.custom_minimum_size = Vector2(130.0, 42.0)
 	main.turn_result_collect_button.pressed.connect(on_collect_pressed)
 	actions.add_child(main.turn_result_collect_button)
+	main._apply_accent_button_theme(main.turn_result_collect_button)
 	var spacer: Control = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	actions.add_child(spacer)
@@ -200,7 +216,112 @@ func build_if_needed() -> void:
 	main.turn_result_continue_button.custom_minimum_size = Vector2(110.0, 42.0)
 	main.turn_result_continue_button.pressed.connect(on_continue_pressed)
 	actions.add_child(main.turn_result_continue_button)
+	main._apply_accent_button_theme(main.turn_result_continue_button)
 	main._apply_global_text_adjustments(main.turn_result_overlay)
+	_apply_result_panel_size()
+
+func _apply_result_panel_size() -> void:
+	if main == null or main.turn_result_panel == null:
+		return
+	var viewport_size: Vector2 = main.get_viewport_rect().size
+	if viewport_size == Vector2.ZERO:
+		return
+	var panel_size := Vector2(
+		minf(TURN_RESULT_PANEL_DESIRED_SIZE.x, maxf(840.0, viewport_size.x - TURN_RESULT_PANEL_MARGIN.x)),
+		minf(TURN_RESULT_PANEL_DESIRED_SIZE.y, maxf(620.0, viewport_size.y - TURN_RESULT_PANEL_MARGIN.y))
+	)
+	main.turn_result_panel.custom_minimum_size = panel_size
+	main.turn_result_panel.size = panel_size
+
+func _make_result_die(die_name: String, die_color: Color):
+	var die_def = DICE_DEF_SCRIPT.new()
+	die_def.name = die_name
+	die_def.color = die_color
+	die_def.shape = DICE_SHAPE_SCRIPT.new("D6")
+	return die_def
+
+func _ensure_result_dice_control() -> void:
+	if main == null or main.turn_result_dice_row == null:
+		return
+	if is_instance_valid(result_dice_control):
+		if result_dice_control.get_parent() != main.turn_result_dice_row:
+			result_dice_control.reparent(main.turn_result_dice_row)
+		return
+	result_dice_control = DICE_ROLLER_CONTROL_SCRIPT.new()
+	if result_dice_control == null:
+		return
+	result_dice_control.name = "TurnResultDiceRoller"
+	result_dice_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	result_dice_control.focus_mode = Control.FOCUS_NONE
+	result_dice_control.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	result_dice_control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	result_dice_control.custom_minimum_size = TURN_RESULT_DICE_VIEW_SIZE
+	var preview_dice_set: Array[Resource] = []
+	preview_dice_set.append(_make_result_die("left", UI_PALETTE.alpha(UI_PALETTE.PAPER, 1.0)))
+	preview_dice_set.append(_make_result_die("right", UI_PALETTE.alpha(UI_PALETTE.PAPER, 1.0)))
+	result_dice_control.configure_runtime(preview_dice_set, UI_PALETTE.alpha(UI_PALETTE.INK, 0.0), Vector3(8.0, 7.2, 4.6), false)
+	main.turn_result_dice_row.add_child(result_dice_control)
+
+func _apply_dice_summary(dice_data: Dictionary) -> void:
+	if main.turn_result_dice_summary == null:
+		return
+	var die_a: int = int(dice_data.get("die_a", 1))
+	var die_b: int = int(dice_data.get("die_b", 1))
+	var modifier: float = float(dice_data.get("modifier", 0.0))
+	var roll_total: int = int(dice_data.get("roll", die_a + die_b))
+	var final_score: float = float(dice_data.get("final_score", float(roll_total) + modifier))
+	var dc: float = float(dice_data.get("dc", 0.0))
+	var lines: Array[String] = []
+	if dc > 0.0:
+		lines.append(TextDB.format_text("ui.turn_results.roll_summary", [
+			_format_score_value(die_a),
+			_format_score_value(die_b),
+			_format_score_value(roll_total),
+			_format_signed_score_value(modifier),
+			_format_score_value(final_score),
+			_format_score_value(dc)
+		]))
+	else:
+		lines.append(TextDB.format_text("ui.turn_results.roll_summary_no_dc", [
+			_format_score_value(die_a),
+			_format_score_value(die_b),
+			_format_score_value(roll_total),
+			_format_signed_score_value(modifier),
+			_format_score_value(final_score)
+		]))
+	_append_requirement_line(lines, dc, modifier, str(dice_data.get("pass_label", TextDB.get_text("ui.turn_results.pass_labels.success", "success"))))
+	var secondary_dc: float = float(dice_data.get("secondary_dc", 0.0))
+	if secondary_dc > 0.0:
+		_append_requirement_line(lines, secondary_dc, modifier, str(dice_data.get("secondary_pass_label", TextDB.get_text("ui.turn_results.pass_labels.success", "success"))), true)
+	main.turn_result_dice_summary.text = "\n".join(lines)
+
+func _format_score_value(value_variant) -> String:
+	var value: float = float(value_variant)
+	var rounded_value: float = round(value)
+	if absf(value - rounded_value) < 0.001:
+		return str(int(rounded_value))
+	return "%.1f" % value
+
+func _format_signed_score_value(value_variant) -> String:
+	var value: float = float(value_variant)
+	var rounded_value: float = round(value)
+	if absf(value - rounded_value) < 0.001:
+		return "%+d" % int(rounded_value)
+	return "%+.1f" % value
+
+func _append_requirement_line(lines: Array[String], dc: float, modifier: float, pass_label: String, secondary: bool = false) -> void:
+	if dc <= 0.0:
+		return
+	var label: String = pass_label.strip_edges()
+	if label.is_empty():
+		label = TextDB.get_text("ui.turn_results.pass_labels.success", "success")
+	var required_roll: int = int(ceil(dc - modifier))
+	if required_roll > 12:
+		lines.append(TextDB.format_text("ui.turn_results.roll_impossible", [label]))
+		return
+	var clamped_required: int = maxi(2, required_roll)
+	var key: String = "ui.turn_results.roll_requirement_secondary" if secondary else "ui.turn_results.roll_requirement"
+	lines.append(TextDB.format_text(key, [_format_score_value(clamped_required), label]))
 func make_reward_payload(reward: Dictionary) -> Dictionary:
 	var card_type: String = str(reward.get("card_type", ""))
 	var card_id: String = str(reward.get("id", ""))
@@ -702,6 +823,7 @@ func show_current_result() -> void:
 	main.turn_result_collecting = false
 	var entry: Dictionary = main.turn_result_queue[main.turn_result_index] as Dictionary
 	var rewards: Array = entry.get("rewards", []) as Array
+	_apply_result_panel_size()
 	main.turn_result_title.text = str(entry.get("title", TextDB.get_text("ui.fallback.card")))
 	main.turn_result_subtitle.text = TextDB.format_text("ui.turn_results.page", [main.turn_result_index + 1, main.turn_result_queue.size()])
 	_show_dice_result((entry.get("dice", {}) as Dictionary).duplicate(true))
@@ -735,44 +857,39 @@ func _show_dice_result(dice_data: Dictionary) -> void:
 		main.turn_result_dice_title.text = TextDB.get_text("ui.turn_results.roll_header")
 	if main.turn_result_dice_summary != null:
 		main.turn_result_dice_summary.text = TextDB.get_text("ui.turn_results.roll_wait")
-	for label_variant in main.turn_result_die_labels:
-		var die_label: Label = label_variant as Label
-		if die_label != null:
-			die_label.text = "?"
+	_ensure_result_dice_control()
+	await get_tree().process_frame
+	if token != main.turn_result_dice_token:
+		return
 	await _animate_dice_result(token, dice_data)
 
 func _animate_dice_result(token: int, dice_data: Dictionary) -> void:
 	var die_a: int = int(dice_data.get("die_a", 1))
 	var die_b: int = int(dice_data.get("die_b", 1))
-	var modifier: int = int(dice_data.get("modifier", 0))
-	var roll_total: int = int(dice_data.get("roll", die_a + die_b))
-	var final_score: int = int(dice_data.get("final_score", roll_total + modifier))
-	var dc: int = int(dice_data.get("dc", 0))
-	for _step in range(8):
-		if token != main.turn_result_dice_token:
-			return
-		for index in range(main.turn_result_die_labels.size()):
-			var die_label: Label = main.turn_result_die_labels[index] as Label
-			if die_label == null:
-				continue
-			die_label.text = str(randi_range(1, 6))
-			var parent_panel: Control = die_label.get_parent() as Control
-			if parent_panel != null:
-				parent_panel.scale = Vector2(1.08, 1.08)
-				var pulse: Tween = create_tween()
-				pulse.tween_property(parent_panel, "scale", Vector2.ONE, 0.08).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		await get_tree().create_timer(0.05).timeout
+	if not is_instance_valid(result_dice_control):
+		_apply_dice_summary(dice_data)
+		return
 	if token != main.turn_result_dice_token:
 		return
-	if main.turn_result_die_labels.size() >= 2:
-		var first_label: Label = main.turn_result_die_labels[0] as Label
-		var second_label: Label = main.turn_result_die_labels[1] as Label
-		if first_label != null:
-			first_label.text = str(die_a)
-		if second_label != null:
-			second_label.text = str(die_b)
-	if main.turn_result_dice_summary != null:
-		main.turn_result_dice_summary.text = TextDB.format_text("ui.turn_results.roll_summary", [die_a, die_b, roll_total, modifier, final_score, dc])
+	var roller = result_dice_control.get("roller")
+	if roller != null and bool(roller.get("rolling")):
+		await result_dice_control.roll_finnished
+		if token != main.turn_result_dice_token:
+			return
+		roller = result_dice_control.get("roller")
+	if roller != null:
+		roller.call("prepare")
+	await get_tree().process_frame
+	if token != main.turn_result_dice_token:
+		return
+	var faces: Array[int] = []
+	faces.append(die_a)
+	faces.append(die_b)
+	result_dice_control.show_faces(faces)
+	await result_dice_control.roll_finnished
+	if token != main.turn_result_dice_token:
+		return
+	_apply_dice_summary(dice_data)
 
 func start_sequence(results: Array, report_payload: Dictionary) -> bool:
 	if results.is_empty():

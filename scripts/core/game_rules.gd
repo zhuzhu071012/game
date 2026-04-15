@@ -159,8 +159,17 @@ static func event_recommended_specialties(event: EventData) -> Array[String]:
 			unique_result.append(specialty)
 	return unique_result
 
+static func roll_2d6_detail() -> Dictionary:
+	var die_a: int = randi_range(1, 6)
+	var die_b: int = randi_range(1, 6)
+	return {
+		"die_a": die_a,
+		"die_b": die_b,
+		"roll": die_a + die_b
+	}
+
 static func roll_2d6() -> int:
-	return randi_range(1, 6) + randi_range(1, 6)
+	return int(roll_2d6_detail().get("roll", 2))
 
 static func playable_turns() -> int:
 	return PLAYABLE_TURNS
@@ -437,7 +446,8 @@ static func _weighted_resource_bonus(run_state: RunState, weights: Dictionary, m
 	return mini(total, max_bonus)
 
 static func _finale_roll(bonus: int, dc: int) -> Dictionary:
-	var roll_value: int = roll_2d6()
+	var roll_data: Dictionary = roll_2d6_detail()
+	var roll_value: int = int(roll_data.get("roll", 2))
 	var total: int = roll_value + bonus
 	var tier_score: int = -1
 	if total >= dc + 5:
@@ -464,7 +474,16 @@ static func _finale_roll(bonus: int, dc: int) -> Dictionary:
 			outcome = "major_fail"
 		_:
 			outcome = "fail"
-	return {"roll": roll_value, "total": total, "outcome": outcome}
+	return {
+		"die_a": int(roll_data.get("die_a", 1)),
+		"die_b": int(roll_data.get("die_b", 1)),
+		"roll": roll_value,
+		"modifier": bonus,
+		"total": total,
+		"final_score": total,
+		"dc": dc,
+		"outcome": outcome
+	}
 
 static func _finale_outcome_text(outcome_id: String) -> String:
 	return TextDB.get_text("system.finale.outcomes.%s" % outcome_id, outcome_id)

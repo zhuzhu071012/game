@@ -73,6 +73,125 @@ func _append_result_presentation_from_state(before_state: Dictionary, run_state:
 		payload[str(key_variant)] = extra[key_variant]
 	_result_presentations.append(payload)
 
+func _resolution_payload(logs: Array[String], dice_payload: Dictionary = {}) -> Dictionary:
+	var extra: Dictionary = {}
+	if not dice_payload.is_empty():
+		extra["dice"] = dice_payload
+	return {
+		"logs": logs,
+		"presentation_extra": extra
+	}
+
+func _make_dice_payload(roll_data: Dictionary, modifier: float, dc: float = 0.0, pass_label: String = "", extra: Dictionary = {}) -> Dictionary:
+	var die_a: int = int(roll_data.get("die_a", 1))
+	var die_b: int = int(roll_data.get("die_b", 1))
+	var roll_value: int = int(roll_data.get("roll", die_a + die_b))
+	var payload: Dictionary = {
+		"die_a": die_a,
+		"die_b": die_b,
+		"roll": roll_value,
+		"modifier": modifier,
+		"final_score": float(roll_value) + modifier
+	}
+	if dc > 0.0:
+		payload["dc"] = dc
+	if not pass_label.is_empty():
+		payload["pass_label"] = pass_label
+	for key_variant in extra.keys():
+		payload[str(key_variant)] = extra[key_variant]
+	return payload
+
+func preview_slot_dice(run_state: RunState, slot_id: String, cards: Array, characters: Dictionary) -> Dictionary:
+	var character_ids: Array[String] = _character_ids_from_cards(cards)
+	if character_ids.is_empty():
+		return {}
+	match slot_id:
+		"governance":
+			var governance_primary_id: String = character_ids[0]
+			var governance_support_id: String = character_ids[1] if character_ids.size() > 1 else ""
+			var governance_modifier: float = _pair_slot_total(run_state, governance_primary_id, governance_support_id, "governance", characters)
+			var governance_dc: float = 0.0
+			match governance_primary_id:
+				"cao_cao":
+					governance_dc = 13.0
+				"xun_yu", "zhang_liao", "yu_jin":
+					governance_dc = 12.0
+			if governance_dc > 0.0:
+				return _make_slot_preview_payload(governance_modifier, governance_dc, TextDB.get_text("ui.turn_results.pass_labels.governance_bonus", "bonus result"))
+			return _make_slot_preview_payload(governance_modifier, 0.0, "", {"no_fixed_dc": true})
+		"audience":
+			var risk_ids: Array[String] = _risk_ids_from_cards(cards)
+			var audience_primary_id: String = character_ids[0]
+			var audience_support_id: String = character_ids[1] if character_ids.size() > 1 else ""
+			var communal_aid_count: int = _resource_count(cards, "communal_aid")
+			if not risk_ids.is_empty():
+				var risk_id: String = risk_ids[0]
+				if risk_id not in ["rumor", "alienation"]:
+					return {}
+				var aid_bonus: int = communal_aid_count * 3 if risk_id == "alienation" else 0
+				var risk_modifier: int = int(floor(_pair_slot_total(run_state, audience_primary_id, audience_support_id, "audience", characters))) + aid_bonus
+				return _make_slot_preview_payload(float(risk_modifier), 16.0, TextDB.get_text("ui.turn_results.pass_labels.risk_control", "resolve the issue"))
+			if character_ids.has("cao_cao") and character_ids.size() >= 2:
+				var partner_id: String = ""
+				for character_id in character_ids:
+					if character_id != "cao_cao":
+						partner_id = character_id
+						break
+				if partner_id.is_empty():
+					return {}
+				var silver_count: int = _resource_count(cards, "silver_pack")
+				var gift_count: int = _resource_count_any(cards, ["gift", "sanjian_dao"])
+				var letter_count: int = _resource_count_any(cards, ["sealed_letter", "yecheng_letter"])
+				var audience_modifier: int = int(floor(_pair_slot_total(run_state, "cao_cao", partner_id, "audience", characters))) + silver_count + gift_count * 3 + letter_count * 2
+				return _make_slot_preview_payload(float(audience_modifier), 12.0, TextDB.get_text("ui.turn_results.pass_labels.audience_success", "win them over"), {
+					"secondary_dc": 16.0,
+					"secondary_pass_label": TextDB.get_text("ui.turn_results.pass_labels.audience_bonus", "gain extra morale")
+				})
+		"research":
+			var research_primary_id: String = character_ids[0]
+			var research_support_id: String = character_ids[1] if character_ids.size() > 1 else ""
+			var research_modifier: int = int(floor(_pair_slot_total(run_state, research_primary_id, research_support_id, "research", characters))) + _research_resource_bonus(cards) + _research_event_bonus(cards)
+			return _make_slot_preview_payload(float(research_modifier), float(RESEARCH_BASIC_THRESHOLD), TextDB.get_text("ui.turn_results.pass_labels.research_basic", "discover something"), {
+				"secondary_dc": float(RESEARCH_STRONG_THRESHOLD),
+				"secondary_pass_label": TextDB.get_text("ui.turn_results.pass_labels.research_strong", "gain a stronger result")
+			})
+		"recruit":
+			var recruit_primary_id: String = character_ids[0]
+			var recruit_support_id: String = character_ids[1] if character_ids.size() > 1 else ""
+			var recruit_silver_count: int = _resource_count(cards, "silver_pack")
+			if recruit_silver_count <= 0:
+				return {
+					"needs_resource_id": "silver_pack",
+					"needs_resource_name": TextDB.get_text("resources.silver_pack.name", "银两")
+				}
+			var writ_count: int = _resource_count(cards, "recruit_writ")
+			var has_negotiation: bool = _has_any_specialty(character_ids, ["negotiation"], characters)
+			var recruit_modifier: int = int(floor(_pair_slot_total(run_state, recruit_primary_id, recruit_support_id, "recruit", characters))) + recruit_silver_count * 2 + writ_count * 3 + _recruit_resource_bonus(cards)
+			var recruit_threshold: int = RECRUIT_CHARACTER_THRESHOLD - int(has_negotiation)
+			var secondary_label: String = TextDB.get_text("ui.turn_results.pass_labels.recruit_strong", "gain a better reward")
+			if writ_count > 0 and not run_state.locked_character_ids.is_empty():
+				secondary_label = TextDB.get_text("ui.turn_results.pass_labels.recruit_character", "recruit a character")
+			return _make_slot_preview_payload(float(recruit_modifier), float(RECRUIT_RESOURCE_THRESHOLD), TextDB.get_text("ui.turn_results.pass_labels.recruit_basic", "gain a reward"), {
+				"secondary_dc": float(recruit_threshold),
+				"secondary_pass_label": secondary_label
+			})
+		"rest":
+			return {"no_roll": true}
+	return {}
+
+func _make_slot_preview_payload(modifier: float, dc: float, pass_label: String, extra: Dictionary = {}) -> Dictionary:
+	var payload: Dictionary = {
+		"dice_count": 2,
+		"modifier": modifier
+	}
+	if dc > 0.0:
+		payload["dc"] = dc
+	if not pass_label.is_empty():
+		payload["pass_label"] = pass_label
+	for key_variant in extra.keys():
+		payload[str(key_variant)] = extra[key_variant]
+	return payload
+
 func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manager: EventManager, relation_manager: RelationManager, characters: Dictionary, resources: Dictionary, tutorial_manager = null, story_event_manager = null) -> Array[String]:
 	_clear_result_presentations()
 	if tutorial_manager != null and tutorial_manager.is_active(run_state):
@@ -85,13 +204,15 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 			var tutorial_result_title: String = tutorial_manager.report_title(run_state)
 			if tutorial_result_title.strip_edges().is_empty():
 				tutorial_result_title = TextDB.get_text("tutorial.steps.step_%d.title" % tutorial_step_before, "Tutorial Step %d" % tutorial_step_before)
+			var tutorial_extra: Dictionary = _tutorial_presentation_extra(tutorial_step_before, run_state, board_manager, event_manager, characters, resources)
 			_append_result_presentation_from_state(
 				reward_snapshot,
 				run_state,
 				"tutorial",
 				"step_%d" % tutorial_step_before,
 				tutorial_result_title,
-				tutorial_logs
+				tutorial_logs,
+				tutorial_extra
 			)
 		board_manager.reset_turn_targets(run_state.active_event_ids)
 		run_state.log_entries.append_array(tutorial_logs)
@@ -128,11 +249,14 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 				{"dice": (story_result.get("dice", {}) as Dictionary).duplicate(true)}
 			)
 		else:
-			var event_logs: Array[String] = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
+			var event_result: Dictionary = event_manager.resolve_event(run_state, event_id, event_cards, relation_manager, characters, resources)
+			var event_logs: Array[String] = []
+			for line_variant in event_result.get("logs", []) as Array:
+				event_logs.append(str(line_variant))
 			logs.append_array(event_logs)
 			var event: EventData = event_manager.event_defs.get(event_id) as EventData
 			var event_title: String = event.title if event != null else event_id
-			_append_result_presentation_from_state(reward_snapshot, run_state, "event", event_id, event_title, event_logs)
+			_append_result_presentation_from_state(reward_snapshot, run_state, "event", event_id, event_title, event_logs, event_result.get("presentation_extra", {}) as Dictionary)
 		logs.append_array(GameRules.check_immediate_risk_endings(run_state, risk_defs))
 		if run_state.game_over:
 			return _finish_run(run_state, board_manager, logs)
@@ -187,6 +311,55 @@ func resolve_turn(run_state: RunState, board_manager: BoardManager, event_manage
 	emit_signal("turn_finished")
 	return logs
 
+func _tutorial_presentation_extra(step: int, run_state: RunState, board_manager: BoardManager, event_manager: EventManager, characters: Dictionary, resources: Dictionary) -> Dictionary:
+	if board_manager == null or event_manager == null:
+		return {}
+	var preview: Dictionary = {}
+	match step:
+		1:
+			preview = preview_slot_dice(run_state, "governance", board_manager.get_slot_cards("governance"), characters)
+		2:
+			preview = preview_slot_dice(run_state, "recruit", board_manager.get_slot_cards("recruit"), characters)
+		3:
+			preview = preview_slot_dice(run_state, "audience", board_manager.get_slot_cards("audience"), characters)
+		4:
+			preview = preview_slot_dice(run_state, "research", board_manager.get_slot_cards("research"), characters)
+			if preview.is_empty():
+				preview = preview_slot_dice(run_state, "rest", board_manager.get_slot_cards("rest"), characters)
+		5:
+			var patrol_cards: Array = board_manager.get_event_cards("tutorial_patrol_gap")
+			var event_dice: Dictionary = event_manager.build_visible_success_dice_payload(run_state, "tutorial_patrol_gap", patrol_cards, characters, resources, true)
+			if not event_dice.is_empty():
+				return {"dice": event_dice}
+			preview = preview_slot_dice(run_state, "research", board_manager.get_slot_cards("research"), characters)
+	var dice_payload: Dictionary = _forced_success_dice_from_preview(preview)
+	if dice_payload.is_empty():
+		return {}
+	return {"dice": dice_payload}
+
+func _forced_success_dice_from_preview(preview: Dictionary) -> Dictionary:
+	if preview.is_empty() or bool(preview.get("no_roll", false)):
+		return {}
+	var dc: float = float(preview.get("dc", 0.0))
+	if dc <= 0.0:
+		return {}
+	var modifier: float = float(preview.get("modifier", 0.0))
+	var required_roll: int = clampi(int(ceil(dc - modifier)), 2, 12)
+	var roll_data: Dictionary = _forced_roll_for_total(required_roll)
+	return _make_dice_payload(roll_data, modifier, dc, str(preview.get("pass_label", TextDB.get_text("ui.turn_results.pass_labels.success", "success"))))
+
+func _forced_roll_for_total(total: int) -> Dictionary:
+	var safe_total: int = clampi(total, 2, 12)
+	var die_a_min: int = maxi(1, safe_total - 6)
+	var die_a_max: int = mini(6, safe_total - 1)
+	var die_a: int = die_a_min if die_a_min >= die_a_max else randi_range(die_a_min, die_a_max)
+	var die_b: int = clampi(safe_total - die_a, 1, 6)
+	return {
+		"die_a": die_a,
+		"die_b": die_b,
+		"roll": die_a + die_b
+	}
+
 func _finish_run(run_state: RunState, board_manager: BoardManager, logs: Array[String]) -> Array[String]:
 	run_state.turn_index = GameRules.settlement_turn()
 	run_state.stage_index = GameRules.stage_for_turn(GameRules.playable_turns())
@@ -202,33 +375,38 @@ func _resolve_slots(run_state: RunState, board_manager: BoardManager, relation_m
 	for slot_id in GameRules.SLOT_RESOLUTION_ORDER:
 		var cards: Array = board_manager.get_slot_cards(slot_id)
 		var reward_snapshot: Dictionary = _snapshot_reward_state(run_state)
+		var slot_result: Dictionary = {}
 		var slot_logs: Array[String] = []
 		match slot_id:
 			"governance":
-				slot_logs = _resolve_governance(run_state, cards, relation_manager, characters)
+				slot_result = _resolve_governance(run_state, cards, relation_manager, characters)
 			"audience":
-				slot_logs = _resolve_audience(run_state, cards, relation_manager, characters)
+				slot_result = _resolve_audience(run_state, cards, relation_manager, characters)
 			"research":
-				slot_logs = _resolve_research(run_state, cards, relation_manager, characters)
+				slot_result = _resolve_research(run_state, cards, relation_manager, characters)
 			"recruit":
-				slot_logs = _resolve_recruit(run_state, cards, relation_manager, characters)
+				slot_result = _resolve_recruit(run_state, cards, relation_manager, characters)
 			"rest":
-				slot_logs = _resolve_rest(run_state, cards, relation_manager, characters)
+				slot_result = _resolve_rest(run_state, cards, relation_manager, characters)
+		for line_variant in slot_result.get("logs", []) as Array:
+			slot_logs.append(str(line_variant))
 		logs.append_array(slot_logs)
-		_append_result_presentation_from_state(reward_snapshot, run_state, "slot", slot_id, TextDB.get_text("system.slots.%s.title" % slot_id, slot_id), slot_logs)
+		_append_result_presentation_from_state(reward_snapshot, run_state, "slot", slot_id, TextDB.get_text("system.slots.%s.title" % slot_id, slot_id), slot_logs, slot_result.get("presentation_extra", {}) as Dictionary)
 	return logs
 
-func _resolve_governance(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
+func _resolve_governance(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Dictionary:
 	var logs: Array[String] = []
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
-		return logs
+		return _resolution_payload(logs)
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	if character_ids.has("cao_cao"):
 		run_state.flags["last_cao_governance_turn"] = run_state.turn_index
-	var roll_value: int = GameRules.roll_2d6()
-	var total_score: float = _pair_slot_total(run_state, primary_id, support_id, "governance", characters) + float(roll_value)
+	var roll_data: Dictionary = GameRules.roll_2d6_detail()
+	var roll_value: int = int(roll_data.get("roll", 2))
+	var modifier: float = _pair_slot_total(run_state, primary_id, support_id, "governance", characters)
+	var total_score: float = modifier + float(roll_value)
 	var silver_gain: int = maxi(0, int(floor(total_score / 7.0)))
 	var treasury_gain: int = silver_gain * 3
 	if primary_id == "cao_cao":
@@ -271,13 +449,20 @@ func _resolve_governance(run_state: RunState, cards: Array, relation_manager: Re
 		_gain_resource(run_state, "sealed_letter", 1)
 		_gain_resource(run_state, "recruit_writ", GOVERNANCE_FIRST_WRIT_BONUS)
 		logs.append(TextDB.get_text("logs.slots.governance.first"))
-	return logs
+	var bonus_threshold: float = 0.0
+	match primary_id:
+		"cao_cao":
+			bonus_threshold = 13.0
+		"xun_yu", "zhang_liao", "yu_jin":
+			bonus_threshold = 12.0
+	var dice_payload: Dictionary = _make_dice_payload(roll_data, modifier, bonus_threshold, TextDB.get_text("ui.turn_results.pass_labels.governance_bonus", "bonus result"))
+	return _resolution_payload(logs, dice_payload)
 
-func _resolve_audience(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
+func _resolve_audience(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Dictionary:
 	var logs: Array[String] = []
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
-		return logs
+		return _resolution_payload(logs)
 	var risk_ids: Array[String] = _risk_ids_from_cards(cards)
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var gift_count: int = _resource_count_any(cards, ["gift", "sanjian_dao"])
@@ -288,10 +473,12 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 		var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 		var risk_id: String = risk_ids[0]
 		if risk_id not in ["rumor", "alienation"]:
-			return logs
-		var risk_roll: int = GameRules.roll_2d6()
+			return _resolution_payload(logs)
+		var risk_roll_data: Dictionary = GameRules.roll_2d6_detail()
+		var risk_roll: int = int(risk_roll_data.get("roll", 2))
 		var aid_bonus: int = communal_aid_count * 3 if risk_id == "alienation" else 0
-		var risk_total: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "audience", characters))) + risk_roll + aid_bonus
+		var risk_modifier: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "audience", characters))) + aid_bonus
+		var risk_total: int = risk_modifier + risk_roll
 		if risk_total > 15:
 			var reduction: int = 1 + (communal_aid_count if risk_id == "alienation" else 0)
 			var before_risk: int = int(run_state.risk_states.get(risk_id, 0))
@@ -303,7 +490,7 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 			if risk_total <= 8:
 				run_state.risk_states[risk_id] = int(run_state.risk_states.get(risk_id, 0)) + 1
 			logs.append(TextDB.get_text("logs.slots.audience.misfire"))
-		return logs
+		return _resolution_payload(logs, _make_dice_payload(risk_roll_data, float(risk_modifier), 16.0, TextDB.get_text("ui.turn_results.pass_labels.risk_control", "resolve the issue")))
 	if character_ids.has("cao_cao") and character_ids.size() >= 2:
 		var partner_id: String = ""
 		for character_id in character_ids:
@@ -311,9 +498,11 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 				partner_id = character_id
 				break
 		if partner_id.is_empty():
-			return logs
-		var roll_value: int = GameRules.roll_2d6()
-		var total_score: int = int(floor(_pair_slot_total(run_state, "cao_cao", partner_id, "audience", characters))) + roll_value + silver_count + gift_count * 3 + letter_count * 2
+			return _resolution_payload(logs)
+		var roll_data: Dictionary = GameRules.roll_2d6_detail()
+		var roll_value: int = int(roll_data.get("roll", 2))
+		var modifier: int = int(floor(_pair_slot_total(run_state, "cao_cao", partner_id, "audience", characters))) + silver_count + gift_count * 3 + letter_count * 2
+		var total_score: int = modifier + roll_value
 		if total_score > 11:
 			var favor_gain: int = 1 + int(total_score >= 18) + int(gift_count > 0)
 			_apply_favor_progression(run_state, relation_manager, partner_id, favor_gain)
@@ -331,18 +520,23 @@ func _resolve_audience(run_state: RunState, cards: Array, relation_manager: Rela
 			relation_manager.add_rumor_risk(run_state, partner_id, 1)
 			run_state.risk_states["rumor"] = int(run_state.risk_states.get("rumor", 0)) + 1
 			logs.append(TextDB.get_text("logs.slots.audience.misfire"))
-		return logs
-	return logs
+		return _resolution_payload(logs, _make_dice_payload(roll_data, float(modifier), 12.0, TextDB.get_text("ui.turn_results.pass_labels.audience_success", "win them over"), {
+			"secondary_dc": 16.0,
+			"secondary_pass_label": TextDB.get_text("ui.turn_results.pass_labels.audience_bonus", "gain extra morale")
+		}))
+	return _resolution_payload(logs)
 
-func _resolve_research(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
+func _resolve_research(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Dictionary:
 	var logs: Array[String] = []
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
-		return logs
+		return _resolution_payload(logs)
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
-	var roll_value: int = GameRules.roll_2d6()
-	var total_score: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "research", characters))) + roll_value + _research_resource_bonus(cards) + _research_event_bonus(cards)
+	var roll_data: Dictionary = GameRules.roll_2d6_detail()
+	var roll_value: int = int(roll_data.get("roll", 2))
+	var modifier: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "research", characters))) + _research_resource_bonus(cards) + _research_event_bonus(cards)
+	var total_score: int = modifier + roll_value
 	if total_score >= RESEARCH_STRONG_THRESHOLD:
 		var reward_id: String = _pick_research_reward(cards, character_ids, characters, true)
 		_gain_resource(run_state, reward_id, 1)
@@ -363,32 +557,40 @@ func _resolve_research(run_state: RunState, cards: Array, relation_manager: Rela
 	for character_id in character_ids:
 		if character_id != "cao_cao":
 			_apply_favor_progression(run_state, relation_manager, character_id, 1)
-	return logs
+	return _resolution_payload(logs, _make_dice_payload(roll_data, float(modifier), float(RESEARCH_BASIC_THRESHOLD), TextDB.get_text("ui.turn_results.pass_labels.research_basic", "discover something"), {
+		"secondary_dc": float(RESEARCH_STRONG_THRESHOLD),
+		"secondary_pass_label": TextDB.get_text("ui.turn_results.pass_labels.research_strong", "gain a stronger result")
+	}))
 
-func _resolve_recruit(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
+func _resolve_recruit(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Dictionary:
 	var logs: Array[String] = []
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
 		if not cards.is_empty():
 			logs.append(TextDB.get_text("logs.slots.recruit.failed"))
-		return logs
+		return _resolution_payload(logs)
 	var primary_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	var silver_count: int = _resource_count(cards, "silver_pack")
 	var writ_count: int = _resource_count(cards, "recruit_writ")
-	var roll_value: int = GameRules.roll_2d6()
-	var total_score: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "recruit", characters))) + roll_value + silver_count * 2 + writ_count * 3 + _recruit_resource_bonus(cards)
 	var has_search: bool = _has_any_specialty(character_ids, ["search"], characters)
 	var has_negotiation: bool = _has_any_specialty(character_ids, ["negotiation"], characters)
 	var has_medical: bool = _has_any_specialty(character_ids, ["medical"], characters)
 	var extra_help: bool = has_search or has_negotiation
 	if silver_count <= 0:
 		logs.append(TextDB.get_text("logs.slots.recruit.failed"))
-		return logs
+		return _resolution_payload(logs)
+	var roll_data: Dictionary = GameRules.roll_2d6_detail()
+	var roll_value: int = int(roll_data.get("roll", 2))
+	var modifier: int = int(floor(_pair_slot_total(run_state, primary_id, support_id, "recruit", characters))) + silver_count * 2 + writ_count * 3 + _recruit_resource_bonus(cards)
+	var total_score: int = modifier + roll_value
 	var recruit_threshold: int = RECRUIT_CHARACTER_THRESHOLD - int(has_negotiation)
 	if writ_count > 0 and total_score >= recruit_threshold and not run_state.locked_character_ids.is_empty():
 		logs.append_array(_grant_recruit_character(run_state, relation_manager, characters, extra_help))
-		return logs
+		return _resolution_payload(logs, _make_dice_payload(roll_data, float(modifier), float(RECRUIT_RESOURCE_THRESHOLD), TextDB.get_text("ui.turn_results.pass_labels.recruit_basic", "gain a reward"), {
+			"secondary_dc": float(recruit_threshold),
+			"secondary_pass_label": TextDB.get_text("ui.turn_results.pass_labels.recruit_character", "recruit a character")
+		}))
 	if total_score >= RECRUIT_RESOURCE_THRESHOLD:
 		if total_score >= recruit_threshold or has_search or has_negotiation or has_medical:
 			logs.append_array(_grant_recruit_resource(run_state, has_search, has_negotiation, has_medical))
@@ -396,13 +598,19 @@ func _resolve_recruit(run_state: RunState, cards: Array, relation_manager: Relat
 			logs.append_array(_grant_recruit_clue(run_state, extra_help))
 	else:
 		logs.append(TextDB.get_text("logs.slots.recruit.failed"))
-	return logs
+	var secondary_label: String = TextDB.get_text("ui.turn_results.pass_labels.recruit_strong", "gain a better reward")
+	if writ_count > 0 and not run_state.locked_character_ids.is_empty():
+		secondary_label = TextDB.get_text("ui.turn_results.pass_labels.recruit_character", "recruit a character")
+	return _resolution_payload(logs, _make_dice_payload(roll_data, float(modifier), float(RECRUIT_RESOURCE_THRESHOLD), TextDB.get_text("ui.turn_results.pass_labels.recruit_basic", "gain a reward"), {
+		"secondary_dc": float(recruit_threshold),
+		"secondary_pass_label": secondary_label
+	}))
 
-func _resolve_rest(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Array[String]:
+func _resolve_rest(run_state: RunState, cards: Array, relation_manager: RelationManager, characters: Dictionary) -> Dictionary:
 	var logs: Array[String] = []
 	var character_ids: Array[String] = _character_ids_from_cards(cards)
 	if character_ids.is_empty():
-		return logs
+		return _resolution_payload(logs)
 	var target_id: String = character_ids[0]
 	var support_id: String = character_ids[1] if character_ids.size() > 1 else ""
 	if not support_id.is_empty() and _character_has_specialty(target_id, "medical", characters) and not _character_has_specialty(support_id, "medical", characters):
@@ -433,7 +641,7 @@ func _resolve_rest(run_state: RunState, cards: Array, relation_manager: Relation
 		_apply_favor_progression(run_state, relation_manager, target_id, 1)
 	if not cards.is_empty():
 		logs.append(TextDB.get_text("logs.slots.rest.done"))
-	return logs
+	return _resolution_payload(logs)
 
 func _pair_slot_total(run_state: RunState, primary_id: String, support_id: String, slot_id: String, characters: Dictionary) -> float:
 	var total: float = float(_slot_character_score(run_state, primary_id, slot_id, characters))

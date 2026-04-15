@@ -475,18 +475,28 @@ func _ensure_tutorial_event(run_state: RunState) -> void:
 	if run_state.active_event_ids.has(TUTORIAL_EVENT_ID):
 		return
 	run_state.active_event_ids.append(TUTORIAL_EVENT_ID)
-	run_state.active_event_states[TUTORIAL_EVENT_ID] = {"turns_left": 3, "timeout_total": 3}
+	run_state.active_event_states[TUTORIAL_EVENT_ID] = {"turns_left": 3, "timeout_total": 3, "force_visible_success_roll": true}
 
 func _ensure_strategist_event(run_state: RunState) -> void:
 	if run_state.active_event_ids.has(TUTORIAL_STRATEGIST_EVENT_ID):
 		return
 	run_state.active_event_ids.append(TUTORIAL_STRATEGIST_EVENT_ID)
-	run_state.active_event_states[TUTORIAL_STRATEGIST_EVENT_ID] = {"turns_left": 1, "timeout_total": 1}
+	run_state.active_event_states[TUTORIAL_STRATEGIST_EVENT_ID] = {"turns_left": 1, "timeout_total": 1, "force_visible_success_roll": true}
 
 func _remove_tutorial_event(run_state: RunState, event_id: String) -> void:
 	run_state.active_event_ids.erase(event_id)
 	if run_state.active_event_states.has(event_id):
 		run_state.active_event_states.erase(event_id)
+
+func result_presentation_extra(run_state: RunState, board_manager: BoardManager, event_manager: EventManager, characters: Dictionary, resources: Dictionary) -> Dictionary:
+	var report_step: int = int(run_state.flags.get("tutorial_last_report_step", 0))
+	if report_step != 5 or board_manager == null or event_manager == null:
+		return {}
+	var patrol_cards: Array = board_manager.get_event_cards(TUTORIAL_EVENT_ID)
+	var dice_payload: Dictionary = event_manager.build_visible_success_dice_payload(run_state, TUTORIAL_EVENT_ID, patrol_cards, characters, resources, true)
+	if dice_payload.is_empty():
+		return {}
+	return {"dice": dice_payload}
 
 func _matches_recruit_tutorial_setup(cards: Array) -> bool:
 	var has_primary: bool = false

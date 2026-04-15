@@ -1,6 +1,8 @@
 extends PanelContainer
 class_name CardView
 
+const CARD_METRICS := preload("res://scripts/ui/card_metrics.gd")
+
 signal target_drop_requested(target_id: String, payload: Dictionary)
 signal card_clicked(card_id: String)
 signal quick_assign_requested(payload: Dictionary)
@@ -8,9 +10,9 @@ signal remove_requested(payload: Dictionary)
 signal drag_slot_hovered(target_id: String, payload: Dictionary)
 
 const DEFAULT_CARD_WIDTH: float = 156.0
-const COMPACT_PORTRAIT_WIDTH: float = 120.0
-const COMPACT_PORTRAIT_HEIGHT: float = 160.0
-const COMPACT_PORTRAIT_ART_HEIGHT: float = 116.0
+const COMPACT_PORTRAIT_WIDTH: float = CARD_METRICS.COMPACT_CARD_WIDTH
+const COMPACT_PORTRAIT_HEIGHT: float = CARD_METRICS.COMPACT_CARD_HEIGHT
+const COMPACT_PORTRAIT_ART_HEIGHT: float = CARD_METRICS.COMPACT_CARD_ART_HEIGHT
 const ACTIVE_DRAG_Z_INDEX: int = 2400
 
 var art_frame: PanelContainer
@@ -198,12 +200,14 @@ func _apply_art() -> void:
 		art_style.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
 		art_style.shadow_size = 10
 	elif bool(card_payload.get("drop_slot", false)):
-		art_style.bg_color = Color(0.02, 0.03, 0.05, 0.98)
-		art_style.border_width_left = 2
-		art_style.border_width_top = 2
-		art_style.border_width_right = 2
-		art_style.border_width_bottom = 2
-		art_style.border_color = Color(0.42, 0.42, 0.44, 0.90)
+		art_style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+		art_style.border_width_left = 0
+		art_style.border_width_top = 0
+		art_style.border_width_right = 0
+		art_style.border_width_bottom = 0
+		art_style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+		art_style.shadow_color = Color(0.0, 0.0, 0.0, 0.0)
+		art_style.shadow_size = 0
 	art_frame.add_theme_stylebox_override("panel", art_style)
 
 func _refresh_compact_state() -> void:
@@ -217,9 +221,12 @@ func _refresh_compact_state() -> void:
 	subtitle_label.visible = false
 	body_label.visible = show_body and not body_label.text.strip_edges().is_empty()
 	assigned_label.visible = show_assigned and not assigned_label.text.strip_edges().is_empty()
-	if art_frame != null and card_payload.has("art_height"):
-		art_frame.custom_minimum_size = Vector2(0.0, float(card_payload.get("art_height", art_frame.custom_minimum_size.y)))
 	var target_height: float = expanded_height if show_details else collapsed_height
+	if art_frame != null and card_payload.has("art_height"):
+		var resolved_art_height: float = float(card_payload.get("art_height", art_frame.custom_minimum_size.y))
+		if bool(card_payload.get("drop_slot", false)):
+			resolved_art_height = maxf(resolved_art_height, target_height - 10.0)
+		art_frame.custom_minimum_size = Vector2(0.0, resolved_art_height)
 	custom_minimum_size = Vector2(base_card_width, target_height)
 	size = Vector2(size.x, target_height)
 
@@ -477,7 +484,7 @@ func _update_style(color: Color) -> void:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	var icon_button: bool = bool(card_payload.get("icon_button", false))
 	var drop_slot: bool = bool(card_payload.get("drop_slot", false))
-	style.bg_color = Color(0.06, 0.06, 0.07, 0.32) if icon_button else color.lightened(0.04 if hovered else 0.0)
+	style.bg_color = Color(0.06, 0.06, 0.07, 0.32) if icon_button else (Color(0.10, 0.11, 0.12, 0.20 if hovered or accepted_drop else 0.08) if drop_slot else color.lightened(0.04 if hovered else 0.0))
 	style.border_width_left = 0 if icon_button else (2 if drop_slot else 3)
 	style.border_width_top = 0 if icon_button else (2 if drop_slot else 3)
 	style.border_width_right = 0 if icon_button else (2 if drop_slot else 3)
@@ -487,9 +494,9 @@ func _update_style(color: Color) -> void:
 	elif hovered:
 		style.border_color = Color(0.76, 0.76, 0.80) if (icon_button or drop_slot) else Color(0.82, 0.82, 0.85)
 	else:
-		style.border_color = Color(0.0, 0.0, 0.0, 0.0) if icon_button else (Color(0.42, 0.42, 0.44) if drop_slot else Color(0.50, 0.50, 0.52, 0.96))
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.42) if icon_button else (Color(0.0, 0.0, 0.0, 0.50) if drop_slot else (Color(0.70, 0.70, 0.72, 0.16) if hovered else Color(0.0, 0.0, 0.0, 0.20)))
-	style.shadow_size = 12 if icon_button else (8 if drop_slot else (16 if hovered else 6))
+		style.border_color = Color(0.0, 0.0, 0.0, 0.0) if icon_button else (Color(0.52, 0.54, 0.58, 0.72) if drop_slot else Color(0.50, 0.50, 0.52, 0.96))
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.42) if icon_button else (Color(0.0, 0.0, 0.0, 0.0) if drop_slot else (Color(0.70, 0.70, 0.72, 0.16) if hovered else Color(0.0, 0.0, 0.0, 0.20)))
+	style.shadow_size = 12 if icon_button else (0 if drop_slot else (16 if hovered else 6))
 	style.corner_radius_top_left = 10
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10

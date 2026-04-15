@@ -53,9 +53,9 @@ size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="LeftSidebar" type="VBoxContainer" parent="Root/Layout/Desk" unique_id=595843265]
-custom_minimum_size = Vector2(252, 0)
+custom_minimum_size = Vector2(176, 0)
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="DetailPanel" type="PanelContainer" parent="Root/Layout/Desk/LeftSidebar" unique_id=1377260483]
 visible = false
@@ -143,9 +143,9 @@ vertical_scroll_mode = 2
 [node name="Slots" type="GridContainer" parent="Root/Layout/Desk/LeftSidebar/SlotPanel/SlotsScroll" unique_id=1708240943]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
-columns = 2
+theme_override_constants/h_separation = 0
+theme_override_constants/v_separation = 0
+columns = 1
 
 [node name="CenterColumn" type="VBoxContainer" parent="Root/Layout/Desk" unique_id=833207436]
 layout_mode = 2
@@ -216,7 +216,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="RightSidebar" type="VBoxContainer" parent="Root/Layout/Desk" unique_id=1501131044]
-custom_minimum_size = Vector2(216, 0)
+custom_minimum_size = Vector2(208, 0)
 layout_mode = 2
 theme_override_constants/separation = 10
 

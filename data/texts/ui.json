@@ -84,7 +84,14 @@
 		"slot_subtitle": "本回合操作",
 		"assignment_title": "投入位",
 		"slot_hint": "将合适卡牌拖入操作按钮后的抽屉面板，会在回合结束时统一结算。右键卡牌可快速投入。",
-		"turn_hint": "当前显示整体局势。点击操作按钮可展开对应操作面板。"
+		"turn_hint": "当前显示整体局势。点击操作按钮可展开对应操作面板。",
+		"roll_preview": "当前判定将掷 %d 枚骰子；按现有投入（修正 %s），至少掷出 %d 点，便可%s。",
+		"roll_preview_secondary": "若想%s，则至少需要掷出 %d 点。",
+		"roll_preview_impossible": "当前判定将掷 %d 枚骰子；按现有投入（修正 %s），单靠骰点暂时无法%s，还需要提高修正。",
+		"roll_preview_secondary_impossible": "若想%s，当前修正还不够，需要继续提高。",
+		"roll_preview_no_fixed_dc": "当前判定将掷 %d 枚骰子；按现有投入（修正 %s），此项主要影响收益高低，没有固定过关线。",
+		"roll_preview_need_resource": "还缺少%s；补足后才会进入判定。",
+		"roll_preview_no_roll": "此项按投入直接结算，不需要掷骰。"
 	},
 	"event_rules": {
 		"summary": "最低要求 %d / 成功阈值 %d / 检定 DC %d / 时限 %d 回合",
@@ -219,11 +226,40 @@
 		"reward_header": "获得结果",
 		"roll_header": "判定",
 		"roll_wait": "掷骰中……",
-		"roll_summary": "%d + %d = %d，修正 %+d，最终 %d / DC %d",
+		"roll_summary": "%s + %s = %s，修正 %s，最终 %s / DC %s",
+		"roll_summary_no_dc": "%s + %s = %s，修正 %s，最终 %s",
+		"roll_requirement": "至少掷出 %s 点可%s",
+		"roll_requirement_secondary": "掷出 %s 点可%s",
+		"roll_impossible": "当前修正不足，掷满 12 点也无法%s",
+		"pass_labels": {
+			"success": "成功",
+			"governance_bonus": "触发额外成效",
+			"audience_success": "说动对方",
+			"audience_bonus": "额外振奋军心",
+			"risk_control": "压住此患",
+			"research_basic": "有所发现",
+			"research_strong": "得到更强结果",
+			"recruit_basic": "有所收获",
+			"recruit_character": "招得人物",
+			"recruit_strong": "拿到更好收获"
+		},
 		"collect_all": "收集全部",
 		"card_back": "待收取",
 		"card_hint": "点击翻开",
 		"default_body": "%s的结算已经落定，案上留下了新的收获。"
+	},
+	"debug_dice": {
+		"title": "骰子动画调试",
+		"subtitle": "独立测试 2d6 动画，不经过回合结算与事件流程。",
+		"die_a": "第一颗",
+		"die_b": "第二颗",
+		"show": "播放指定点数",
+		"random": "快速随机",
+		"reset": "复位",
+		"idle": "当前预设：%d + %d = %d",
+		"rolling": "骰子动画播放中……",
+		"random_wait": "正在进行随机快掷……",
+		"summary": "结果：%d + %d = %d"
 	},
 	"audio_options": {
 		"title": "选项设置",

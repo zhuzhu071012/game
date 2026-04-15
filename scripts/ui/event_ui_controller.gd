@@ -11,30 +11,46 @@ signal event_dialog_toggled(event_id: String, expanded: bool)
 
 const CARD_SCENE := preload("res://scenes/CardView.tscn")
 const SLOT_SCENE := preload("res://scenes/SlotView.tscn")
-const EVENT_DIALOG_MIN_SIZE := Vector2(580.0, 386.0)
-const EVENT_DIALOG_MAX_SIZE := Vector2(700.0, 468.0)
-const LIST_CARD_WIDTH := 120.0
-const LIST_CARD_HEIGHT := 160.0
-const LIST_CARD_ART_HEIGHT := 116.0
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+const CARD_METRICS := preload("res://scripts/ui/card_metrics.gd")
+const EVENT_DIALOG_MIN_SIZE := CARD_METRICS.EVENT_DIALOG_MIN_SIZE
+const EVENT_DIALOG_MAX_SIZE := CARD_METRICS.EVENT_DIALOG_MAX_SIZE
+const LIST_CARD_WIDTH := CARD_METRICS.COMPACT_CARD_WIDTH
+const LIST_CARD_HEIGHT := CARD_METRICS.COMPACT_CARD_HEIGHT
+const LIST_CARD_ART_HEIGHT := CARD_METRICS.COMPACT_CARD_ART_HEIGHT
+const EVENT_DIALOG_BODY_PANEL_HEIGHT := 256.0
+const EVENT_DIALOG_BODY_HEIGHT := 224.0
+const EVENT_DIALOG_SLOT_PANEL_HEIGHT := 348.0
+const EVENT_DIALOG_SLOT_SCROLL_HEIGHT := 272.0
+const EVENT_DIALOG_FOOTNOTE_HEIGHT := 56.0
 
 var event_column: VBoxContainer
 var event_dialog: PanelContainer
 var event_dialog_title: Label
 var event_dialog_subtitle: Label
+var event_dialog_close_button: Button
 var event_dialog_body_panel: PanelContainer
 var event_dialog_body: RichTextLabel
 var event_dialog_slot_panel: PanelContainer
 var event_dialog_slot_title: Label
+var event_dialog_slot_scroll: ScrollContainer
 var event_dialog_slot_row: HBoxContainer
-var event_dialog_assigned_title: Label
-var event_dialog_assigned_row: HBoxContainer
+var event_dialog_footnote: Label
 
 var _event_body_callback: Callable = Callable()
 var _event_title_callback: Callable = Callable()
+var _event_hint_callback: Callable = Callable()
 var _expanded_event_id: String = ""
 var _dragging: bool = false
 var _drag_offset: Vector2 = Vector2.ZERO
 var _needs_center: bool = false
+var _dialog_position: Vector2 = Vector2.ZERO
+var _has_dialog_position: bool = false
+var _locked_dialog_size: Vector2 = Vector2.ZERO
+var _dialog_size_locking: bool = false
+var _restore_after_refresh_requested: bool = false
+var _dialog_parent: Control
+var _dialog_open_token: int = 0
 
 func setup(
 	p_event_column: VBoxContainer,
@@ -49,27 +65,279 @@ func setup(
 	p_event_dialog_assigned_title: Label,
 	p_event_dialog_assigned_row: HBoxContainer,
 	p_event_body_callback: Callable,
-	p_event_title_callback: Callable = Callable()
+	p_event_title_callback: Callable = Callable(),
+	p_event_hint_callback: Callable = Callable(),
+	p_dialog_parent: Control = null
 ) -> void:
 	event_column = p_event_column
-	event_dialog = p_event_dialog
-	event_dialog_title = p_event_dialog_title
-	event_dialog_subtitle = p_event_dialog_subtitle
-	event_dialog_body_panel = p_event_dialog_body_panel
-	event_dialog_body = p_event_dialog_body
-	event_dialog_slot_panel = p_event_dialog_slot_panel
-	event_dialog_slot_title = p_event_dialog_slot_title
-	event_dialog_slot_row = p_event_dialog_slot_row
-	event_dialog_assigned_title = p_event_dialog_assigned_title
-	event_dialog_assigned_row = p_event_dialog_assigned_row
 	_event_body_callback = p_event_body_callback
 	_event_title_callback = p_event_title_callback
+	_event_hint_callback = p_event_hint_callback
+	_dialog_parent = p_dialog_parent
+	if p_event_dialog != null:
+		p_event_dialog.visible = false
+		p_event_dialog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_build_runtime_dialog()
+	if event_dialog != null and not event_dialog.resized.is_connected(_on_event_dialog_resized):
+		event_dialog.resized.connect(_on_event_dialog_resized)
 
 func get_expanded_event_id() -> String:
 	return _expanded_event_id
 
 func is_dragging() -> bool:
 	return _dragging
+
+func is_dialog_visible() -> bool:
+	return event_dialog != null and event_dialog.visible
+
+func get_dialog_control() -> Control:
+	return event_dialog
+
+func apply_title_font(font_resource: Font) -> void:
+	if font_resource == null or event_dialog_title == null:
+		return
+	event_dialog_title.add_theme_font_override("font", font_resource)
+
+func apply_body_font_size(font_size: int, line_spacing: int = 4) -> void:
+	if font_size <= 0 or event_dialog_body == null:
+		return
+	event_dialog_body.add_theme_font_size_override("normal_font_size", font_size)
+	event_dialog_body.set_meta("body_font_managed", true)
+	event_dialog_body.set_meta("normal_font_size_base", font_size)
+	event_dialog_body.set_meta("normal_font_size_last_applied", font_size)
+	event_dialog_body.add_theme_constant_override("line_separation", line_spacing)
+	event_dialog_body.add_theme_constant_override("line_spacing", line_spacing)
+
+func refresh_static_texts() -> void:
+	if event_dialog_close_button != null:
+		event_dialog_close_button.text = TextDB.get_text("ui.buttons.close")
+	if event_dialog_slot_title != null:
+		event_dialog_slot_title.text = TextDB.get_text("ui.detail_panel.assignment_title")
+
+func _build_runtime_dialog() -> void:
+	if _dialog_parent == null:
+		return
+	if event_dialog != null and is_instance_valid(event_dialog):
+		return
+	event_dialog = PanelContainer.new()
+	event_dialog.name = "RuntimeEventDialog"
+	event_dialog.visible = false
+	event_dialog.mouse_filter = Control.MOUSE_FILTER_STOP
+	event_dialog.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	event_dialog.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	event_dialog.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	event_dialog.z_as_relative = true
+	event_dialog.z_index = 0
+	event_dialog.custom_minimum_size = EVENT_DIALOG_MIN_SIZE
+	event_dialog.size = EVENT_DIALOG_MIN_SIZE
+	_locked_dialog_size = EVENT_DIALOG_MIN_SIZE
+	_dialog_parent.add_child(event_dialog)
+
+	var dialog_style := StyleBoxFlat.new()
+	dialog_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.97)
+	dialog_style.border_width_left = 2
+	dialog_style.border_width_top = 2
+	dialog_style.border_width_right = 2
+	dialog_style.border_width_bottom = 2
+	dialog_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.10), 0.95)
+	dialog_style.corner_radius_top_left = 10
+	dialog_style.corner_radius_top_right = 10
+	dialog_style.corner_radius_bottom_left = 10
+	dialog_style.corner_radius_bottom_right = 10
+	dialog_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	dialog_style.shadow_size = 16
+	event_dialog.add_theme_stylebox_override("panel", dialog_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vbox)
+
+	var header := PanelContainer.new()
+	header.custom_minimum_size = Vector2(0.0, 44.0)
+	header.mouse_filter = Control.MOUSE_FILTER_STOP
+	header.gui_input.connect(_on_runtime_header_gui_input)
+	var header_style := StyleBoxFlat.new()
+	header_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.RUST, 0.98)
+	header_style.border_width_left = 1
+	header_style.border_width_top = 1
+	header_style.border_width_right = 1
+	header_style.border_width_bottom = 1
+	header_style.border_color = UI_PALETTE.alpha(UI_PALETTE.VERMILION, 0.95)
+	header_style.corner_radius_top_left = 8
+	header_style.corner_radius_top_right = 8
+	header_style.corner_radius_bottom_left = 8
+	header_style.corner_radius_bottom_right = 8
+	header.add_theme_stylebox_override("panel", header_style)
+	vbox.add_child(header)
+
+	var header_margin := MarginContainer.new()
+	header_margin.add_theme_constant_override("margin_left", 8)
+	header_margin.add_theme_constant_override("margin_top", 6)
+	header_margin.add_theme_constant_override("margin_right", 8)
+	header_margin.add_theme_constant_override("margin_bottom", 6)
+	header_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(header_margin)
+
+	var header_bar := HBoxContainer.new()
+	header_bar.add_theme_constant_override("separation", 8)
+	header_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header_margin.add_child(header_bar)
+
+	var title_box := VBoxContainer.new()
+	title_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_box.add_theme_constant_override("separation", 2)
+	title_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header_bar.add_child(title_box)
+
+	event_dialog_title = Label.new()
+	event_dialog_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_dialog_title.add_theme_font_size_override("font_size", 22)
+	event_dialog_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title_box.add_child(event_dialog_title)
+
+	event_dialog_subtitle = Label.new()
+	event_dialog_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_dialog_subtitle.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.84)
+	event_dialog_subtitle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_dialog_subtitle.visible = false
+	title_box.add_child(event_dialog_subtitle)
+
+	event_dialog_close_button = Button.new()
+	event_dialog_close_button.custom_minimum_size = Vector2(76.0, 32.0)
+	event_dialog_close_button.text = TextDB.get_text("ui.buttons.close")
+	event_dialog_close_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	event_dialog_close_button.pressed.connect(_on_runtime_close_pressed)
+	header_bar.add_child(event_dialog_close_button)
+
+	event_dialog_body_panel = PanelContainer.new()
+	event_dialog_body_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body_panel_style := StyleBoxFlat.new()
+	body_panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.20), 0.96)
+	body_panel_style.border_width_left = 1
+	body_panel_style.border_width_top = 1
+	body_panel_style.border_width_right = 1
+	body_panel_style.border_width_bottom = 1
+	body_panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.08), 0.96)
+	body_panel_style.corner_radius_top_left = 8
+	body_panel_style.corner_radius_top_right = 8
+	body_panel_style.corner_radius_bottom_left = 8
+	body_panel_style.corner_radius_bottom_right = 8
+	event_dialog_body_panel.add_theme_stylebox_override("panel", body_panel_style)
+	event_dialog_body_panel.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_BODY_PANEL_HEIGHT)
+	vbox.add_child(event_dialog_body_panel)
+
+	var body_margin := MarginContainer.new()
+	body_margin.add_theme_constant_override("margin_left", 8)
+	body_margin.add_theme_constant_override("margin_top", 6)
+	body_margin.add_theme_constant_override("margin_right", 8)
+	body_margin.add_theme_constant_override("margin_bottom", 6)
+	body_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_dialog_body_panel.add_child(body_margin)
+
+	event_dialog_body = RichTextLabel.new()
+	event_dialog_body.bbcode_enabled = true
+	event_dialog_body.fit_content = false
+	event_dialog_body.scroll_active = true
+	event_dialog_body.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_BODY_HEIGHT)
+	event_dialog_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	event_dialog_body.mouse_filter = Control.MOUSE_FILTER_STOP
+	event_dialog_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	event_dialog_body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	event_dialog_body.set_meta("body_font_managed", true)
+	body_margin.add_child(event_dialog_body)
+
+	event_dialog_slot_panel = PanelContainer.new()
+	event_dialog_slot_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var slot_panel_style := StyleBoxFlat.new()
+	slot_panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK.darkened(0.08), 0.98)
+	slot_panel_style.border_width_left = 1
+	slot_panel_style.border_width_top = 1
+	slot_panel_style.border_width_right = 1
+	slot_panel_style.border_width_bottom = 1
+	slot_panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE, 0.96)
+	slot_panel_style.corner_radius_top_left = 8
+	slot_panel_style.corner_radius_top_right = 8
+	slot_panel_style.corner_radius_bottom_left = 8
+	slot_panel_style.corner_radius_bottom_right = 8
+	event_dialog_slot_panel.add_theme_stylebox_override("panel", slot_panel_style)
+	event_dialog_slot_panel.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_SLOT_PANEL_HEIGHT)
+	vbox.add_child(event_dialog_slot_panel)
+
+	var slot_margin := MarginContainer.new()
+	slot_margin.add_theme_constant_override("margin_left", 8)
+	slot_margin.add_theme_constant_override("margin_top", 8)
+	slot_margin.add_theme_constant_override("margin_right", 8)
+	slot_margin.add_theme_constant_override("margin_bottom", 8)
+	slot_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_dialog_slot_panel.add_child(slot_margin)
+
+	var slot_vbox := VBoxContainer.new()
+	slot_vbox.add_theme_constant_override("separation", 6)
+	slot_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot_margin.add_child(slot_vbox)
+
+	event_dialog_slot_title = Label.new()
+	event_dialog_slot_title.add_theme_font_size_override("font_size", 16)
+	event_dialog_slot_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot_vbox.add_child(event_dialog_slot_title)
+
+	event_dialog_slot_scroll = ScrollContainer.new()
+	event_dialog_slot_scroll.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_SLOT_SCROLL_HEIGHT)
+	event_dialog_slot_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	event_dialog_slot_scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	event_dialog_slot_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	event_dialog_slot_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	event_dialog_slot_scroll.clip_contents = true
+	event_dialog_slot_scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot_vbox.add_child(event_dialog_slot_scroll)
+
+	event_dialog_slot_row = HBoxContainer.new()
+	event_dialog_slot_row.add_theme_constant_override("separation", 8)
+	event_dialog_slot_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	event_dialog_slot_row.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	event_dialog_slot_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	event_dialog_slot_scroll.add_child(event_dialog_slot_row)
+
+	event_dialog_footnote = Label.new()
+	event_dialog_footnote.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_FOOTNOTE_HEIGHT)
+	event_dialog_footnote.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	event_dialog_footnote.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.76)
+	event_dialog_footnote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_dialog_footnote.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	event_dialog_footnote.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	event_dialog_footnote.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot_vbox.add_child(event_dialog_footnote)
+
+func _on_runtime_close_pressed() -> void:
+	close_dialog()
+
+func _on_runtime_header_gui_input(event: InputEvent) -> void:
+	handle_header_input(event, event_dialog.get_global_mouse_position() if event_dialog != null else Vector2.ZERO)
+
+func remember_dialog_position() -> void:
+	if event_dialog == null:
+		return
+	_dialog_position = event_dialog.position
+	_has_dialog_position = true
+	_restore_after_refresh_requested = true
+
+func restore_dialog_position_after_refresh(viewport_size: Vector2) -> void:
+	if event_dialog == null or not _restore_after_refresh_requested:
+		return
+	_restore_after_refresh_requested = false
+	_needs_center = false
+	var dialog_size: Vector2 = _locked_dialog_size if _locked_dialog_size != Vector2.ZERO else (event_dialog.custom_minimum_size if event_dialog.custom_minimum_size != Vector2.ZERO else event_dialog.size)
+	_set_dialog_position(_clamp_dialog_position(_dialog_position, viewport_size), dialog_size)
+	call_deferred("_deferred_restore_dialog_position", viewport_size)
 
 func toggle_event(event_id: String) -> void:
 	if _expanded_event_id == event_id and event_dialog != null and event_dialog.visible:
@@ -79,7 +347,6 @@ func toggle_event(event_id: String) -> void:
 		_needs_center = true
 		if event_dialog != null:
 			event_dialog.visible = false
-			event_dialog.size = Vector2.ZERO
 		emit_signal("dialog_focus_requested")
 		emit_signal("event_dialog_toggled", event_id, true)
 	emit_signal("refresh_requested")
@@ -90,8 +357,13 @@ func close_dialog(emit_refresh: bool = true) -> void:
 	_expanded_event_id = ""
 	_dragging = false
 	_needs_center = false
+	_has_dialog_position = false
+	_dialog_open_token += 1
 	if event_dialog != null:
 		event_dialog.visible = false
+		event_dialog.modulate = Color.WHITE
+		_locked_dialog_size = Vector2.ZERO
+		_restore_after_refresh_requested = false
 	if was_open:
 		emit_signal("event_dialog_toggled", closed_event_id, false)
 	if emit_refresh:
@@ -101,7 +373,7 @@ func handle_global_input(event: InputEvent, mouse_global_position: Vector2, view
 	if not _dragging or event_dialog == null:
 		return
 	if event is InputEventMouseMotion:
-		event_dialog.position = _clamp_dialog_position(mouse_global_position - _drag_offset, viewport_size)
+		_set_dialog_position(_clamp_dialog_position(mouse_global_position - _drag_offset, viewport_size))
 	elif event is InputEventMouseButton:
 		var mouse_event: InputEventMouseButton = event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and not mouse_event.pressed:
@@ -164,70 +436,78 @@ func _refresh_event_dialog(run_state: RunState, event_defs: Dictionary, board_ma
 	if board_manager.is_committed("event:%s" % _expanded_event_id):
 		event_dialog.visible = false
 		return
+	var dialog_was_visible: bool = event_dialog.visible
 	_configure_event_dialog_layout(viewport_size)
 	var event: EventData = event_defs[_expanded_event_id] as EventData
 	var state: Dictionary = run_state.active_event_states.get(_expanded_event_id, {})
 	event_dialog.visible = true
 	event_dialog_title.text = _event_title(event)
+	var hint_text: String = _event_hint(event)
 	event_dialog_subtitle.text = TextDB.format_text("ui.event_subtitle.expanded", [int(state.get("turns_left", 0))])
 	event_dialog_subtitle.visible = false
-	event_dialog_body.text = _event_body(event)
-	_populate_event_dialog_slots(run_state, board_manager, _expanded_event_id)
-	event_dialog_assigned_title.visible = false
-	event_dialog_assigned_row.visible = false
+	event_dialog_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	event_dialog_body.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	event_dialog_body.text = _format_dialog_body_text(_event_body(event))
+	event_dialog_body.scroll_to_line(0)
+	_populate_event_dialog_slots(run_state, board_manager, _expanded_event_id, hint_text)
+	if event_dialog_footnote != null:
+		event_dialog_footnote.text = hint_text if not hint_text.strip_edges().is_empty() else " "
+		event_dialog_footnote.visible = true
 	_apply_dialog_rect(viewport_size)
+	if dialog_was_visible:
+		_apply_locked_dialog_size()
+	else:
+		event_dialog.modulate = Color(1.0, 1.0, 1.0, 0.0)
+		_dialog_open_token += 1
+		call_deferred("_finalize_event_dialog_open", _dialog_open_token, viewport_size)
 	if _needs_center:
 		_needs_center = false
 
 func _configure_event_dialog_layout(viewport_size: Vector2) -> void:
 	if event_dialog == null or event_dialog_body == null or event_dialog_slot_row == null:
 		return
-	var dialog_width: float = clampf(viewport_size.x * 0.42, EVENT_DIALOG_MIN_SIZE.x, EVENT_DIALOG_MAX_SIZE.x)
-	var body_height: float = clampf(dialog_width * 0.18, 96.0, 126.0)
-	var slot_height: float = LIST_CARD_HEIGHT
-	var slot_panel_height: float = LIST_CARD_HEIGHT + 28.0
-	var body_panel_height: float = body_height + 12.0
-	var required_height: float = 44.0 + body_panel_height + slot_panel_height + 36.0
-	var dialog_height: float = maxf(dialog_width * 0.60, required_height)
-	var max_height: float = maxf(required_height, viewport_size.y - 220.0)
-	if dialog_height > max_height:
-		dialog_height = max_height
-		dialog_width = clampf(dialog_height / 0.60, EVENT_DIALOG_MIN_SIZE.x, EVENT_DIALOG_MAX_SIZE.x)
-	var dialog_size: Vector2 = Vector2(dialog_width, dialog_height)
+	var dialog_size: Vector2 = EVENT_DIALOG_MIN_SIZE
+	_locked_dialog_size = dialog_size
 	event_dialog.custom_minimum_size = dialog_size
 	event_dialog.size = dialog_size
 	event_dialog.update_minimum_size()
 	if event_dialog_body_panel != null:
-		event_dialog_body_panel.custom_minimum_size = Vector2(0.0, body_panel_height)
-		event_dialog_body_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		event_dialog_body_panel.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_BODY_PANEL_HEIGHT)
+		event_dialog_body_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		event_dialog_body_panel.update_minimum_size()
 	event_dialog_body.fit_content = false
 	event_dialog_body.scroll_active = true
 	event_dialog_body.clip_contents = true
-	event_dialog_body.custom_minimum_size = Vector2(0.0, body_height)
-	event_dialog_body.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	event_dialog_body.size = Vector2(event_dialog_body.size.x, body_height)
+	event_dialog_body.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_BODY_HEIGHT)
+	event_dialog_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	event_dialog_body.update_minimum_size()
 	if event_dialog_slot_panel != null:
-		event_dialog_slot_panel.custom_minimum_size = Vector2(0.0, slot_panel_height)
-		event_dialog_slot_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		event_dialog_slot_panel.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_SLOT_PANEL_HEIGHT)
+		event_dialog_slot_panel.size_flags_vertical = Control.SIZE_SHRINK_END
 		event_dialog_slot_panel.update_minimum_size()
 	event_dialog_slot_title.visible = true
 	event_dialog_slot_row.visible = true
-	event_dialog_slot_row.custom_minimum_size = Vector2(0.0, slot_height)
+	event_dialog_slot_row.custom_minimum_size = Vector2(0.0, LIST_CARD_HEIGHT)
 	event_dialog_slot_row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	event_dialog_slot_row.size = Vector2(event_dialog_slot_row.size.x, slot_height)
+	event_dialog_slot_row.size = Vector2(event_dialog_slot_row.size.x, LIST_CARD_HEIGHT)
 	event_dialog_slot_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	event_dialog_slot_row.update_minimum_size()
+	if event_dialog_slot_scroll != null:
+		event_dialog_slot_scroll.custom_minimum_size = Vector2(0.0, EVENT_DIALOG_SLOT_SCROLL_HEIGHT)
 	var dialog_margin: Control = event_dialog.get_child(0) as Control
 	if dialog_margin != null:
 		dialog_margin.update_minimum_size()
 	event_dialog.queue_sort()
 	event_dialog_slot_title.text = TextDB.get_text("ui.detail_panel.assignment_title")
-	event_dialog_assigned_title.visible = false
-	event_dialog_assigned_row.visible = false
+	_apply_locked_dialog_size()
 
-func _populate_event_dialog_slots(run_state: RunState, board_manager: BoardManager, event_id: String) -> void:
+func _format_dialog_body_text(text: String) -> String:
+	var normalized: String = text.replace("\r\n", "\n").replace("\r", "\n").strip_edges()
+	if normalized.is_empty():
+		return ""
+	return "\n" + normalized
+
+func _populate_event_dialog_slots(run_state: RunState, board_manager: BoardManager, event_id: String, hint_text: String = "") -> void:
 	if event_dialog_slot_row == null:
 		return
 	for child in event_dialog_slot_row.get_children():
@@ -303,12 +583,12 @@ func _build_event_slot_well(slot_type: String, content: Control) -> PanelContain
 	panel.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT + 22.0)
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.05, 0.05, 0.06, 0.98)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.98)
 	panel_style.border_width_left = 1
 	panel_style.border_width_top = 1
 	panel_style.border_width_right = 1
 	panel_style.border_width_bottom = 1
-	panel_style.border_color = Color(0.24, 0.26, 0.30, 0.96)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE, 0.96)
 	panel_style.corner_radius_top_left = 8
 	panel_style.corner_radius_top_right = 8
 	panel_style.corner_radius_bottom_left = 8
@@ -332,29 +612,12 @@ func _build_event_slot_well(slot_type: String, content: Control) -> PanelContain
 	label.add_theme_font_size_override("font_size", 12)
 	box.add_child(label)
 
-	var slot_frame: PanelContainer = PanelContainer.new()
-	slot_frame.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
-	slot_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	slot_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var slot_style: StyleBoxFlat = StyleBoxFlat.new()
-	slot_style.bg_color = Color(0.01, 0.01, 0.02, 1.0)
-	slot_style.border_width_left = 1
-	slot_style.border_width_top = 1
-	slot_style.border_width_right = 1
-	slot_style.border_width_bottom = 1
-	slot_style.border_color = Color(0.32, 0.34, 0.38, 0.92)
-	slot_style.corner_radius_top_left = 6
-	slot_style.corner_radius_top_right = 6
-	slot_style.corner_radius_bottom_left = 6
-	slot_style.corner_radius_bottom_right = 6
-	slot_frame.add_theme_stylebox_override("panel", slot_style)
-	box.add_child(slot_frame)
-
 	var center: CenterContainer = CenterContainer.new()
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	slot_frame.add_child(center)
+	center.custom_minimum_size = Vector2(LIST_CARD_WIDTH, LIST_CARD_HEIGHT)
+	center.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	center.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	box.add_child(center)
 	content.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	content.visible = true
@@ -381,9 +644,9 @@ func _make_event_slot_payload(run_state: RunState, board_manager: BoardManager, 
 		"image_label": prompt_text,
 		"tooltip_text": "\n".join(tooltip_lines),
 		"art_label_font_size": 16 if prompt_text.contains("\n") else 18,
-		"art_label_color": Color(0.90, 0.88, 0.82, 0.96),
-		"art_bg_color": Color(0.00, 0.01, 0.02, 1.0),
-		"color": Color(0.02, 0.03, 0.05, 0.98),
+		"art_label_color": UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.94),
+		"art_bg_color": UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.28), 1.0),
+		"color": UI_PALETTE.alpha(UI_PALETTE.INK.darkened(0.08), 0.98),
 		"compact_details": true,
 		"hide_title": true,
 		"hide_subtitle": true,
@@ -447,8 +710,8 @@ func _resource_names(resource_ids: Array[String]) -> Array[String]:
 	return names
 
 func _make_event_icon_payload(event: EventData, turns_left: int, _assigned_cards: Array, expanded: bool) -> Dictionary:
-	var art_color: Color = Color(0.22, 0.22, 0.23) if not expanded else Color(0.30, 0.30, 0.32)
-	var panel_color: Color = Color(0.11, 0.11, 0.12) if not expanded else Color(0.15, 0.15, 0.16)
+	var art_color: Color = UI_PALETTE.SLATE.darkened(0.10) if not expanded else UI_PALETTE.SLATE
+	var panel_color: Color = UI_PALETTE.INK if not expanded else UI_PALETTE.INK.lightened(0.08)
 	return {
 		"uid": "event:%s" % event.id,
 		"id": event.id,
@@ -491,6 +754,11 @@ func _event_title(event: EventData) -> String:
 		return str(_event_title_callback.call(event))
 	return event.title
 
+func _event_hint(event: EventData) -> String:
+	if _event_hint_callback.is_valid():
+		return str(_event_hint_callback.call(event))
+	return ""
+
 func _center_event_dialog(viewport_size: Vector2) -> void:
 	_apply_dialog_rect(viewport_size)
 
@@ -498,20 +766,60 @@ func _apply_dialog_rect(viewport_size: Vector2) -> void:
 	if event_dialog == null:
 		return
 	var dialog_size: Vector2 = event_dialog.custom_minimum_size if event_dialog.custom_minimum_size != Vector2.ZERO else event_dialog.size
-	var position: Vector2 = Vector2((viewport_size.x - dialog_size.x) * 0.5, (viewport_size.y - dialog_size.y) * 0.5)
+	var position: Vector2 = _dialog_position if _has_dialog_position else event_dialog.position
+	var should_center: bool = _needs_center or not event_dialog.visible or not _has_dialog_position
+	if should_center:
+		position = Vector2((viewport_size.x - dialog_size.x) * 0.5, (viewport_size.y - dialog_size.y) * 0.5)
 	position = _clamp_dialog_position(position, viewport_size)
+	_set_dialog_position(position, dialog_size)
+
+func _set_dialog_position(position: Vector2, dialog_size: Vector2 = Vector2.ZERO) -> void:
+	if event_dialog == null:
+		return
+	var applied_size: Vector2 = dialog_size if dialog_size != Vector2.ZERO else (event_dialog.custom_minimum_size if event_dialog.custom_minimum_size != Vector2.ZERO else event_dialog.size)
+	_dialog_position = position
+	_has_dialog_position = true
 	event_dialog.position = position
-	event_dialog.size = dialog_size
-	event_dialog.offset_left = position.x
-	event_dialog.offset_top = position.y
-	event_dialog.offset_right = position.x + dialog_size.x
-	event_dialog.offset_bottom = position.y + dialog_size.y
-	event_dialog.set_deferred("position", position)
-	event_dialog.set_deferred("size", dialog_size)
-	event_dialog.set_deferred("offset_left", position.x)
-	event_dialog.set_deferred("offset_top", position.y)
-	event_dialog.set_deferred("offset_right", position.x + dialog_size.x)
-	event_dialog.set_deferred("offset_bottom", position.y + dialog_size.y)
+	event_dialog.size = applied_size
+
+func _apply_locked_dialog_size() -> void:
+	if event_dialog == null or _locked_dialog_size == Vector2.ZERO:
+		return
+	_dialog_size_locking = true
+	event_dialog.custom_minimum_size = _locked_dialog_size
+	event_dialog.size = _locked_dialog_size
+	_dialog_size_locking = false
+
+func _on_event_dialog_resized() -> void:
+	if _dialog_size_locking or event_dialog == null or not event_dialog.visible or _locked_dialog_size == Vector2.ZERO:
+		return
+	if absf(event_dialog.size.x - _locked_dialog_size.x) <= 0.5 and absf(event_dialog.size.y - _locked_dialog_size.y) <= 0.5:
+		return
+	_apply_locked_dialog_size()
+
+func _deferred_restore_dialog_position(viewport_size: Vector2) -> void:
+	if event_dialog == null or not event_dialog.visible:
+		return
+	_needs_center = false
+	var dialog_size: Vector2 = _locked_dialog_size if _locked_dialog_size != Vector2.ZERO else (event_dialog.custom_minimum_size if event_dialog.custom_minimum_size != Vector2.ZERO else event_dialog.size)
+	_set_dialog_position(_clamp_dialog_position(_dialog_position, viewport_size), dialog_size)
+
+func _finalize_event_dialog_open(token: int, viewport_size: Vector2) -> void:
+	if event_dialog == null or not event_dialog.visible or token != _dialog_open_token:
+		return
+	_apply_locked_dialog_size()
+	_apply_dialog_rect(viewport_size)
+	await event_dialog.get_tree().process_frame
+	if event_dialog == null or not event_dialog.visible or token != _dialog_open_token:
+		return
+	_apply_locked_dialog_size()
+	_apply_dialog_rect(viewport_size)
+	await event_dialog.get_tree().process_frame
+	if event_dialog == null or not event_dialog.visible or token != _dialog_open_token:
+		return
+	_apply_locked_dialog_size()
+	_apply_dialog_rect(viewport_size)
+	event_dialog.modulate = Color.WHITE
 
 func _clamp_dialog_position(position: Vector2, viewport_size: Vector2) -> Vector2:
 	if event_dialog == null:
@@ -535,7 +843,6 @@ func _on_event_card_drag_hovered(event_id: String, _payload: Dictionary) -> void
 	_needs_center = true
 	if event_dialog != null:
 		event_dialog.visible = false
-		event_dialog.size = Vector2.ZERO
 	emit_signal("dialog_focus_requested")
 	emit_signal("event_dialog_toggled", event_id, true)
 	emit_signal("refresh_requested")

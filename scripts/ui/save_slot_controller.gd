@@ -1,6 +1,8 @@
 extends Node
 class_name SaveSlotController
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+
 var main
 
 func setup(main_node) -> void:
@@ -13,24 +15,24 @@ func build_if_needed() -> void:
 	main.save_slot_overlay.name = "SaveSlotOverlay"
 	main.save_slot_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	main.save_slot_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	main.save_slot_overlay.z_as_relative = false
+	main.save_slot_overlay.z_index = 4096
 	main.save_slot_overlay.visible = false
-	main.system_menu_overlay.add_child(main.save_slot_overlay)
+	main.add_child(main.save_slot_overlay)
 	var shade: ColorRect = ColorRect.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.28)
+	shade.color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.28)
 	main.save_slot_overlay.add_child(shade)
 	main.save_slot_panel = PanelContainer.new()
-	main.save_slot_panel.anchor_left = 0.5
-	main.save_slot_panel.anchor_top = 0.5
-	main.save_slot_panel.anchor_right = 0.5
-	main.save_slot_panel.anchor_bottom = 0.5
-	main.save_slot_panel.offset_left = -360
-	main.save_slot_panel.offset_top = -250
-	main.save_slot_panel.offset_right = 360
-	main.save_slot_panel.offset_bottom = 250
+	main.save_slot_panel.custom_minimum_size = Vector2(720.0, 500.0)
+	main.save_slot_panel.anchor_left = 0.0
+	main.save_slot_panel.anchor_top = 0.0
+	main.save_slot_panel.anchor_right = 0.0
+	main.save_slot_panel.anchor_bottom = 0.0
+	_apply_centered_panel_rect()
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
-	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.98)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.12), 0.96)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
@@ -41,6 +43,8 @@ func build_if_needed() -> void:
 	panel_style.corner_radius_bottom_right = 16
 	main.save_slot_panel.add_theme_stylebox_override("panel", panel_style)
 	main.save_slot_overlay.add_child(main.save_slot_panel)
+	if not main.save_slot_panel.resized.is_connected(_on_save_slot_panel_resized):
+		main.save_slot_panel.resized.connect(_on_save_slot_panel_resized)
 	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 22)
 	margin.add_theme_constant_override("margin_top", 20)
@@ -57,7 +61,7 @@ func build_if_needed() -> void:
 	main.save_slot_subtitle = Label.new()
 	main.save_slot_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main.save_slot_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	main.save_slot_subtitle.modulate = Color(1, 1, 1, 0.78)
+	main.save_slot_subtitle.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.78)
 	main.save_slot_subtitle.visible = false
 	box.add_child(main.save_slot_subtitle)
 	var slot_list: VBoxContainer = VBoxContainer.new()
@@ -73,6 +77,7 @@ func build_if_needed() -> void:
 		slot_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		slot_button.pressed.connect(_on_save_slot_button_pressed.bind(_index))
 		slot_list.add_child(slot_button)
+		main._apply_accent_button_theme(slot_button)
 		main.save_slot_buttons.append(slot_button)
 	var footer: HBoxContainer = HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 10)
@@ -82,6 +87,7 @@ func build_if_needed() -> void:
 	main.save_slot_prev_button.custom_minimum_size = Vector2(110.0, 42.0)
 	main.save_slot_prev_button.pressed.connect(_on_save_slot_prev_pressed)
 	footer.add_child(main.save_slot_prev_button)
+	main._apply_accent_button_theme(main.save_slot_prev_button)
 	main.save_slot_page_label = Label.new()
 	main.save_slot_page_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	main.save_slot_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -91,11 +97,13 @@ func build_if_needed() -> void:
 	main.save_slot_next_button.custom_minimum_size = Vector2(110.0, 42.0)
 	main.save_slot_next_button.pressed.connect(_on_save_slot_next_pressed)
 	footer.add_child(main.save_slot_next_button)
+	main._apply_accent_button_theme(main.save_slot_next_button)
 	main.save_slot_close_button = Button.new()
 	main.save_slot_close_button.text = TextDB.get_text("ui.buttons.close")
 	main.save_slot_close_button.custom_minimum_size = Vector2(110.0, 42.0)
 	main.save_slot_close_button.pressed.connect(close)
 	footer.add_child(main.save_slot_close_button)
+	main._apply_accent_button_theme(main.save_slot_close_button)
 
 func open(mode: String) -> void:
 	if main.save_manager == null:
@@ -109,6 +117,9 @@ func open(mode: String) -> void:
 	main.save_slot_mode = mode
 	main.save_slot_page = 0
 	main.save_slot_overlay.visible = true
+	main.save_slot_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_apply_centered_panel_rect()
+	main.move_child(main.save_slot_overlay, main.get_child_count() - 1)
 	refresh()
 
 func close() -> void:
@@ -126,6 +137,7 @@ func is_visible() -> bool:
 func refresh() -> void:
 	if main.save_slot_overlay == null or not main.save_slot_overlay.visible or main.save_manager == null:
 		return
+	_apply_centered_panel_rect()
 	var page_total: int = maxi(1, main.save_manager.page_count())
 	main.save_slot_page = clampi(main.save_slot_page, 0, page_total - 1)
 	var is_load_mode: bool = main.save_slot_mode == "load"
@@ -158,7 +170,10 @@ func save_slot_button_text(slot_index: int, has_save: bool, metadata: Dictionary
 	var term_name: String = str(metadata.get("term_name", ""))
 	var turn_index: int = int(metadata.get("turn_index", 0))
 	var saved_at: String = str(metadata.get("saved_at", ""))
-	return TextDB.format_text("ui.save_slots.filled", [slot_name, label, term_name, turn_index, saved_at], {}, "%s | %s\n%s | Turn %d | %s")
+	var button_text: String = TextDB.format_text("ui.save_slots.filled", [slot_name, label, term_name, turn_index, saved_at], {}, "%s | %s\n%s | Turn %d | %s")
+	if OS.has_feature("web"):
+		button_text = button_text.replace("｜", " / ")
+	return button_text
 
 func _on_save_slot_button_pressed(local_index: int) -> void:
 	if main.save_manager == null or main.run_state == null:
@@ -191,3 +206,44 @@ func _on_save_slot_prev_pressed() -> void:
 func _on_save_slot_next_pressed() -> void:
 	main.save_slot_page += 1
 	refresh()
+
+func _apply_centered_panel_rect() -> void:
+	if main.save_slot_panel == null:
+		return
+	var panel_size := Vector2(720.0, 500.0)
+	main.save_slot_panel.offset_left = 0.0
+	main.save_slot_panel.offset_top = 0.0
+	main.save_slot_panel.offset_right = panel_size.x
+	main.save_slot_panel.offset_bottom = panel_size.y
+	main.save_slot_panel.size = panel_size
+	_center_panel_to_current_size()
+
+func _on_save_slot_panel_resized() -> void:
+	_center_panel_to_current_size()
+
+func _center_panel_to_current_size() -> void:
+	if main.save_slot_panel == null:
+		return
+	var current_size: Vector2 = main.save_slot_panel.size
+	if current_size.x <= 0.0 or current_size.y <= 0.0:
+		return
+	var viewport_size: Vector2 = main.get_viewport_rect().size
+	var visible_top: float = 0.0
+	var visible_bottom: float = viewport_size.y
+	if main.top_bar_panel != null:
+		visible_top = main.top_bar_panel.global_position.y + main.top_bar_panel.size.y
+	var bottom_bar: Control = main.get_node_or_null("Root/Layout/BottomBar") as Control
+	if bottom_bar != null:
+		visible_bottom = bottom_bar.global_position.y
+	if visible_bottom <= visible_top:
+		visible_top = 0.0
+		visible_bottom = viewport_size.y
+	var visible_center := Vector2(
+		viewport_size.x * 0.5,
+		(visible_top + visible_bottom) * 0.5
+	)
+	main.save_slot_panel.position = Vector2(
+		round(visible_center.x - current_size.x * 0.5),
+		round(visible_center.y - current_size.y * 0.5)
+	)
+	main.save_slot_panel.size = current_size

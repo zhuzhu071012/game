@@ -1,6 +1,8 @@
 extends PanelContainer
 class_name FloatingDetailWindow
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+
 signal close_requested(window)
 signal focus_requested(window)
 signal drag_requested(window, mouse_global_position)
@@ -50,19 +52,21 @@ func apply_body_font_size(font_size: int, line_spacing: int = 4) -> void:
 		body_label.add_theme_font_size_override("normal_font_size", font_size)
 		body_label.add_theme_constant_override("line_separation", line_spacing)
 		body_label.add_theme_constant_override("line_spacing", line_spacing)
-		body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		var horizontal: HorizontalAlignment = int(body_label.get_meta("body_horizontal_alignment", HORIZONTAL_ALIGNMENT_CENTER))
+		var vertical: VerticalAlignment = int(body_label.get_meta("body_vertical_alignment", VERTICAL_ALIGNMENT_CENTER))
+		body_label.horizontal_alignment = horizontal
+		body_label.vertical_alignment = vertical
 
 func _ensure_ui() -> void:
 	if header_panel != null:
 		return
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.04, 0.05, 0.07, 0.98)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.98)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.border_color = Color(0.33, 0.37, 0.42, 0.96)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.08), 0.96)
 	panel_style.corner_radius_top_left = 10
 	panel_style.corner_radius_top_right = 10
 	panel_style.corner_radius_bottom_left = 10
@@ -93,12 +97,12 @@ func _ensure_ui() -> void:
 	header_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	header_panel.gui_input.connect(_on_header_gui_input)
 	var header_style: StyleBoxFlat = StyleBoxFlat.new()
-	header_style.bg_color = Color(0.11, 0.14, 0.18, 0.98)
+	header_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.RUST, 0.98)
 	header_style.border_width_left = 1
 	header_style.border_width_top = 1
 	header_style.border_width_right = 1
 	header_style.border_width_bottom = 1
-	header_style.border_color = Color(0.39, 0.45, 0.52, 0.96)
+	header_style.border_color = UI_PALETTE.alpha(UI_PALETTE.VERMILION, 0.96)
 	header_style.corner_radius_top_left = 8
 	header_style.corner_radius_top_right = 8
 	header_style.corner_radius_bottom_left = 8
@@ -133,7 +137,7 @@ func _ensure_ui() -> void:
 
 	subtitle_label = Label.new()
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	subtitle_label.modulate = Color(0.80, 0.85, 0.90, 1.0)
+	subtitle_label.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.82)
 	subtitle_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_box.add_child(subtitle_label)
 
@@ -154,12 +158,12 @@ func _ensure_ui() -> void:
 	art_frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	art_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var art_style: StyleBoxFlat = StyleBoxFlat.new()
-	art_style.bg_color = Color(0.12, 0.12, 0.14, 0.98)
+	art_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.10), 0.98)
 	art_style.border_width_left = 2
 	art_style.border_width_top = 2
 	art_style.border_width_right = 2
 	art_style.border_width_bottom = 2
-	art_style.border_color = Color(0.48, 0.50, 0.54, 0.92)
+	art_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.10), 0.92)
 	art_style.corner_radius_top_left = 8
 	art_style.corner_radius_top_right = 8
 	art_style.corner_radius_bottom_left = 8
@@ -206,12 +210,12 @@ func _ensure_ui() -> void:
 	body_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	body_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var body_style: StyleBoxFlat = StyleBoxFlat.new()
-	body_style.bg_color = Color(0.05, 0.07, 0.10, 0.96)
+	body_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.darkened(0.18), 0.96)
 	body_style.border_width_left = 1
 	body_style.border_width_top = 1
 	body_style.border_width_right = 1
 	body_style.border_width_bottom = 1
-	body_style.border_color = Color(0.23, 0.28, 0.34, 0.96)
+	body_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.04), 0.96)
 	body_style.corner_radius_top_left = 8
 	body_style.corner_radius_top_right = 8
 	body_style.corner_radius_bottom_left = 8
@@ -250,6 +254,12 @@ func _apply_payload() -> void:
 	subtitle_label.text = str(window_payload.get("subtitle", ""))
 	subtitle_label.visible = false
 	body_label.text = str(window_payload.get("body", ""))
+	var horizontal: HorizontalAlignment = int(window_payload.get("body_horizontal_alignment", HORIZONTAL_ALIGNMENT_CENTER))
+	var vertical: VerticalAlignment = int(window_payload.get("body_vertical_alignment", VERTICAL_ALIGNMENT_CENTER))
+	body_label.set_meta("body_horizontal_alignment", horizontal)
+	body_label.set_meta("body_vertical_alignment", vertical)
+	body_label.horizontal_alignment = horizontal
+	body_label.vertical_alignment = vertical
 	var image_path: String = str(window_payload.get("image_path", ""))
 	var texture: Texture2D = null
 	if not image_path.is_empty() and ResourceLoader.exists(image_path):

@@ -1,6 +1,8 @@
 extends Node
 class_name AudioOptionsController
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+
 signal font_scale_changed(value: float)
 signal settings_changed
 
@@ -20,7 +22,7 @@ func build_if_needed() -> void:
 	main.system_menu_overlay.add_child(main.audio_options_overlay)
 	var shade: ColorRect = ColorRect.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.30)
+	shade.color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.30)
 	main.audio_options_overlay.add_child(shade)
 	main.audio_options_panel = PanelContainer.new()
 	main.audio_options_panel.anchor_left = 0.5
@@ -32,8 +34,8 @@ func build_if_needed() -> void:
 	main.audio_options_panel.offset_right = 280
 	main.audio_options_panel.offset_bottom = 230
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.08, 0.09, 0.98)
-	panel_style.border_color = Color(0.42, 0.42, 0.44, 0.96)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.98)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.12), 0.96)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
@@ -63,7 +65,7 @@ func build_if_needed() -> void:
 	main.audio_options_subtitle = Label.new()
 	main.audio_options_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main.audio_options_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	main.audio_options_subtitle.modulate = Color(1, 1, 1, 0.78)
+	main.audio_options_subtitle.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.78)
 	main.audio_options_subtitle.visible = false
 	box.add_child(main.audio_options_subtitle)
 	var slider_box: VBoxContainer = VBoxContainer.new()
@@ -81,6 +83,7 @@ func build_if_needed() -> void:
 	main.audio_options_reset_button.custom_minimum_size = Vector2(130.0, 42.0)
 	main.audio_options_reset_button.pressed.connect(_on_audio_options_reset_pressed)
 	footer.add_child(main.audio_options_reset_button)
+	main._apply_accent_button_theme(main.audio_options_reset_button)
 	var spacer: Control = Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
@@ -88,6 +91,7 @@ func build_if_needed() -> void:
 	main.audio_options_close_button.custom_minimum_size = Vector2(110.0, 42.0)
 	main.audio_options_close_button.pressed.connect(close)
 	footer.add_child(main.audio_options_close_button)
+	main._apply_accent_button_theme(main.audio_options_close_button)
 
 func _build_audio_slider_row(parent: VBoxContainer, channel_id: String, label_text: String) -> void:
 	var row: VBoxContainer = VBoxContainer.new()

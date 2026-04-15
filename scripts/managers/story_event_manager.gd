@@ -328,6 +328,45 @@ func preview_event(
 		"total_modifier": total_modifier
 	}
 
+func preview_board_event_dice(
+	run_state: RunState,
+	event_id: String,
+	assigned_cards: Array,
+	character_defs: Dictionary,
+	resource_defs: Dictionary
+) -> Dictionary:
+	if not is_story_board_event(run_state, event_id):
+		return {}
+	var plan_id: String = _resolved_plan_id(run_state, event_id)
+	if plan_id.is_empty():
+		return {}
+	var plan_def: Dictionary = _plan_definition(event_id, plan_id)
+	if plan_def.is_empty():
+		return {}
+	if bool(plan_def.get("always_success", false)):
+		return {"no_roll": true}
+	var character_id: String = _primary_character_id(assigned_cards)
+	if character_id.is_empty():
+		return {}
+	var resource_allocations: Dictionary = _resource_allocations_from_cards(assigned_cards)
+	var preview: Dictionary = preview_event(run_state, event_id, plan_id, character_id, resource_allocations, character_defs, resource_defs)
+	var required_resources: Dictionary = _resource_requirements(plan_def)
+	for resource_id_variant in required_resources.keys():
+		var resource_id: String = str(resource_id_variant)
+		if int(resource_allocations.get(resource_id, 0)) < int(required_resources.get(resource_id, 0)):
+			return {
+				"needs_resource_id": resource_id,
+				"needs_resource_name": _resource_display_name(resource_id, resource_defs)
+			}
+	if not bool(preview.get("valid", false)):
+		return {}
+	return {
+		"dice_count": 2,
+		"modifier": int(preview.get("total_modifier", 0)),
+		"dc": int(preview.get("dc", 12)),
+		"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success")
+	}
+
 func resolve_current_event(
 	run_state: RunState,
 	plan_id: String,
@@ -346,7 +385,10 @@ func resolve_current_event(
 			"ok": false,
 			"errors": preview.get("errors", [])
 		}
-	var roll_value: int = GameRules.roll_2d6()
+	var roll_data: Dictionary = GameRules.roll_2d6_detail()
+	var die_a: int = int(roll_data.get("die_a", 1))
+	var die_b: int = int(roll_data.get("die_b", 1))
+	var roll_value: int = int(roll_data.get("roll", die_a + die_b))
 	var dc: int = int(preview.get("dc", 12))
 	var final_score: int = roll_value + int(preview.get("total_modifier", 0))
 	var partial_margin: int = int(preview.get("partial_margin", DEFAULT_PARTIAL_MARGIN))
@@ -364,10 +406,22 @@ func resolve_current_event(
 		"plan_id": plan_id,
 		"plan_title": plan_title,
 		"outcome": outcome,
+		"die_a": die_a,
+		"die_b": die_b,
 		"roll": roll_value,
 		"dc": dc,
 		"final_score": final_score,
 		"total_modifier": int(preview.get("total_modifier", 0)),
+		"dice": {
+			"die_a": die_a,
+			"die_b": die_b,
+			"roll": roll_value,
+			"modifier": int(preview.get("total_modifier", 0)),
+			"final_score": final_score,
+			"dc": dc,
+			"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success"),
+			"outcome": outcome
+		},
 		"effect_summaries": effect_summaries,
 		"consumed": consumed,
 		"result_text": result_text,
@@ -539,9 +593,10 @@ func resolve_board_event(
 	var outcome: String = "success"
 	var dice_payload: Dictionary = {}
 	if not bool(plan_def.get("always_success", false)):
-		die_a = randi_range(1, 6)
-		die_b = randi_range(1, 6)
-		roll_value = die_a + die_b
+		var roll_data: Dictionary = GameRules.roll_2d6_detail()
+		die_a = int(roll_data.get("die_a", 1))
+		die_b = int(roll_data.get("die_b", 1))
+		roll_value = int(roll_data.get("roll", die_a + die_b))
 		final_score = roll_value + int(preview.get("total_modifier", 0))
 		var partial_margin: int = int(preview.get("partial_margin", DEFAULT_PARTIAL_MARGIN))
 		outcome = _classify_outcome(final_score, dc, partial_margin)
@@ -552,6 +607,7 @@ func resolve_board_event(
 			"modifier": int(preview.get("total_modifier", 0)),
 			"final_score": final_score,
 			"dc": dc,
+			"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success"),
 			"outcome": outcome
 		}
 	var effect_summaries: Array[String] = _apply_outcome_effects(run_state, event_id, plan_id, outcome)

@@ -1,6 +1,8 @@
 extends Node
 class_name TutorialUiController
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+
 signal dialog_finished
 
 var main
@@ -24,8 +26,8 @@ func build_toast_if_needed() -> void:
 	main.tutorial_toast_panel.z_index = 1200
 	main.tutorial_toast_panel.visible = false
 	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.05, 0.05, 0.06, 0.94)
-	style.border_color = Color(0.62, 0.62, 0.64, 0.92)
+	style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.94)
+	style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.16), 0.92)
 	style.border_width_left = 1
 	style.border_width_top = 1
 	style.border_width_right = 1
@@ -64,21 +66,21 @@ func build_dialog_if_needed() -> void:
 	main.tutorial_dialog_overlay.gui_input.connect(_on_tutorial_dialog_gui_input)
 	var dimmer: ColorRect = ColorRect.new()
 	dimmer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dimmer.color = Color(0.0, 0.0, 0.0, 0.14)
+	dimmer.color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.14)
 	dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	main.tutorial_dialog_overlay.add_child(dimmer)
 	main.tutorial_dialog_panel = PanelContainer.new()
-	main.tutorial_dialog_panel.anchor_left = 0.03
+	main.tutorial_dialog_panel.anchor_left = 0.20
 	main.tutorial_dialog_panel.anchor_top = 1.0
-	main.tutorial_dialog_panel.anchor_right = 0.97
+	main.tutorial_dialog_panel.anchor_right = 0.80
 	main.tutorial_dialog_panel.anchor_bottom = 1.0
 	main.tutorial_dialog_panel.offset_top = -252.0
 	main.tutorial_dialog_panel.offset_bottom = -14.0
 	main.tutorial_dialog_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	main.tutorial_dialog_panel.gui_input.connect(_on_tutorial_dialog_gui_input)
 	var panel_style: StyleBoxFlat = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.05, 0.05, 0.06, 0.96)
-	panel_style.border_color = Color(0.45, 0.45, 0.48, 0.95)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.96)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.14), 0.95)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
@@ -103,11 +105,12 @@ func build_dialog_if_needed() -> void:
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_child(row)
 	main.tutorial_dialog_left_portrait = TextureRect.new()
-	main.tutorial_dialog_left_portrait.custom_minimum_size = Vector2(150.0, 210.0)
 	main.tutorial_dialog_left_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	main.tutorial_dialog_left_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	main.tutorial_dialog_left_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(main.tutorial_dialog_left_portrait)
+	main.tutorial_dialog_left_portrait.z_as_relative = false
+	main.tutorial_dialog_left_portrait.z_index = 1201
+	main.tutorial_dialog_overlay.add_child(main.tutorial_dialog_left_portrait)
 	var center_box: VBoxContainer = VBoxContainer.new()
 	center_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center_box.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -133,11 +136,15 @@ func build_dialog_if_needed() -> void:
 	main.tutorial_dialog_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center_box.add_child(main.tutorial_dialog_hint)
 	main.tutorial_dialog_right_portrait = TextureRect.new()
-	main.tutorial_dialog_right_portrait.custom_minimum_size = Vector2(150.0, 210.0)
 	main.tutorial_dialog_right_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	main.tutorial_dialog_right_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	main.tutorial_dialog_right_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(main.tutorial_dialog_right_portrait)
+	main.tutorial_dialog_right_portrait.z_as_relative = false
+	main.tutorial_dialog_right_portrait.z_index = 1201
+	main.tutorial_dialog_overlay.add_child(main.tutorial_dialog_right_portrait)
+	if not main.tutorial_dialog_overlay.resized.is_connected(_refresh_dialog_layout):
+		main.tutorial_dialog_overlay.resized.connect(_refresh_dialog_layout)
+	_refresh_dialog_layout()
 
 func show_toast(message: String, duration: float = 2.4) -> void:
 	build_toast_if_needed()
@@ -202,6 +209,7 @@ func start_dialog(dialogue: Dictionary) -> void:
 	_set_tutorial_dialog_portrait(main.tutorial_dialog_right_portrait, right_character_id)
 	main.detail_overlay.visible = false
 	main.tutorial_dialog_overlay.visible = true
+	_refresh_dialog_layout()
 	_render_tutorial_dialog_line()
 
 func advance_dialog() -> void:
@@ -257,6 +265,33 @@ func _render_tutorial_dialog_line() -> void:
 	main.tutorial_dialog_left_portrait.modulate = Color(1.0, 1.0, 1.0, 1.0 if side == "left" else 0.45)
 	main.tutorial_dialog_right_portrait.modulate = Color(1.0, 1.0, 1.0, 1.0 if side == "right" else 0.45)
 	main.tutorial_dialog_hint.text = TextDB.get_text("ui.messages.dialog_click_continue", "Continue")
+
+func _refresh_dialog_layout() -> void:
+	if main == null or main.tutorial_dialog_overlay == null:
+		return
+	var viewport_size: Vector2 = main.get_viewport_rect().size
+	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
+		return
+	var portrait_width: float = clampf(viewport_size.x * 0.26, 280.0, 560.0)
+	var portrait_height: float = clampf(viewport_size.y * 0.76, 420.0, 860.0)
+	var bottom_offset: float = -10.0
+	var side_margin: float = clampf(viewport_size.x * 0.018, 18.0, 42.0)
+	main.tutorial_dialog_left_portrait.anchor_left = 0.0
+	main.tutorial_dialog_left_portrait.anchor_right = 0.0
+	main.tutorial_dialog_left_portrait.anchor_top = 1.0
+	main.tutorial_dialog_left_portrait.anchor_bottom = 1.0
+	main.tutorial_dialog_left_portrait.offset_left = side_margin
+	main.tutorial_dialog_left_portrait.offset_top = bottom_offset - portrait_height
+	main.tutorial_dialog_left_portrait.offset_right = side_margin + portrait_width
+	main.tutorial_dialog_left_portrait.offset_bottom = bottom_offset
+	main.tutorial_dialog_right_portrait.anchor_left = 1.0
+	main.tutorial_dialog_right_portrait.anchor_right = 1.0
+	main.tutorial_dialog_right_portrait.anchor_top = 1.0
+	main.tutorial_dialog_right_portrait.anchor_bottom = 1.0
+	main.tutorial_dialog_right_portrait.offset_left = -side_margin - portrait_width
+	main.tutorial_dialog_right_portrait.offset_top = bottom_offset - portrait_height
+	main.tutorial_dialog_right_portrait.offset_right = -side_margin
+	main.tutorial_dialog_right_portrait.offset_bottom = bottom_offset
 
 func _on_tutorial_dialog_gui_input(event: InputEvent) -> void:
 	if not main.tutorial_dialog_active:

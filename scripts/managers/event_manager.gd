@@ -71,23 +71,40 @@ func spawn_events_for_turn(run_state: RunState) -> Array[String]:
 	emit_signal("events_changed")
 	return spawned
 
-func resolve_event(run_state: RunState, event_id: String, assigned_cards: Array, relation_manager: RelationManager, character_defs: Dictionary, resource_defs: Dictionary) -> Array[String]:
+func resolve_event(run_state: RunState, event_id: String, assigned_cards: Array, relation_manager: RelationManager, character_defs: Dictionary, resource_defs: Dictionary) -> Dictionary:
 	if not event_defs.has(event_id):
-		return []
+		return {"logs": [], "presentation_extra": {}}
 	var event: EventData = event_defs[event_id] as EventData
 	var evaluation: Dictionary = _evaluate_assignment(run_state, event, assigned_cards, character_defs, resource_defs)
 	var has_character: bool = int(evaluation.get("character_count", 0)) > 0
 	var effective_total: int = int(evaluation.get("effective_total", 0))
 	var qualified: bool = bool(evaluation.get("qualified", true))
+	var force_visible_success_roll: bool = bool((run_state.active_event_states.get(event_id, {}) as Dictionary).get("force_visible_success_roll", false))
 	var logs: Array[String] = []
+	var presentation_extra: Dictionary = {}
+	if force_visible_success_roll and qualified and has_character and effective_total >= event.minimum_requirement:
+		var forced_dice_payload: Dictionary = build_visible_success_dice_payload(run_state, event_id, assigned_cards, character_defs, resource_defs, true)
+		if not forced_dice_payload.is_empty():
+			var adjusted_dc: int = int(forced_dice_payload.get("dc", _effective_dc(event, run_state)))
+			var roll_value: int = int(forced_dice_payload.get("roll", 2))
+			var final_total: int = int(forced_dice_payload.get("final_score", roll_value + effective_total))
+			_apply_effect(run_state, event.success_effect_id, relation_manager)
+			_activate_followups(run_state, event)
+			logs.append(TextDB.format_text("logs.events.roll_success", [event.title, roll_value, final_total, adjusted_dc]))
+			presentation_extra["dice"] = forced_dice_payload
+			_clear_event(run_state, event_id)
+			return {"logs": logs, "presentation_extra": presentation_extra}
 	if qualified and has_character and effective_total >= event.success_threshold:
 		_apply_effect(run_state, event.success_effect_id, relation_manager)
 		_activate_followups(run_state, event)
 		logs.append(TextDB.format_text("logs.events.auto_success", [event.title, effective_total, event.success_threshold]))
 		_clear_event(run_state, event_id)
-		return logs
+		return {"logs": logs, "presentation_extra": presentation_extra}
 	if qualified and has_character and effective_total >= event.minimum_requirement:
-		var roll_value: int = GameRules.roll_2d6()
+		var roll_data: Dictionary = GameRules.roll_2d6_detail()
+		var die_a: int = int(roll_data.get("die_a", 1))
+		var die_b: int = int(roll_data.get("die_b", 1))
+		var roll_value: int = int(roll_data.get("roll", die_a + die_b))
 		var adjusted_dc: int = _effective_dc(event, run_state)
 		var final_total: int = roll_value + effective_total
 		if final_total >= adjusted_dc:
@@ -97,11 +114,69 @@ func resolve_event(run_state: RunState, event_id: String, assigned_cards: Array,
 		else:
 			_apply_effect(run_state, event.fail_effect_id, relation_manager)
 			logs.append(TextDB.format_text("logs.events.roll_fail", [event.title, roll_value, final_total, adjusted_dc]))
+		presentation_extra["dice"] = {
+			"die_a": die_a,
+			"die_b": die_b,
+			"roll": roll_value,
+			"modifier": effective_total,
+			"final_score": final_total,
+			"dc": adjusted_dc,
+			"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success")
+		}
 		_clear_event(run_state, event_id)
-		return logs
+		return {"logs": logs, "presentation_extra": presentation_extra}
 	if not assigned_cards.is_empty():
 		logs.append(TextDB.format_text("logs.events.pending", [event.title, effective_total, event.minimum_requirement]))
-	return logs
+	return {"logs": logs, "presentation_extra": presentation_extra}
+
+func preview_event_dice(run_state: RunState, event_id: String, assigned_cards: Array, character_defs: Dictionary, resource_defs: Dictionary) -> Dictionary:
+	if not event_defs.has(event_id):
+		return {}
+	var event: EventData = event_defs[event_id] as EventData
+	var evaluation: Dictionary = _evaluate_assignment(run_state, event, assigned_cards, character_defs, resource_defs)
+	var has_character: bool = int(evaluation.get("character_count", 0)) > 0
+	var effective_total: int = int(evaluation.get("effective_total", 0))
+	var qualified: bool = bool(evaluation.get("qualified", true))
+	var force_visible_success_roll: bool = bool((run_state.active_event_states.get(event_id, {}) as Dictionary).get("force_visible_success_roll", false))
+	if not qualified or not has_character or effective_total < event.minimum_requirement:
+		return {}
+	if not force_visible_success_roll and effective_total >= event.success_threshold:
+		return {"no_roll": true}
+	return {
+		"dice_count": 2,
+		"modifier": effective_total,
+		"dc": _effective_dc(event, run_state),
+		"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success")
+	}
+
+func build_visible_success_dice_payload(run_state: RunState, event_id: String, assigned_cards: Array, character_defs: Dictionary, resource_defs: Dictionary, force_success: bool = false) -> Dictionary:
+	if not event_defs.has(event_id):
+		return {}
+	var event: EventData = event_defs[event_id] as EventData
+	var evaluation: Dictionary = _evaluate_assignment(run_state, event, assigned_cards, character_defs, resource_defs)
+	var has_character: bool = int(evaluation.get("character_count", 0)) > 0
+	var effective_total: int = int(evaluation.get("effective_total", 0))
+	var qualified: bool = bool(evaluation.get("qualified", true))
+	if not qualified or not has_character or effective_total < event.minimum_requirement:
+		return {}
+	var adjusted_dc: int = _effective_dc(event, run_state)
+	if not force_success and effective_total >= event.success_threshold:
+		return {}
+	var required_total: int = clampi(adjusted_dc - effective_total, 2, 12)
+	var roll_data: Dictionary = _forced_roll_for_total(required_total) if force_success else GameRules.roll_2d6_detail()
+	var die_a: int = int(roll_data.get("die_a", 1))
+	var die_b: int = int(roll_data.get("die_b", 1))
+	var roll_value: int = int(roll_data.get("roll", die_a + die_b))
+	var final_score: int = roll_value + effective_total
+	return {
+		"die_a": die_a,
+		"die_b": die_b,
+		"roll": roll_value,
+		"modifier": effective_total,
+		"final_score": final_score,
+		"dc": adjusted_dc,
+		"pass_label": TextDB.get_text("ui.turn_results.pass_labels.success", "success")
+	}
 
 func advance_unresolved_events(run_state: RunState, relation_manager: RelationManager) -> Array[String]:
 	var logs: Array[String] = []
@@ -212,6 +287,18 @@ func _event_timeout(event: EventData) -> int:
 
 func _effective_dc(event: EventData, run_state: RunState) -> int:
 	return maxi(8, event.difficulty_class + GameRules.fire_pressure_modifier(run_state.fire_progress) - 1)
+
+func _forced_roll_for_total(total: int) -> Dictionary:
+	var safe_total: int = clampi(total, 2, 12)
+	var die_a_min: int = maxi(1, safe_total - 6)
+	var die_a_max: int = mini(6, safe_total - 1)
+	var die_a: int = die_a_min if die_a_min >= die_a_max else randi_range(die_a_min, die_a_max)
+	var die_b: int = clampi(safe_total - die_a, 1, 6)
+	return {
+		"die_a": die_a,
+		"die_b": die_b,
+		"roll": die_a + die_b
+	}
 
 func _evaluate_assignment(run_state: RunState, event: EventData, assigned_cards: Array, character_defs: Dictionary, resource_defs: Dictionary) -> Dictionary:
 	var attribute_total_float: float = 0.0

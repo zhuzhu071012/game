@@ -18,7 +18,7 @@
 	  "fatigue": 0,
 	  "passive_id": "lord_overdrive",
 	  "unique_event_ids": ["ember_dream"],
-	  "art_path": "res://assets/cards/characters/cao_cao.svg"
+	  "art_path": "res://assets/cards/characters/Cao_cao.png"
 	},
 	"xun_yu": {
 	  "role_type": "advisor",

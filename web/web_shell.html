@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, viewport-fit=cover">
+		<title>$GODOT_PROJECT_NAME</title>
+		<style>
+html, body {
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	height: 100%;
+	background: #000;
+	overflow: hidden;
+}
+
+body {
+	color: #f2ece0;
+	font-family: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+}
+
+#shell, #status {
+	position: fixed;
+	inset: 0;
+}
+
+#shell {
+	background: #000;
+}
+
+#canvas {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	display: block;
+	transform: translate(-50%, -50%);
+	transform-origin: center center;
+	background: #000;
+	outline: none;
+}
+
+#status {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.72);
+	text-align: center;
+	padding: 24px;
+	box-sizing: border-box;
+	visibility: hidden;
+}
+
+#status-panel,
+#status-notice {
+	width: min(92vw, 420px);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: 14px;
+	background: rgba(18, 18, 22, 0.76);
+	padding: 18px 20px;
+	box-sizing: border-box;
+}
+
+#status-text,
+#status-notice {
+	font-size: 16px;
+	line-height: 1.7;
+	color: rgba(242, 236, 224, 0.88);
+}
+
+#status-progress {
+	width: 100%;
+	height: 12px;
+	margin-top: 14px;
+}
+
+#status-progress.hidden,
+#status-notice.hidden {
+	display: none;
+}
+		</style>
+		$GODOT_HEAD_INCLUDE
+	</head>
+	<body>
+		<div id="shell">
+			<canvas id="canvas">
+				Your browser does not support the canvas tag.
+			</canvas>
+			<div id="status">
+				<div id="status-panel">
+					<div id="status-text">正在载入资源…</div>
+					<progress id="status-progress" class="hidden"></progress>
+					<div id="status-notice" class="hidden"></div>
+				</div>
+			</div>
+		</div>
+
+		<noscript>该页面需要启用 JavaScript。</noscript>
+
+		<script src="$GODOT_URL"></script>
+		<script>
+const GODOT_CONFIG = $GODOT_CONFIG;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById("status");
+	const statusProgress = document.getElementById("status-progress");
+	const statusNotice = document.getElementById("status-notice");
+	const canvas = document.getElementById("canvas");
+	const PROJECT_WIDTH = 1600;
+	const PROJECT_HEIGHT = 900;
+	const DISPLAY_MAX_WIDTH = 800;
+	const DISPLAY_MAX_HEIGHT = 450;
+
+	function fitCanvas() {
+		const scale = Math.min(
+			window.innerWidth / PROJECT_WIDTH,
+			window.innerHeight / PROJECT_HEIGHT,
+			DISPLAY_MAX_WIDTH / PROJECT_WIDTH,
+			DISPLAY_MAX_HEIGHT / PROJECT_HEIGHT
+		);
+		const safeScale = Math.max(scale, 0.1);
+		canvas.style.width = `${Math.round(PROJECT_WIDTH * safeScale)}px`;
+		canvas.style.height = `${Math.round(PROJECT_HEIGHT * safeScale)}px`;
+	}
+
+	function showStatus(mode) {
+		statusOverlay.style.visibility = "visible";
+		statusProgress.classList.toggle("hidden", mode !== "progress");
+		statusNotice.classList.toggle("hidden", mode !== "notice");
+	}
+
+	function hideStatus() {
+		statusOverlay.style.visibility = "hidden";
+	}
+
+	function setNotice(text) {
+		statusNotice.textContent = text;
+	}
+
+	function displayFailure(err) {
+		console.error(err);
+		const message = err instanceof Error ? err.message : (typeof err === "string" ? err : "网页版本启动失败。");
+		showStatus("notice");
+		setNotice(message);
+	}
+
+	canvas.width = PROJECT_WIDTH;
+	canvas.height = PROJECT_HEIGHT;
+	fitCanvas();
+	window.addEventListener("resize", fitCanvas);
+
+	showStatus("progress");
+	engine.startGame({
+		onProgress: function (current, total) {
+			if (current > 0 && total > 0) {
+				statusProgress.value = current;
+				statusProgress.max = total;
+			} else {
+				statusProgress.removeAttribute("value");
+				statusProgress.removeAttribute("max");
+			}
+		},
+	}).then(() => {
+		hideStatus();
+		if (canvas) {
+			canvas.focus();
+		}
+	}).catch(displayFailure);
+}());
+		</script>
+	</body>
+</html>

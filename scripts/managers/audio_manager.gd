@@ -7,13 +7,25 @@ const SETTINGS_PATH: String = "user://audio_settings.cfg"
 const BUS_MASTER: String = "Master"
 const BUS_MUSIC: String = "Music"
 const BUS_SFX: String = "SFX"
+const BGM_RESOURCE_PATH: String = "res://assets/audio/music/maps_by_lamp_light.ogg"
 const DEFAULT_LEVELS: Dictionary = {"master": 0.82, "music": 0.58, "sfx": 0.86}
+const BGM_LOOP_START_SECONDS: float = 0.0
+const BGM_FADE_IN_SECONDS: float = 1.2
+const BGM_LOOP_CROSSFADE_SECONDS: float = 2.6
+const BGM_SILENT_DB: float = -80.0
+const BGM_FULL_DB: float = 0.0
 
 var _players: Array[AudioStreamPlayer] = []
 var _bgm_player: AudioStreamPlayer
+var _bgm_secondary_player: AudioStreamPlayer
+var _active_bgm_player: AudioStreamPlayer
+var _bgm_tween: Tween
 var _next_player_index: int = 0
 var _streams: Dictionary = {}
 var _volume_levels: Dictionary = DEFAULT_LEVELS.duplicate(true)
+var _web_bgm_needs_gesture_retry: bool = false
+var _bgm_stream_length: float = 0.0
+var _bgm_crossfading: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -23,6 +35,17 @@ func _ready() -> void:
 	_build_stream_library()
 	_load_settings()
 	_start_bgm()
+	_web_bgm_needs_gesture_retry = OS.has_feature("web")
+
+func notify_user_gesture() -> void:
+	if not _web_bgm_needs_gesture_retry:
+		return
+	_web_bgm_needs_gesture_retry = false
+	_stop_bgm_players()
+	_start_bgm()
+
+func _process(_delta: float) -> void:
+	_update_bgm_loop()
 
 func play_ui(sound_id: String) -> void:
 	_play_registered_stream(sound_id)
@@ -108,7 +131,17 @@ func _ensure_bgm_player() -> void:
 		return
 	_bgm_player = AudioStreamPlayer.new()
 	_bgm_player.bus = BUS_MUSIC
+	_bgm_player.volume_db = BGM_SILENT_DB
+	if OS.has_feature("web"):
+		_bgm_player.set("playback_type", AudioServer.PLAYBACK_TYPE_STREAM)
 	add_child(_bgm_player)
+	_bgm_secondary_player = AudioStreamPlayer.new()
+	_bgm_secondary_player.bus = BUS_MUSIC
+	_bgm_secondary_player.volume_db = BGM_SILENT_DB
+	if OS.has_feature("web"):
+		_bgm_secondary_player.set("playback_type", AudioServer.PLAYBACK_TYPE_STREAM)
+	add_child(_bgm_secondary_player)
+	_active_bgm_player = _bgm_player
 
 func _start_bgm() -> void:
 	if _bgm_player == null:
@@ -118,8 +151,71 @@ func _start_bgm() -> void:
 		return
 	if _bgm_player.stream != bgm_stream:
 		_bgm_player.stream = bgm_stream
-	if not _bgm_player.playing:
-		_bgm_player.play()
+	if _bgm_secondary_player.stream != bgm_stream:
+		_bgm_secondary_player.stream = bgm_stream
+	_bgm_stream_length = maxf(0.0, bgm_stream.get_length())
+	if _active_bgm_player == null:
+		_active_bgm_player = _bgm_player
+	if not _active_bgm_player.playing:
+		_play_bgm_with_fade(_active_bgm_player, BGM_LOOP_START_SECONDS, BGM_FADE_IN_SECONDS)
+
+func _stop_bgm_players() -> void:
+	_kill_bgm_tween()
+	_bgm_crossfading = false
+	for player in [_bgm_player, _bgm_secondary_player]:
+		if player == null:
+			continue
+		player.stop()
+		player.volume_db = BGM_SILENT_DB
+
+func _play_bgm_with_fade(player: AudioStreamPlayer, from_position: float, fade_seconds: float) -> void:
+	if player == null:
+		return
+	player.stop()
+	player.volume_db = BGM_SILENT_DB
+	player.play(maxf(0.0, from_position))
+	_kill_bgm_tween()
+	_bgm_tween = create_tween()
+	_bgm_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_bgm_tween.tween_property(player, "volume_db", BGM_FULL_DB, maxf(0.01, fade_seconds)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _update_bgm_loop() -> void:
+	if _bgm_crossfading or _active_bgm_player == null or not _active_bgm_player.playing:
+		return
+	if _bgm_stream_length <= BGM_LOOP_CROSSFADE_SECONDS + BGM_LOOP_START_SECONDS + 0.5:
+		return
+	var playback_position: float = _active_bgm_player.get_playback_position()
+	if _bgm_stream_length - playback_position <= BGM_LOOP_CROSSFADE_SECONDS:
+		_crossfade_bgm_loop()
+
+func _crossfade_bgm_loop() -> void:
+	var next_player: AudioStreamPlayer = _bgm_secondary_player if _active_bgm_player == _bgm_player else _bgm_player
+	if next_player == null:
+		return
+	_kill_bgm_tween()
+	_bgm_crossfading = true
+	next_player.stop()
+	next_player.volume_db = BGM_SILENT_DB
+	next_player.play(BGM_LOOP_START_SECONDS)
+	var previous_player: AudioStreamPlayer = _active_bgm_player
+	_bgm_tween = create_tween()
+	_bgm_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	_bgm_tween.set_parallel(true)
+	_bgm_tween.tween_property(previous_player, "volume_db", BGM_SILENT_DB, BGM_LOOP_CROSSFADE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_bgm_tween.tween_property(next_player, "volume_db", BGM_FULL_DB, BGM_LOOP_CROSSFADE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_bgm_tween.finished.connect(_finish_bgm_crossfade.bind(previous_player, next_player), CONNECT_ONE_SHOT)
+
+func _finish_bgm_crossfade(previous_player: AudioStreamPlayer, next_player: AudioStreamPlayer) -> void:
+	if previous_player != null:
+		previous_player.stop()
+		previous_player.volume_db = BGM_SILENT_DB
+	_active_bgm_player = next_player
+	_bgm_crossfading = false
+
+func _kill_bgm_tween() -> void:
+	if _bgm_tween != null and _bgm_tween.is_valid():
+		_bgm_tween.kill()
+	_bgm_tween = null
 
 func _apply_all_volume_levels() -> void:
 	for key_variant in DEFAULT_LEVELS.keys():
@@ -167,7 +263,7 @@ func _build_stream_library() -> void:
 	_register_event_profile("dream", [300.0, 460.0], [0.050, 0.058], [350.0, 520.0, 700.0], [230.0, 170.0], [280.0, 190.0], -8.5)
 	_register_event_profile("military", [180.0, 240.0], [0.032, 0.040], [220.0, 320.0, 440.0], [150.0, 110.0], [200.0, 130.0], -7.0)
 	_register_event_profile("strategist", [480.0, 720.0], [0.030, 0.042], [520.0, 820.0, 1120.0], [420.0, 230.0], [340.0, 210.0], -7.5)
-	_streams["bgm_main"] = _build_bgm_stream()
+	_streams["bgm_main"] = _load_bgm_stream()
 
 func _register_event_profile(profile: String, open_notes: Array, open_lengths: Array, success_notes: Array, fail_notes: Array, expire_notes: Array, volume_db: float) -> void:
 	_register_stream("event_%s_open" % profile, _triple(open_notes, open_lengths, 0.18), volume_db)
@@ -257,6 +353,17 @@ func _buzz(freq: float, duration: float, amplitude: float) -> AudioStreamWAV:
 		var undertone: float = sin(TAU * (freq * 0.5 + 17.0) * t) * 0.14
 		samples.append((carrier + overtone + undertone) * amplitude * _env(progress, 0.04, 0.30))
 	return _make_stream(samples)
+
+func _load_bgm_stream() -> AudioStream:
+	if ResourceLoader.exists(BGM_RESOURCE_PATH):
+		var resource_stream: AudioStream = load(BGM_RESOURCE_PATH) as AudioStream
+		if resource_stream != null:
+			if resource_stream is AudioStreamOggVorbis:
+				(resource_stream as AudioStreamOggVorbis).loop = false
+			elif resource_stream is AudioStreamMP3:
+				(resource_stream as AudioStreamMP3).loop = false
+			return resource_stream
+	return _build_bgm_stream()
 
 func _build_bgm_stream() -> AudioStreamWAV:
 	var duration: float = 14.0

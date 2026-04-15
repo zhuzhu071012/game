@@ -1,0 +1,15 @@
+extends RefCounted
+class_name CardMetrics
+
+const COMPACT_CARD_WIDTH := 162.0
+const COMPACT_CARD_HEIGHT := 216.0
+const COMPACT_CARD_ART_HEIGHT := 157.0
+
+const ACTION_SLOT_WIDTH := 116.0
+const ACTION_SLOT_HEIGHT := 148.0
+const ACTION_SLOT_ART_HEIGHT := 110.0
+
+const DETAIL_PANEL_WINDOW_SIZE := Vector2(860.0, 620.0)
+const EVENT_DIALOG_MIN_SIZE := Vector2(980.0, 720.0)
+const EVENT_DIALOG_MAX_SIZE := Vector2(1120.0, 860.0)
+const TURN_RESULT_PANEL_SIZE := Vector2(1020.0, 780.0)

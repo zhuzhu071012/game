@@ -1,6 +1,8 @@
 extends Node
 class_name StoryEventController
 
+const UI_PALETTE := preload("res://scripts/ui/ui_palette.gd")
+
 signal sequence_finished
 
 var main
@@ -24,7 +26,7 @@ func build_if_needed() -> void:
 	var shade := ColorRect.new()
 	shade.name = "StoryEventShade"
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.color = Color(0.0, 0.0, 0.0, 0.74)
+	shade.color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.74)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	main.story_event_overlay.add_child(shade)
 	var center := MarginContainer.new()
@@ -40,12 +42,12 @@ func build_if_needed() -> void:
 	main.story_event_panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	main.story_event_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.07, 0.08, 0.10, 0.98)
+	panel_style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK, 0.98)
 	panel_style.border_width_left = 2
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.border_color = Color(0.32, 0.28, 0.22, 0.95)
+	panel_style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE.lightened(0.10), 0.95)
 	panel_style.corner_radius_top_left = 12
 	panel_style.corner_radius_top_right = 12
 	panel_style.corner_radius_bottom_left = 12
@@ -68,7 +70,7 @@ func build_if_needed() -> void:
 	main.story_event_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	box.add_child(main.story_event_title)
 	main.story_event_subtitle = Label.new()
-	main.story_event_subtitle.modulate = Color(0.84, 0.82, 0.76, 0.92)
+	main.story_event_subtitle.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.82)
 	main.story_event_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	main.story_event_subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main.story_event_subtitle.visible = false
@@ -106,10 +108,10 @@ func build_if_needed() -> void:
 	main.story_event_plan_summary = Label.new()
 	main.story_event_plan_summary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	main.story_event_plan_summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	main.story_event_plan_summary.modulate = Color(0.86, 0.86, 0.86, 0.9)
+	main.story_event_plan_summary.modulate = UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.86)
 	main.story_event_plan_summary.visible = false
 	plan_box.add_child(main.story_event_plan_summary)
-	main._set_rich_text_layout(main.story_event_body, HORIZONTAL_ALIGNMENT_CENTER, VERTICAL_ALIGNMENT_CENTER)
+	main._set_rich_text_layout(main.story_event_body, HORIZONTAL_ALIGNMENT_LEFT, VERTICAL_ALIGNMENT_TOP)
 	_refresh_overlay_chrome()
 
 func start_sequence(report_payload: Dictionary) -> bool:
@@ -232,7 +234,7 @@ func refresh_ui() -> void:
 	subtitle_parts.append(TextDB.format_text("story_events.ui.queue_progress", [main.story_event_current_index, main.story_event_total_count]))
 	main.story_event_subtitle.text = " / ".join(subtitle_parts)
 	main.story_event_subtitle.visible = false
-	main.story_event_body.text = str(event_view.get("description", ""))
+	main.story_event_body.text = main._format_event_description_body(str(event_view.get("description", "")))
 	main.story_event_body.scroll_to_line(0)
 	for child in main.story_event_plan_list.get_children():
 		child.queue_free()
@@ -315,25 +317,25 @@ func _apply_plan_button_style(button: Button, highlighted: bool) -> void:
 	if button == null:
 		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.14, 0.14, 0.16, 0.92)
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
+	style.bg_color = UI_PALETTE.alpha(UI_PALETTE.INK.lightened(0.02), 0.92)
+	style.border_width_left = 0
+	style.border_width_top = 0
+	style.border_width_right = 0
+	style.border_width_bottom = 0
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
 	if highlighted:
-		style.bg_color = Color(0.27, 0.24, 0.18, 0.98)
-		style.border_color = Color(0.84, 0.72, 0.48, 0.98)
+		style.bg_color = UI_PALETTE.alpha(UI_PALETTE.SAGE.darkened(0.18), 0.98)
+		style.border_color = UI_PALETTE.alpha(UI_PALETTE.SAGE.lightened(0.18), 0.98)
 	else:
-		style.border_color = Color(0.34, 0.32, 0.28, 0.9)
+		style.border_color = UI_PALETTE.alpha(UI_PALETTE.SLATE, 0.90)
 	button.add_theme_stylebox_override("normal", style)
 	button.add_theme_stylebox_override("hover", style)
 	button.add_theme_stylebox_override("pressed", style)
 	button.add_theme_stylebox_override("focus", style)
-	button.add_theme_color_override("font_color", Color(1.0, 0.97, 0.90, 1.0) if highlighted else Color(0.90, 0.88, 0.82, 0.98))
+	button.add_theme_color_override("font_color", UI_PALETTE.alpha(UI_PALETTE.PAPER, 1.0) if highlighted else UI_PALETTE.alpha(UI_PALETTE.PAPER, 0.92))
 
 func _on_plan_hovered(plan_id: String, button: Button) -> void:
 	if hovered_plan_button != null and hovered_plan_button != button:
